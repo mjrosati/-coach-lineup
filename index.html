@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080b10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Coach Lineup">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+<title>Coach Lineup</title>
+</head>
+<body>
+<div id="auth" class="screen">
+  <div class="auth-card">
+    <div class="logo">🏈 <b>COACH <span>LINEUP</span></b></div>
+    <h1 id="authTitle">Sign in</h1>
+    <p class="muted">Your team's lineup and game data sync across coaches' phones and tablets.</p>
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button class="primary" id="authBtn">Sign in</button>
+    <button class="link" id="toggleAuth">Create an account</button>
+    <p id="authMsg" class="msg"></p>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <header class="top">
+    <div class="brand">🏈 COACH <span>LINEUP</span></div>
+    <select id="lineSelect"></select>
+    <div class="spacer"></div>
+    <button class="toggle active" id="namesBtn">NAMES</button><button class="toggle" id="numbersBtn">NUMBERS</button>
+    <button class="iconBtn" id="teamBtn">TEAM</button>
+  </header>
+  <main class="layout">
+    <aside class="sidebar">
+      <div class="teamHead"><div><b id="teamName">No Team</b><small id="teamRole"></small></div><button class="iconBtn" id="logoutBtn">↪</button></div>
+      <button class="primary full" id="addPlayerBtn">+ ADD PLAYER</button>
+      <input id="search" class="search" placeholder="Search players...">
+      <div id="players"></div>
+      <button class="secondary full" id="linesBtn">MANAGE LINES</button>
+      <button class="secondary full" id="positionsBtn">EDIT POSITION LABELS</button>
+    </aside>
+    <section class="main">
+      <div class="toolbar"><b>PLAY #<span id="playNo">0</span></b><span>1ST & 10</span><span>BALL ON 45</span><span class="spacer"></span><span id="warning"></span></div>
+      <div class="fieldArea"><div id="field" class="field"><div class="mid"></div><div class="tag offense">OFFENSE</div><div class="tag defense">DEFENSE</div></div></div>
+      <div class="bottom">
+        <button class="chip" id="prevBtn">‹ PREV</button>
+        <div id="lineChips"></div>
+        <button class="chip" id="nextBtn">NEXT ›</button>
+        <span class="statsSummary" id="summary"></span>
+      </div>
+    </section>
+    <aside class="actions">
+      <button class="next" id="nextSide">NEXT PLAY</button>
+      <button id="subBtn">SUBSTITUTE</button>
+      <button id="statsBtn">STATS</button>
+      <button id="gameBtn">GAME</button>
+    </aside>
+  </main>
+</div>
+
+<div id="modal" class="modalWrap hidden"><div class="modal" id="modalBody"></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body></html>
