@@ -587,3 +587,226 @@
   font-weight:900;
   letter-spacing:.5px;
 }
+
+/* Mobile tablet-style layout
+   Goal: make phone portrait feel like a compact tablet instead of a squeezed desktop. */
+@media(max-width:760px) and (orientation:portrait){
+
+  body:not(.mode-desktop) .top{
+    height:auto;
+    min-height:58px;
+    display:grid;
+    grid-template-columns:auto minmax(110px,1fr) auto auto auto;
+    gap:6px;
+    padding:8px 8px;
+  }
+  body:not(.mode-desktop) .top .homeBtn{grid-column:1}
+  body:not(.mode-desktop) .top #lineSelect{
+    grid-column:2;
+    max-width:none;
+    width:100%;
+    min-width:0;
+    font-size:12px;
+    font-weight:800;
+  }
+  body:not(.mode-desktop) .top #namesBtn,
+  body:not(.mode-desktop) .top #numbersBtn,
+  body:not(.mode-desktop) .top #teamBtn{
+    min-width:0;
+    padding:9px 8px;
+    font-size:11px;
+  }
+  body:not(.mode-desktop) .top .brand,
+  body:not(.mode-desktop) .top .spacer{
+    display:none;
+  }
+
+  body:not(.mode-desktop) .layout{
+    display:flex;
+    flex-direction:column;
+    min-height:calc(100dvh - 58px);
+  }
+
+  body:not(.mode-desktop) .sidebar{
+    display:none!important;
+  }
+
+  body:not(.mode-desktop) .main{
+    width:100%;
+    order:1;
+  }
+
+  body:not(.mode-desktop) .gameToolbar{
+    display:grid;
+    grid-template-columns:auto 1fr auto;
+    gap:6px;
+    min-height:0;
+    padding:6px 8px;
+    background:#090d13;
+  }
+
+  body:not(.mode-desktop) .gameToolbar>b{
+    grid-column:1;
+    align-self:center;
+    width:auto;
+    font-size:12px;
+  }
+
+  body:not(.mode-desktop) .gameToolbar .viewTabs{
+    grid-column:1 / -1;
+    grid-row:2;
+    order:initial;
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr 1fr 1.35fr;
+    gap:5px;
+  }
+
+  body:not(.mode-desktop) .gameToolbar .viewTab{
+    min-height:42px;
+    font-size:11px;
+    padding:8px 4px;
+  }
+
+  body:not(.mode-desktop) .gameToolbar #editFieldBtn{
+    grid-column:2;
+    grid-row:1;
+    justify-self:start;
+    min-height:38px;
+    padding:8px 10px;
+    font-size:10px;
+  }
+
+  body:not(.mode-desktop) .gameToolbar #warning{
+    grid-column:3;
+    grid-row:1;
+    align-self:center;
+    justify-self:end;
+    font-size:10px;
+    white-space:nowrap;
+  }
+
+  body:not(.mode-desktop) .gameToolbar .specialUnitSelect{
+    grid-column:1 / -1;
+    grid-row:3;
+    width:100%;
+    max-width:none;
+  }
+
+  /* Use a tablet-like full-width field with enough height to read the formation. */
+  body:not(.mode-desktop) .fieldArea{
+    width:100%;
+    min-height:52vh;
+    padding:4px;
+    overflow:hidden;
+    justify-content:center;
+    align-items:stretch;
+    background:#041007;
+  }
+
+  body:not(.mode-desktop) .field{
+    width:100%;
+    height:auto;
+    min-width:0!important;
+    max-width:none!important;
+    aspect-ratio:1.05;
+  }
+
+  body:not(.mode-desktop) .slot{
+    min-width:58px!important;
+    max-width:78px!important;
+    padding:6px 4px!important;
+    font-size:10px!important;
+    line-height:1.05!important;
+  }
+
+  body:not(.mode-desktop) .slot small{
+    font-size:8px!important;
+    margin-top:2px;
+  }
+
+  body:not(.mode-desktop) .tag{
+    font-size:10px;
+    padding:4px 10px;
+  }
+
+  /* Tablet-style action dock below the field instead of a narrow right rail. */
+  body:not(.mode-desktop) .actions{
+    order:2;
+    width:100%!important;
+    display:grid!important;
+    grid-template-columns:1.35fr 1fr 1fr 1fr;
+    gap:6px;
+    padding:7px 8px;
+    border-left:0;
+    border-top:1px solid #202a38;
+    background:#0d121a;
+  }
+
+  body:not(.mode-desktop) .actions button{
+    min-height:48px;
+    padding:7px 4px;
+    font-size:10px;
+    line-height:1.05;
+  }
+
+  body:not(.mode-desktop) .actions .next{
+    min-height:48px;
+    font-size:13px;
+  }
+
+  body:not(.mode-desktop) .actions #resetFieldBtn,
+  body:not(.mode-desktop) .actions #fullscreenBtn,
+  body:not(.mode-desktop) .actions #rotateFieldBtn{
+    grid-column:auto;
+  }
+
+  /* Put line rotation directly below the field, horizontally like tablet controls. */
+  body:not(.mode-desktop) .bottom{
+    display:grid;
+    grid-template-columns:auto 1fr auto;
+    gap:6px;
+    min-height:58px;
+    padding:6px 8px;
+    overflow:visible;
+  }
+
+  body:not(.mode-desktop) .bottom #lineChips{
+    display:flex;
+    gap:5px;
+    overflow-x:auto;
+    min-width:0;
+    padding-bottom:2px;
+    scrollbar-width:none;
+  }
+
+  body:not(.mode-desktop) .bottom #lineChips::-webkit-scrollbar{display:none}
+
+  body:not(.mode-desktop) .lineChip{
+    flex:0 0 auto;
+    min-height:42px;
+    font-size:10px;
+    padding:8px 9px;
+  }
+
+  body:not(.mode-desktop) .bottom #prevBtn,
+  body:not(.mode-desktop) .bottom #nextBtn{
+    min-height:44px;
+    padding:8px 10px;
+    font-size:10px;
+  }
+
+  body:not(.mode-desktop) .statsSummary{
+    display:none;
+  }
+}
+
+/* Keep mobile landscape close to tablet presentation too. */
+@media(max-width:950px) and (orientation:landscape){
+  body:not(.mode-desktop) .actions{
+    width:92px;
+  }
+  body:not(.mode-desktop) .fieldArea{
+    min-height:0;
+  }
+}
