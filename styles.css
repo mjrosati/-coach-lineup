@@ -810,3 +810,43 @@
     min-height:0;
   }
 }
+
+/* Mobile field rotation fix:
+   ROTATE FIELD turns the field 90 degrees on phone portrait,
+   while keeping all player labels upright and readable. */
+@media(max-width:760px) and (orientation:portrait){
+  .field.field-mobile-rotated{
+    transform:rotate(90deg);
+    transform-origin:50% 50%;
+  }
+
+  /* Counter-rotate readable items */
+  .field.field-mobile-rotated .slot{
+    transform:translate(-50%,-50%) rotate(-90deg)!important;
+  }
+  .field.field-mobile-rotated .tag{
+    transform:translateX(-50%) rotate(-90deg)!important;
+  }
+  .field.field-mobile-rotated .fieldLogoMark{
+    transform:translate(-50%,-50%) rotate(-98deg)!important;
+  }
+  .field.field-mobile-rotated .yardNumber{
+    transform:translateX(-50%) rotate(-90deg)!important;
+  }
+  .field.field-mobile-rotated .bottomNum{
+    transform:translateX(-50%) rotate(90deg)!important;
+  }
+
+  /* Give a little breathing room after the 90° turn */
+  body:not(.mode-desktop) .fieldArea{
+    padding:10px 8px!important;
+  }
+}
+
+/* Smooth but quick orientation change */
+.field{
+  transition:transform .18s ease;
+}
+@media(prefers-reduced-motion:reduce){
+  .field{transition:none}
+}

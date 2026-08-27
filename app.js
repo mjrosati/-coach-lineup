@@ -104,15 +104,27 @@ function toggleEditField(){
 function applyFieldRotation(){
   const f=$('field');
   if(!f) return;
-  f.classList.toggle('field-flipped',fieldFlipped);
+
+  const phonePortrait=window.matchMedia('(max-width:760px) and (orientation:portrait)').matches;
+  f.classList.remove('field-flipped','field-mobile-rotated');
+
+  if(fieldFlipped){
+    if(phonePortrait) f.classList.add('field-mobile-rotated');
+    else f.classList.add('field-flipped');
+  }
+
   const btn=$('rotateFieldBtn');
-  if(btn) btn.textContent=fieldFlipped?'UNFLIP FIELD':'ROTATE FIELD';
+  if(btn) btn.textContent=fieldFlipped ? (phonePortrait?'NORMAL FIELD':'UNFLIP FIELD') : 'ROTATE FIELD';
 }
+
 function toggleFieldRotation(){
   fieldFlipped=!fieldFlipped;
   localStorage.setItem('coachLineupFieldFlipped',fieldFlipped?'1':'0');
   applyFieldRotation();
 }
+
+window.addEventListener('orientationchange',()=>setTimeout(applyFieldRotation,150));
+window.addEventListener('resize',()=>applyFieldRotation());
 
 function setFieldFullscreen(on){
   fieldFullscreen=!!on;
