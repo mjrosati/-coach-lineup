@@ -33,6 +33,15 @@ function closeModal(){ $('modal').classList.add('hidden'); }
 function showAuth(){ $('auth').classList.remove('hidden'); $('app').classList.add('hidden'); }
 function showApp(){ $('auth').classList.add('hidden'); $('app').classList.remove('hidden'); }
 function msg(t){ $('authMsg').textContent=t||''; }
+function updateConnectionStatus(){
+  const el=$('syncStatus');
+  if(!el) return;
+  const online=navigator.onLine;
+  el.textContent=online?'● LIVE':'● OFFLINE';
+  el.classList.toggle('offline',!online);
+}
+window.addEventListener('online',updateConnectionStatus);
+window.addEventListener('offline',updateConnectionStatus);
 function userId(){ return sb.auth.getUser().then(r=>r.data.user?.id); }
 function roleCanEdit(){ return membership && ['owner','admin','coach'].includes(membership.role); }
 
@@ -163,7 +172,10 @@ async function boot(){
     },0);
   });
 
-  if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').then(reg=>reg.update()).catch(()=>{});
+  }
+  updateConnectionStatus();
 }
 
 async function loadApp(){
