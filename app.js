@@ -44,6 +44,8 @@ window.addEventListener('online',updateConnectionStatus);
 window.addEventListener('offline',updateConnectionStatus);
 function userId(){ return sb.auth.getUser().then(r=>r.data.user?.id); }
 function roleCanEdit(){ return membership && ['owner','admin','coach'].includes(membership.role); }
+function roleIsAdmin(){ return membership && ['owner','admin'].includes(membership.role); }
+function roleIsOwner(){ return membership?.role==='owner'; }
 
 
 const ALLOWED_REGULAR_SLOTS=new Set(DEFAULT_POS.map(x=>x[2]));
@@ -180,12 +182,19 @@ async function boot(){
 
 async function loadApp(){
   showApp();
+
+  // Load only memberships belonging to the current signed-in user.
+  const uid=await userId();
+  if(!uid){ showAuth(); return; }
+
   const {data,error}=await sb
     .from('team_members')
-    .select('team_id,role,created_at,teams(id,name,invite_code,warning_threshold,created_by)')
+    .select('team_id,user_id,role,created_at,teams(id,name,invite_code,warning_threshold,created_by)')
+    .eq('user_id',uid)
     .order('created_at',{ascending:true});
   if(error){ alert(error.message); return; }
   if(!data?.length){ openTeamModal(true); return; }
+
   membership=data[0];
   team=data[0].teams;
   threshold=Number(team.warning_threshold||75);
@@ -228,7 +237,7 @@ function openRosterManager(){
     <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button><button class="primary" onclick="closeModal();openPlayerModal()">+ ADD PLAYER</button></div>`);
 }
 function openTeamSettings(){
-  const isAdmin=['owner','admin'].includes(membership?.role);
+  const isAdmin=roleIsAdmin();
   openModal(`<h2>Team Settings</h2>
     <div class="notice"><b>${esc(team?.name||'Team')}</b><br>Invite code:<br><span class="inviteCode">${esc(team?.invite_code||'')}</span></div>
     <p class="muted">Share this code only with coaches you want to join the team.</p>
@@ -245,11 +254,11 @@ function openTeamSettings(){
 }
 
 async function openTeamAdmin(){
-  if(!['owner','admin'].includes(membership?.role)) return alert('Team Admin is restricted to owners and admins.');
+  if(!roleIsAdmin()) return alert('Team Admin is restricted to owners and admins.');
   const {data,error}=await sb.rpc('get_team_admin_members',{p_team_id:team.id});
   if(error) return alert(error.message);
   const members=data||[];
-  const isOwner=membership?.role==='owner';
+  const isOwner=roleIsOwner();
 
   openModal(`<h2>Team Admin</h2>
     <div class="notice">
