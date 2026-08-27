@@ -22,6 +22,7 @@ const DEFAULT_POS = [
 let team=null, membership=null, lines=[], players=[], positions=[], assignments=[];
 let currentLine=0, displayMode='names', currentGame=null, playCount=0, counts={}, threshold=75, channel=null;
 let activeView='offense', editFieldMode=false, specialUnits=[], specialSlots=[], specialAssignments=[], currentSpecialUnit=0, deviceMode=localStorage.getItem('coachLineupDeviceMode')||'auto';
+let fieldFullscreen=false;
 let pendingLineupLabel='Current lineup';
 
 const $=id=>document.getElementById(id);
@@ -96,6 +97,33 @@ function toggleEditField(){
   $('editFieldBtn').classList.toggle('activeEdit',editFieldMode);
   renderField();
 }
+
+
+function setFieldFullscreen(on){
+  fieldFullscreen=!!on;
+  document.body.classList.toggle('field-fullscreen',fieldFullscreen);
+  const btn=$('fullscreenBtn');
+  if(btn) btn.textContent=fieldFullscreen?'EXIT FULL SCREEN':'FULL SCREEN';
+
+  if(fieldFullscreen){
+    document.documentElement.requestFullscreen?.().catch(()=>{});
+    try{ screen.orientation?.lock?.('landscape').catch(()=>{}); }catch(e){}
+  }else{
+    if(document.fullscreenElement) document.exitFullscreen?.().catch(()=>{});
+    try{ screen.orientation?.unlock?.(); }catch(e){}
+  }
+  renderField();
+}
+function toggleFieldFullscreen(){ setFieldFullscreen(!fieldFullscreen); }
+
+document.addEventListener('fullscreenchange',()=>{
+  if(!document.fullscreenElement && fieldFullscreen){
+    fieldFullscreen=false;
+    document.body.classList.remove('field-fullscreen');
+    const btn=$('fullscreenBtn');
+    if(btn) btn.textContent='FULL SCREEN';
+  }
+});
 
 async function boot(){
   applyDeviceMode();
@@ -1104,6 +1132,7 @@ $('defenseTab').onclick=()=>setActiveView('defense');
 $('specialTab').onclick=()=>setActiveView('special');
 $('editFieldBtn').onclick=toggleEditField;
 $('resetFieldBtn').onclick=resetCurrentField;
+$('fullscreenBtn').onclick=toggleFieldFullscreen;
 $('specialUnitSelect').onchange=e=>{currentSpecialUnit=Number(e.target.value);renderField();};
 $('homeBtn').onclick=showDashboard;
 $('dashLogout').onclick=()=>sb.auth.signOut();

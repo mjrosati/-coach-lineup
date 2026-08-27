@@ -140,3 +140,228 @@
 /* Tablet keeps a roomy center field without forced horizontal scrolling. */
 .mode-tablet .fieldArea{overflow:hidden;justify-content:center}
 .mode-tablet .field{width:100%;min-width:0!important;max-width:1050px}
+
+/* Desktop field expansion — maximize usable field area */
+.mode-desktop .layout{
+  height:calc(100dvh - 62px);
+  min-height:0;
+}
+.mode-desktop .main{
+  min-width:0;
+  height:100%;
+}
+.mode-desktop .toolbar{
+  min-height:54px;
+  justify-content:center;
+  gap:10px;
+}
+.mode-desktop .toolbar>b{
+  margin-right:auto;
+}
+.mode-desktop .toolbar .spacer{
+  display:none;
+}
+.mode-desktop .toolbar #warning{
+  margin-left:auto;
+}
+.mode-desktop .viewTabs{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+}
+.mode-desktop .fieldArea{
+  flex:1;
+  min-height:0;
+  padding:6px 10px;
+  overflow:hidden;
+  align-items:stretch;
+  justify-content:center;
+}
+.mode-desktop .field{
+  width:100%;
+  height:100%;
+  max-width:none;
+  min-width:0!important;
+  aspect-ratio:auto;
+  border-width:2px;
+}
+.mode-desktop .bottom{
+  min-height:54px;
+  padding:6px 10px;
+}
+.mode-desktop .slot{
+  min-width:86px;
+  max-width:108px;
+  padding:7px 6px;
+  font-size:13px;
+  border-width:2px;
+  border-radius:7px;
+}
+.mode-desktop .slot small{
+  font-size:11px;
+  margin-top:2px;
+}
+.mode-desktop .tag{
+  font-size:13px;
+  padding:6px 22px;
+}
+.mode-desktop .sidebar{
+  width:300px;
+}
+.mode-desktop .actions{
+  width:132px;
+}
+.mode-desktop .actions button{
+  min-height:52px;
+}
+.mode-desktop .lineChip{
+  font-size:12px;
+  padding:8px 11px;
+}
+
+/* Large desktop screens get an even roomier formation */
+@media(min-width:1400px){
+  .mode-desktop .sidebar{width:320px}
+  .mode-desktop .actions{width:145px}
+  .mode-desktop .slot{
+    min-width:96px;
+    max-width:118px;
+    padding:8px 7px;
+    font-size:14px;
+  }
+  .mode-desktop .slot small{font-size:12px}
+  .mode-desktop .tag{font-size:14px}
+}
+
+/* Auto mode on true desktop screens should also make better use of space */
+@media(min-width:1100px) and (min-height:700px){
+  body:not(.mode-mobile):not(.mode-tablet):not(.mode-desktop) .layout{
+    height:calc(100dvh - 62px);
+    min-height:0;
+  }
+  body:not(.mode-mobile):not(.mode-tablet):not(.mode-desktop) .fieldArea{
+    flex:1;
+    min-height:0;
+    padding:8px;
+    overflow:hidden;
+    align-items:stretch;
+  }
+  body:not(.mode-mobile):not(.mode-tablet):not(.mode-desktop) .field{
+    width:100%;
+    height:100%;
+    max-width:none;
+    min-width:0!important;
+    aspect-ratio:auto;
+  }
+}
+
+/* Combined Desktop Max Field + Field Full Screen */
+.fullscreenControls{display:none}
+
+.field-fullscreen{
+  overflow:hidden;
+  background:#020503;
+}
+.field-fullscreen .top,
+.field-fullscreen .sidebar,
+.field-fullscreen .actions,
+.field-fullscreen .bottom{
+  display:none!important;
+}
+.field-fullscreen .layout,
+.field-fullscreen .main{
+  width:100vw!important;
+  height:100dvh!important;
+  min-height:100dvh!important;
+}
+.field-fullscreen .gameToolbar{
+  position:fixed;
+  z-index:60;
+  top:max(8px,env(safe-area-inset-top));
+  left:50%;
+  transform:translateX(-50%);
+  width:auto;
+  max-width:96vw;
+  min-height:0;
+  background:#071018e8;
+  border:1px solid #31445c;
+  border-radius:12px;
+  box-shadow:0 10px 30px #0008;
+  padding:6px 8px;
+}
+.field-fullscreen .gameToolbar>b,
+.field-fullscreen .gameToolbar #warning,
+.field-fullscreen .gameToolbar .spacer{
+  display:none!important;
+}
+.field-fullscreen .editFieldBtn{
+  display:none!important;
+}
+.field-fullscreen .fieldArea{
+  position:fixed!important;
+  inset:0!important;
+  width:100vw!important;
+  height:100dvh!important;
+  padding:0!important;
+  margin:0!important;
+  overflow:hidden!important;
+  display:flex!important;
+  align-items:stretch!important;
+  justify-content:stretch!important;
+  background:#020503;
+}
+.field-fullscreen .field{
+  width:100vw!important;
+  height:100dvh!important;
+  max-width:none!important;
+  min-width:0!important;
+  aspect-ratio:auto!important;
+  border:0!important;
+}
+.field-fullscreen .slot{
+  min-width:72px;
+  max-width:102px;
+  padding:6px 5px;
+  font-size:12px;
+}
+.field-fullscreen .slot small{font-size:10px}
+.field-fullscreen .tag{top:58px!important}
+.field-fullscreen .fullscreenControls{
+  position:fixed;
+  z-index:70;
+  right:max(8px,env(safe-area-inset-right));
+  bottom:max(8px,env(safe-area-inset-bottom));
+  display:flex!important;
+  gap:6px;
+  align-items:center;
+}
+.field-fullscreen .fullscreenControls button{
+  padding:9px 12px;
+  font-weight:800;
+  border-radius:9px;
+}
+@media(max-width:760px){
+  .field-fullscreen .gameToolbar{
+    top:max(4px,env(safe-area-inset-top));
+    max-width:98vw;
+    padding:4px;
+  }
+  .field-fullscreen .viewTab{font-size:10px;padding:7px 8px}
+  .field-fullscreen .specialUnitSelect{font-size:10px;padding:7px}
+  .field-fullscreen .slot{
+    min-width:50px;
+    max-width:68px;
+    padding:4px 2px;
+    font-size:8px;
+  }
+  .field-fullscreen .slot small{font-size:7px}
+  .field-fullscreen .tag{top:48px!important;font-size:10px}
+  .field-fullscreen .fullscreenControls{
+    right:max(4px,env(safe-area-inset-right));
+    bottom:max(4px,env(safe-area-inset-bottom));
+  }
+  .field-fullscreen .fullscreenControls button{
+    padding:7px 9px;
+    font-size:10px;
+  }
+}

@@ -66,6 +66,12 @@
     <button class="toggle active" id="namesBtn">NAMES</button><button class="toggle" id="numbersBtn">NUMBERS</button>
     <button class="iconBtn" id="teamBtn">TEAM</button>
   </header>
+  <div class="fullscreenControls">
+    <button class="secondary" onclick="setFieldFullscreen(false)">EXIT FULL SCREEN</button>
+    <button class="toggle" onclick="displayMode='names';renderField()">NAMES</button>
+    <button class="toggle" onclick="displayMode='numbers';renderField()">NUMBERS</button>
+    <button class="primary" onclick="nextPlay()">NEXT PLAY</button>
+  </div>
   <main class="layout">
     <aside class="sidebar">
       <div class="teamHead"><div><b id="teamName">No Team</b><small id="teamRole"></small></div><button class="iconBtn" id="logoutBtn">↪</button></div>
@@ -101,6 +107,7 @@
       <button id="statsBtn">STATS</button>
       <button id="gameBtn">GAME</button>
       <button id="resetFieldBtn">RESET FIELD</button>
+      <button id="fullscreenBtn">FULL SCREEN</button>
     </aside>
   </main>
 </div>
