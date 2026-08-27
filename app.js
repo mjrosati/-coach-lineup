@@ -141,11 +141,41 @@ document.addEventListener('fullscreenchange',()=>{
   }
 });
 
+let appLoadInProgress=false;
+
+async function loadAppSafe(){
+  if(appLoadInProgress) return;
+  appLoadInProgress=true;
+  try{
+    await loadApp();
+  }catch(e){
+    console.error('Coach Lineup load failed:',e);
+    msg('Signed in, but the app could not finish loading. Please try again.');
+    showAuth();
+  }finally{
+    appLoadInProgress=false;
+  }
+}
+
 async function boot(){
   applyDeviceMode();
-  const {data:{session}}=await sb.auth.getSession();
-  if(session) await loadApp(); else showAuth();
-  sb.auth.onAuthStateChange(async(_e,s)=>{ if(s) await loadApp(); else showAuth(); });
+
+  const {data:{session},error}=await sb.auth.getSession();
+  if(error) console.error('Session check failed:',error);
+
+  if(session) await loadAppSafe();
+  else showAuth();
+
+  // Do not await database/API calls directly inside Supabase's auth callback.
+  // Scheduling the app load outside the callback prevents the auth transition
+  // from stalling after a successful password login.
+  sb.auth.onAuthStateChange((_event,s)=>{
+    setTimeout(()=>{
+      if(s) loadAppSafe();
+      else showAuth();
+    },0);
+  });
+
   if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
 }
 
@@ -1202,9 +1232,37 @@ $('authBtn').onclick=async()=>{
   msg('');
   const email=$('email').value.trim(), password=$('password').value;
   if(!email||!password) return msg('Enter email and password.');
+
   const create=$('authBtn').dataset.create==='1';
-  const r=create?await sb.auth.signUp({email,password}):await sb.auth.signInWithPassword({email,password});
-  if(r.error) msg(r.error.message); else if(create) msg('Account created. Check your email if Supabase asks you to confirm it.');
+  const btn=$('authBtn');
+  const originalText=btn.textContent;
+  btn.disabled=true;
+  btn.textContent=create?'Creating...':'Signing in...';
+
+  try{
+    const r=create
+      ? await sb.auth.signUp({email,password})
+      : await sb.auth.signInWithPassword({email,password});
+
+    if(r.error){
+      msg(r.error.message);
+      return;
+    }
+
+    if(create){
+      msg('Account created. Check your email if Supabase asks you to confirm it.');
+      return;
+    }
+
+    // Password authentication succeeded. Load the team/dashboard immediately.
+    await loadAppSafe();
+  }catch(e){
+    console.error('Sign in failed:',e);
+    msg(e?.message||'Unable to sign in. Please try again.');
+  }finally{
+    btn.disabled=false;
+    btn.textContent=originalText;
+  }
 };
 $('toggleAuth').onclick=()=>{
   const create=$('authBtn').dataset.create!=='1';
