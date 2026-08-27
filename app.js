@@ -67,9 +67,10 @@ const SPECIAL_DEFAULTS={
 function applyDeviceMode(mode=deviceMode){
   deviceMode=mode;
   localStorage.setItem('coachLineupDeviceMode',mode);
-  document.body.classList.remove('mode-mobile','mode-tablet');
+  document.body.classList.remove('mode-mobile','mode-tablet','mode-desktop');
   if(mode==='mobile') document.body.classList.add('mode-mobile');
   if(mode==='tablet') document.body.classList.add('mode-tablet');
+  if(mode==='desktop') document.body.classList.add('mode-desktop');
 }
 function displayYForRegular(p){
   const y=Number(p.y_pct);
@@ -163,6 +164,7 @@ function openTeamSettings(){
         <option value="auto" ${deviceMode==='auto'?'selected':''}>AUTO</option>
         <option value="mobile" ${deviceMode==='mobile'?'selected':''}>MOBILE</option>
         <option value="tablet" ${deviceMode==='tablet'?'selected':''}>TABLET</option>
+        <option value="desktop" ${deviceMode==='desktop'?'selected':''}>DESKTOP</option>
       </select>
     </label>
     ${isAdmin?`<button class="primary full" onclick="openTeamAdmin()">🛡️ TEAM ADMIN</button>`:''}
@@ -409,6 +411,13 @@ function renderField(){
   const f=$('field');
   f.querySelectorAll('.slot').forEach(x=>x.remove());
   f.classList.toggle('editing',editFieldMode);
+  f.classList.remove('view-offense','view-defense','view-special');
+  f.classList.add('view-'+activeView);
+
+  const offenseTag=f.querySelector('.tag.offense');
+  const defenseTag=f.querySelector('.tag.defense');
+  if(offenseTag) offenseTag.style.display=activeView==='offense'?'block':'none';
+  if(defenseTag) defenseTag.style.display=activeView==='defense'?'block':'none';
 
   if(activeView==='special'){
     const unit=specialUnits[currentSpecialUnit];
