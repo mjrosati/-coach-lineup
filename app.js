@@ -442,8 +442,25 @@ function currentLineAssignments(){
   return assignments.filter(a=>a.line_id===line.id);
 }
 
+
+function ensureFieldDecor(){
+  const f=$('field');
+  if(!f || f.querySelector('.fieldDecor')) return;
+  const d=document.createElement('div');
+  d.className='fieldDecor';
+  const nums=['10','20','30','40','50','40','30','20','10'];
+  d.innerHTML=`
+    <div class="fieldLogoMark">COACH <span>LINEUP</span></div>
+    ${nums.map((n,i)=>`<span class="yardNumber topNum" style="left:${10+i*10}%">${n}</span>`).join('')}
+    ${nums.map((n,i)=>`<span class="yardNumber bottomNum" style="left:${10+i*10}%">${n}</span>`).join('')}
+    <div class="hashRow hashTop"></div>
+    <div class="hashRow hashBottom"></div>`;
+  f.prepend(d);
+}
+
 function renderField(){
   const f=$('field');
+  ensureFieldDecor();
   f.querySelectorAll('.slot').forEach(x=>x.remove());
   f.classList.toggle('editing',editFieldMode);
   f.classList.remove('view-offense','view-defense','view-special');
@@ -1032,6 +1049,7 @@ async function finishGame(){
 }
 
 async function nextPlay(){
+  if(nextPlay.busy) return;
   if(!currentGame){ openGameSetup(); return; }
   const line=lines[currentLine]; if(!line) return alert('Create a line first.');
 
@@ -1050,24 +1068,49 @@ async function nextPlay(){
       .filter(a=>posById.has(a.position_label_id))
       .map(a=>({player_id:a.player_id,position_label:posById.get(a.position_label_id)?.label||''}));
   }
-  if(!participants.length) return alert('There are no players assigned to this view yet.');
 
-  // One player is counted once per play even if a formation contains a duplicate assignment.
+  if(!participants.length){
+    alert(`No players are assigned to the ${activeView==='special'?(specialUnits[currentSpecialUnit]?.name||'Special Teams'):activeView.toUpperCase()} view yet.`);
+    return;
+  }
+
   const unique=[...new Map(participants.map(x=>[x.player_id,x])).values()];
-  const uid=await userId();
   const note=activeView==='special' ? `special:${specialUnits[currentSpecialUnit]?.name||''}` : activeView;
-  const {data:gp,error}=await sb.from('game_plays').insert({
-    game_id:currentGame.id, play_number:playCount+1, line_id:line.id, created_by:uid, note
-  }).select().single();
-  if(error) return alert(error.message);
 
-  const rows=unique.map(x=>({play_id:gp.id,player_id:x.player_id,position_label:x.position_label}));
-  const pp=await sb.from('play_participants').insert(rows);
-  if(pp.error){ await sb.from('game_plays').delete().eq('id',gp.id); return alert(pp.error.message); }
-  playCount++;
-  rows.forEach(r=>counts[r.player_id]=(counts[r.player_id]||0)+1);
-  currentGame.total_plays=playCount;
-  renderSummary();
+  nextPlay.busy=true;
+  document.querySelectorAll('#nextBtn,#nextSide,.fullscreenControls .primary').forEach(b=>{
+    b.disabled=true; b.classList.add('savingPlay');
+  });
+
+  try{
+    const {data,error}=await sb.rpc('record_game_play',{
+      p_game_id:currentGame.id,
+      p_line_id:line.id,
+      p_note:note,
+      p_participants:unique
+    });
+    if(error) throw error;
+
+    const result=Array.isArray(data)?data[0]:data;
+    playCount=Number(result?.total_plays ?? result?.play_number ?? (playCount+1));
+    currentGame.total_plays=playCount;
+    unique.forEach(r=>counts[r.player_id]=(counts[r.player_id]||0)+1);
+    renderSummary();
+
+    const flash=$('playNo');
+    flash?.classList.add('playFlash');
+    setTimeout(()=>flash?.classList.remove('playFlash'),450);
+  }catch(e){
+    alert(`Next Play could not be recorded: ${e.message||String(e)}`);
+    await loadCounts();
+    const {data:g}=await sb.from('games').select('total_plays').eq('id',currentGame.id).single();
+    if(g){ playCount=Number(g.total_plays||0); currentGame.total_plays=playCount; renderSummary(); }
+  }finally{
+    nextPlay.busy=false;
+    document.querySelectorAll('#nextBtn,#nextSide,.fullscreenControls .primary').forEach(b=>{
+      b.disabled=false; b.classList.remove('savingPlay');
+    });
+  }
 }
 async function prevPlay(){
   if(!currentGame||playCount<=0) return;
@@ -1077,7 +1120,9 @@ async function prevPlay(){
   const d=await sb.from('game_plays').delete().eq('id',gp.id);
   if(d.error) return alert(d.error.message);
   (pps||[]).forEach(r=>counts[r.player_id]=Math.max(0,(counts[r.player_id]||0)-1));
-  playCount--; currentGame.total_plays=playCount; renderSummary();
+  playCount--; currentGame.total_plays=playCount;
+  await sb.from('games').update({total_plays:playCount}).eq('id',currentGame.id);
+  renderSummary();
 }
 
 function openStats(){
