@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v17-login-transition-fix";
+const CACHE="coach-lineup-v18-dashboard-tabs-fix";
 const CORE=["./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest","./icons/icon-192.png","./icons/icon-512.png"];
 self.addEventListener("install",e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener("activate",e=>e.waitUntil(self.clients.claim()));
