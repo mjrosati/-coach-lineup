@@ -106,6 +106,7 @@ function setFieldFullscreen(on){
   if(btn) btn.textContent=fieldFullscreen?'EXIT FULL SCREEN':'FULL SCREEN';
 
   if(fieldFullscreen){
+    renderLineSelect();
     document.documentElement.requestFullscreen?.().catch(()=>{});
     try{ screen.orientation?.lock?.('landscape').catch(()=>{}); }catch(e){}
   }else{
@@ -411,6 +412,12 @@ function renderLineSelect(){
     $('lineSelect').style.backgroundColor=selected.color||'#2584ff';
     $('lineSelect').style.borderColor=selected.color||'#2584ff';
     $('lineSelect').style.color='#fff';
+    const badge=$('fullscreenLineBadge');
+    if(badge){
+      badge.textContent=selected.name||`LINE ${currentLine+1}`;
+      badge.style.backgroundColor=selected.color||'#2584ff';
+      badge.style.borderColor=selected.color||'#2584ff';
+    }
   }
 }
 
