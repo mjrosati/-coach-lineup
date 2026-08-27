@@ -23,6 +23,7 @@ let team=null, membership=null, lines=[], players=[], positions=[], assignments=
 let currentLine=0, displayMode='names', currentGame=null, playCount=0, counts={}, threshold=75, channel=null;
 let activeView='offense', editFieldMode=false, specialUnits=[], specialSlots=[], specialAssignments=[], currentSpecialUnit=0, deviceMode=localStorage.getItem('coachLineupDeviceMode')||'auto';
 let fieldFullscreen=false;
+let fieldFlipped=localStorage.getItem('coachLineupFieldFlipped')==='1';
 let pendingLineupLabel='Current lineup';
 
 const $=id=>document.getElementById(id);
@@ -98,6 +99,20 @@ function toggleEditField(){
   renderField();
 }
 
+
+
+function applyFieldRotation(){
+  const f=$('field');
+  if(!f) return;
+  f.classList.toggle('field-flipped',fieldFlipped);
+  const btn=$('rotateFieldBtn');
+  if(btn) btn.textContent=fieldFlipped?'UNFLIP FIELD':'ROTATE FIELD';
+}
+function toggleFieldRotation(){
+  fieldFlipped=!fieldFlipped;
+  localStorage.setItem('coachLineupFieldFlipped',fieldFlipped?'1':'0');
+  applyFieldRotation();
+}
 
 function setFieldFullscreen(on){
   fieldFullscreen=!!on;
@@ -461,6 +476,7 @@ function ensureFieldDecor(){
 function renderField(){
   const f=$('field');
   ensureFieldDecor();
+  applyFieldRotation();
   f.querySelectorAll('.slot').forEach(x=>x.remove());
   f.classList.toggle('editing',editFieldMode);
   f.classList.remove('view-offense','view-defense','view-special');
@@ -543,10 +559,15 @@ async function openSpecialAssignment(slotId){
   const unit=specialUnits[currentSpecialUnit];
   const slot=specialSlots.find(s=>s.id===slotId);
   const existing=specialAssignments.find(a=>a.unit_id===unit.id&&a.slot_id===slotId);
+  const onField=playersCurrentlyOnField();
   openModal(`<h2>${esc(unit.name)} — ${esc(slot?.label||'Position')}</h2>
+    <p class="muted">Players shown in red are already on the field.</p>
     <button class="secondary full" onclick="clearSpecialAssignment('${slotId}')">CLEAR POSITION</button>
     <div class="picker">
-      ${players.map(p=>`<button class="playerPick ${existing?.player_id===p.id?'selected':''}" onclick="assignSpecialPlayer('${slotId}','${p.id}')">#${esc(p.jersey_number)} ${esc(p.name)}</button>`).join('')}
+      ${players.map(p=>{
+        const used=onField.has(p.id);
+        return `<button class="playerPick ${existing?.player_id===p.id?'selected':''} ${used?'onFieldPlayer':''}" onclick="assignSpecialPlayer('${slotId}','${p.id}')">#${esc(p.jersey_number)} ${esc(p.name)}${used?' <span class="usedTag">ON FIELD</span>':''}</button>`;
+      }).join('')}
     </div>
     <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
 }
@@ -687,13 +708,37 @@ async function savePositions(){
   closeModal(); await loadTeamData();
 }
 
+
+function playersCurrentlyOnField(){
+  if(activeView==='special'){
+    const unit=specialUnits[currentSpecialUnit];
+    if(!unit) return new Set();
+    return new Set(
+      specialAssignments
+        .filter(a=>a.unit_id===unit.id)
+        .map(a=>a.player_id)
+    );
+  }
+  const activePositions=new Set(positions.filter(p=>p.side===activeView).map(p=>p.id));
+  return new Set(
+    currentLineAssignments()
+      .filter(a=>activePositions.has(a.position_label_id))
+      .map(a=>a.player_id)
+  );
+}
+
 function openLineupEditor(positionId){
   const pos=positions.find(p=>p.id===positionId);
   const existing=currentLineAssignments().find(a=>a.position_label_id===positionId);
+  const onField=playersCurrentlyOnField();
   openModal(`<h2>${esc(pos?.label||'Position')} — Assign Player</h2>
+    <p class="muted">Players shown in red are already on the field.</p>
     <div class="picker">
       <button class="secondary full" onclick="clearAssignment('${positionId}')">CLEAR POSITION</button>
-      ${players.map(p=>`<button class="playerPick ${existing?.player_id===p.id?'selected':''}" onclick="assignPlayer('${positionId}','${p.id}')">#${esc(p.jersey_number)} ${esc(p.name)}</button>`).join('')}
+      ${players.map(p=>{
+        const used=onField.has(p.id);
+        return `<button class="playerPick ${existing?.player_id===p.id?'selected':''} ${used?'onFieldPlayer':''}" onclick="assignPlayer('${positionId}','${p.id}')">#${esc(p.jersey_number)} ${esc(p.name)}${used?' <span class="usedTag">ON FIELD</span>':''}</button>`;
+      }).join('')}
     </div>
     <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
 }
@@ -1097,6 +1142,13 @@ async function nextPlay(){
     unique.forEach(r=>counts[r.player_id]=(counts[r.player_id]||0)+1);
     renderSummary();
 
+    // Automatically rotate to the next configured line after each recorded play.
+    if(lines.length>1){
+      currentLine=(currentLine+1)%lines.length;
+      renderLineSelect();
+      renderField();
+    }
+
     const flash=$('playNo');
     flash?.classList.add('playFlash');
     setTimeout(()=>flash?.classList.remove('playFlash'),450);
@@ -1185,6 +1237,7 @@ $('specialTab').onclick=()=>setActiveView('special');
 $('editFieldBtn').onclick=toggleEditField;
 $('resetFieldBtn').onclick=resetCurrentField;
 $('fullscreenBtn').onclick=toggleFieldFullscreen;
+$('rotateFieldBtn').onclick=toggleFieldRotation;
 $('specialUnitSelect').onchange=e=>{currentSpecialUnit=Number(e.target.value);renderField();};
 $('homeBtn').onclick=showDashboard;
 $('dashLogout').onclick=()=>sb.auth.signOut();
