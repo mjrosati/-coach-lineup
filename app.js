@@ -23,7 +23,6 @@ let team=null, membership=null, lines=[], players=[], positions=[], assignments=
 let currentLine=0, displayMode='names', currentGame=null, playCount=0, counts={}, threshold=75, channel=null;
 let activeView='offense', editFieldMode=false, specialUnits=[], specialSlots=[], specialAssignments=[], currentSpecialUnit=0, deviceMode=localStorage.getItem('coachLineupDeviceMode')||'auto';
 let fieldFullscreen=false;
-let fieldFlipped=localStorage.getItem('coachLineupFieldFlipped')==='1';
 let pendingLineupLabel='Current lineup';
 
 const $=id=>document.getElementById(id);
@@ -101,30 +100,6 @@ function toggleEditField(){
 
 
 
-function applyFieldRotation(){
-  const f=$('field');
-  if(!f) return;
-
-  const phonePortrait=window.matchMedia('(max-width:760px) and (orientation:portrait)').matches;
-  f.classList.remove('field-flipped','field-mobile-rotated');
-
-  if(fieldFlipped){
-    if(phonePortrait) f.classList.add('field-mobile-rotated');
-    else f.classList.add('field-flipped');
-  }
-
-  const btn=$('rotateFieldBtn');
-  if(btn) btn.textContent=fieldFlipped ? (phonePortrait?'NORMAL FIELD':'UNFLIP FIELD') : 'ROTATE FIELD';
-}
-
-function toggleFieldRotation(){
-  fieldFlipped=!fieldFlipped;
-  localStorage.setItem('coachLineupFieldFlipped',fieldFlipped?'1':'0');
-  applyFieldRotation();
-}
-
-window.addEventListener('orientationchange',()=>setTimeout(applyFieldRotation,150));
-window.addEventListener('resize',()=>applyFieldRotation());
 
 function setFieldFullscreen(on){
   fieldFullscreen=!!on;
@@ -508,17 +483,16 @@ function ensureFieldDecor(){
   const nums=['10','20','30','40','50','40','30','20','10'];
   d.innerHTML=`
     <div class="fieldLogoMark">COACH <span>LINEUP</span></div>
-    ${nums.map((n,i)=>`<span class="yardNumber topNum" style="left:${10+i*10}%">${n}</span>`).join('')}
-    ${nums.map((n,i)=>`<span class="yardNumber bottomNum" style="left:${10+i*10}%">${n}</span>`).join('')}
-    <div class="hashRow hashTop"></div>
-    <div class="hashRow hashBottom"></div>`;
+    ${nums.map((n,i)=>`<span class="yardNumber leftNum" style="top:${10+i*10}%">${n}</span>`).join('')}
+    ${nums.map((n,i)=>`<span class="yardNumber rightNum" style="top:${10+i*10}%">${n}</span>`).join('')}
+    <div class="hashCol hashLeft"></div>
+    <div class="hashCol hashRight"></div>`;
   f.prepend(d);
 }
 
 function renderField(){
   const f=$('field');
   ensureFieldDecor();
-  applyFieldRotation();
   f.querySelectorAll('.slot').forEach(x=>x.remove());
   f.classList.toggle('editing',editFieldMode);
   f.classList.remove('view-offense','view-defense','view-special');
@@ -1307,7 +1281,6 @@ $('specialTab').onclick=()=>setActiveView('special');
 $('editFieldBtn').onclick=toggleEditField;
 $('resetFieldBtn').onclick=resetCurrentField;
 $('fullscreenBtn').onclick=toggleFieldFullscreen;
-$('rotateFieldBtn')?.addEventListener('click',toggleFieldRotation);
 $('specialUnitSelect').onchange=e=>{currentSpecialUnit=Number(e.target.value);renderField();};
 $('homeBtn')?.addEventListener('click',showDashboard);
 $('dashLogout')?.addEventListener('click',()=>sb.auth.signOut());
