@@ -5,3 +5,82 @@
 .playerPick.selected{border-color:#22c55e;background:#14311f}
 .statRow{display:grid;grid-template-columns:52px 1fr 80px 58px;gap:8px;padding:9px 4px;border-bottom:1px solid #263241;align-items:center}
 @media(max-width:650px){.picker{grid-template-columns:1fr}.statRow{grid-template-columns:42px 1fr 65px 48px}}
+
+/* Final sideline UI */
+.dashScreen{min-height:100dvh;background:radial-gradient(circle at 50% -10%,#173458 0,#08111d 34%,#05070a 70%);color:#fff}
+.dashTop{height:68px;display:flex;align-items:center;padding:0 max(18px,env(safe-area-inset-left));border-bottom:1px solid #243247;background:#080d14dd;backdrop-filter:blur(12px)}
+.dashBrand{font-size:20px}.dashBrand span{color:#168cff}.dashTop .secondary{margin-left:auto}
+.dashWrap{width:min(900px,94vw);margin:auto;padding:34px 0 60px}
+.teamHero{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#101b2a,#0c1420);border:1px solid #293a51;border-radius:20px;padding:24px;margin-bottom:18px;box-shadow:0 20px 60px #0005}
+.teamHero h1{font-size:clamp(30px,6vw,52px);margin:3px 0}.eyebrow{font-size:12px;letter-spacing:2px;color:#5ab0ff;font-weight:800}.teamBadge{font-size:58px}
+.dashGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.dashCard{width:100%;display:grid;grid-template-columns:54px 1fr 20px;align-items:center;gap:12px;text-align:left;color:#fff;background:#101722;border:1px solid #2a3a50;border-radius:16px;padding:20px;box-shadow:0 12px 35px #0003}.dashCard:hover{border-color:#168cff}.dashCard b{font-size:18px}.dashCard small{display:block;color:#9eacbd;margin-top:4px;line-height:1.35}.dashCard>span{font-size:28px;color:#65768a}.dashIcon{font-size:30px}.gameDay{margin-bottom:14px;background:linear-gradient(135deg,#0878df,#0759ac);border-color:#2999ff;padding:25px}.gameDay b{font-size:25px}.gameDay small{color:#d7ecff}.dashHint{text-align:center;color:#6f7e91;font-size:12px;margin-top:24px}
+.homeBtn{white-space:nowrap}.activeLine{color:#fff!important}.inviteCode{display:inline-block;font-size:28px;letter-spacing:3px;font-weight:900;color:#58aefc;margin-top:8px}.rosterManage{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:55vh;overflow:auto}.rosterManage small{float:right;color:#94a3b8}
+#nextSide{font-size:15px;font-weight:900;min-height:64px}
+@media(max-width:700px){
+ .dashWrap{padding:18px 0 40px}.dashTop{height:58px}.dashBrand{font-size:16px}.teamHero{padding:18px}.teamBadge{font-size:42px}
+ .dashGrid{grid-template-columns:1fr}.dashCard{padding:16px}.gameDay{padding:20px}.rosterManage{grid-template-columns:1fr}
+ .top{height:56px}.homeBtn{font-size:11px;padding:8px}.top select{max-width:125px;font-size:12px}.toggle{padding:8px;font-size:11px}
+ .actions{width:82px;padding:6px;gap:6px}.actions button{font-size:11px;padding:10px 4px}
+ .toolbar{height:38px}.field{width:100%;min-width:610px}.fieldArea{overflow:auto;justify-content:flex-start}
+ .bottom{min-height:50px}.lineChip{font-size:11px;padding:8px}.desktopOnly{display:none}
+}
+@media(orientation:landscape) and (max-height:600px){
+ .top{height:48px}.layout{min-height:calc(100dvh - 48px);height:calc(100dvh - 48px)}
+ .toolbar{height:32px}.fieldArea{padding:2px;overflow:hidden}.field{min-width:0;width:100%;height:100%;aspect-ratio:auto}
+ .bottom{padding:4px;min-height:42px}.actions{width:92px;padding:5px}.actions button{padding:8px 4px}
+ .slot{min-width:58px;padding:3px;font-size:9px}.slot small{font-size:8px}.tag{padding:3px 12px;font-size:10px}
+}
+
+/* Saved game lineup / template feature */
+.gameLineupChoices{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 16px}
+.gameLineupChoices button{min-height:58px;font-weight:800}
+.lineTemplateActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
+.savedList{display:grid;gap:8px;margin-top:12px;max-height:50vh;overflow:auto}
+.savedRow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:stretch}
+.savedRow .playerPick{display:flex;justify-content:space-between;align-items:center}
+.savedRow .playerPick small{color:#8fa0b4;margin-left:12px}
+.dangerBtn{background:#2b1115;color:#ff8a95;border:1px solid #6f2630;border-radius:7px;padding:8px 12px;font-weight:800}
+@media(max-width:700px){
+  .gameLineupChoices{grid-template-columns:1fr}
+  .lineTemplateActions{grid-template-columns:1fr}
+}
+
+/* Team Admin */
+.adminMemberList{display:grid;gap:8px;margin:10px 0 16px}
+.adminMemberRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;background:#0b121c;border:1px solid #26364a;border-radius:10px;padding:12px}
+.adminMemberRow small{display:block;color:#8fa0b4;margin-top:3px}
+.adminMemberActions{display:flex;align-items:center;gap:8px}
+.roleSelect{background:#121a25;color:#fff;border:1px solid #344052;border-radius:7px;padding:8px}
+.roleBadge{display:inline-block;background:#182333;border:1px solid #344052;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:900;letter-spacing:.5px}
+.roleBadge.owner{background:#17331f;border-color:#2c7650;color:#74e2a2}
+.dangerZone{margin-top:22px;padding:16px;background:#210e12;border:1px solid #6d2932;border-radius:12px}
+.dangerZone h3{margin:0 0 6px;color:#ff8994}.dangerZone p{color:#cda7ab;font-size:13px;line-height:1.45}
+@media(max-width:700px){
+  .adminMemberRow{grid-template-columns:1fr}
+  .adminMemberActions{justify-content:space-between;flex-wrap:wrap}
+}
+
+/* Final combined package: view tabs, movable formations, Special Teams, responsive layout */
+.gameToolbar{height:auto;min-height:52px;flex-wrap:wrap;padding:6px 10px}
+.viewTabs{display:flex;gap:4px}.viewTab,.editFieldBtn{background:#121a25;color:#fff;border:1px solid #344052;border-radius:7px;padding:8px 11px;font-weight:800;font-size:12px}
+.viewTab.active{background:#1679df;border-color:#2999ff}.editFieldBtn.activeEdit{background:#8d5d00;border-color:#f6b925}
+.specialUnitSelect{background:#151e2b;color:#fff;border:1px solid #4b5f78;border-radius:7px;padding:8px;font-weight:700}
+.field.editing{outline:3px solid #f6b925;outline-offset:-3px}.slot.draggable{cursor:move;box-shadow:0 0 0 2px #f6b925,0 7px 18px #0008}.specialSlot{border-color:#f5c542!important}
+.deviceModeLabel{display:block;color:#aeb8c5;font-size:12px;margin:12px 0}.deviceModeLabel select{display:block;width:100%;margin-top:5px;background:#0a111b;color:#fff;border:1px solid #344052;border-radius:7px;padding:10px}
+
+/* Mobile is intentionally one-task-at-a-time. */
+.mode-mobile .sidebar{display:none!important}.mode-mobile .actions{width:82px}.mode-mobile .brand{display:none}
+.mode-mobile .fieldArea{overflow:auto;justify-content:flex-start}.mode-mobile .field{min-width:590px}
+/* Tablet forces the richer sideline layout when space allows. */
+.mode-tablet .sidebar{display:block!important;width:270px}.mode-tablet .actions{display:flex!important;width:110px}.mode-tablet .field{min-width:650px}
+
+@media(max-width:760px){
+  .gameToolbar{gap:5px}.gameToolbar>b{width:54px}.viewTabs{order:3;width:100%;display:grid;grid-template-columns:1fr 1fr 1.35fr}
+  .viewTab{padding:8px 4px;font-size:10px}.editFieldBtn{font-size:10px}.specialUnitSelect{max-width:145px;font-size:11px}
+  body:not(.mode-tablet) .sidebar{display:none}
+  body:not(.mode-tablet) .field{min-width:590px}
+}
+@media(orientation:landscape) and (max-height:620px){
+  .gameToolbar{min-height:42px}.viewTabs{order:initial;width:auto;display:flex}.viewTab{font-size:9px;padding:6px}
+  body:not(.mode-mobile) .field{min-width:0}
+}

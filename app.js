@@ -6,20 +6,23 @@ const sb = window.supabase.createClient(
 );
 
 const DEFAULT_POS = [
-  ['WRL','offense','WRL','WR (Left)',16,18],['WRR','offense','WRR','WR (Right)',84,18],
-  ['LT','offense','LT','LT',31,29],['LG','offense','LG','LG',41,29],['C','offense','C','C',50,29],
-  ['RG','offense','RG','RG',59,29],['RT','offense','RT','RT',69,29],['QB','offense','QB','QB',50,39],
-  ['RBL','offense','RBL','RB (Left)',40,46],['RBR','offense','RBR','RB (Right)',60,46],
-  ['DEL','defense','DEL','DE (Left)',26,63],['DTL','defense','DTL','DT (Left)',42,63],
-  ['DTR','defense','DTR','DT (Right)',58,63],['DER','defense','DER','DE (Right)',74,63],
-  ['LBL','defense','LBL','LB (Left)',29,75],['LBC','defense','LBC','LB (Left Center)',44,75],
-  ['RBC','defense','RBC','LB (Right Center)',58,75],['LBR','defense','LBR','LB (Right)',71,75],
-  ['CBL','defense','CBL','CB (Left)',21,88],['SSL','defense','SSL','SS',41,88],
-  ['FS','defense','FS','FS',59,88],['CBR','defense','CBR','CB (Right)',79,88]
+  // Offense: 11 players, now including TE.
+  ['WRL','offense','WRL','WR (Left)',12,18],['WRR','offense','WRR','WR (Right)',88,18],
+  ['LT','offense','LT','LT',29,31],['LG','offense','LG','LG',39,31],['C','offense','C','C',49,31],
+  ['RG','offense','RG','RG',59,31],['RT','offense','RT','RT',69,31],['TE','offense','TE','TE',78,31],
+  ['QB','offense','QB','QB',49,40],['RBL','offense','RBL','RB (Left)',40,46],['RBR','offense','RBR','RB (Right)',59,46],
+  // Defense: 11 players (4-3 front, 4 DB).
+  ['DEL','defense','DEL','DE (Left)',24,64],['DTL','defense','DTL','DT (Left)',42,64],
+  ['DTR','defense','DTR','DT (Right)',58,64],['DER','defense','DER','DE (Right)',76,64],
+  ['LBL','defense','LBL','OLB (Left)',31,75],['LBC','defense','LBC','MLB',50,75],['LBR','defense','LBR','OLB (Right)',69,75],
+  ['CBL','defense','CBL','CB (Left)',18,88],['SSL','defense','SSL','SS',40,88],
+  ['FS','defense','FS','FS',60,88],['CBR','defense','CBR','CB (Right)',82,88]
 ];
 
 let team=null, membership=null, lines=[], players=[], positions=[], assignments=[];
 let currentLine=0, displayMode='names', currentGame=null, playCount=0, counts={}, threshold=75, channel=null;
+let activeView='offense', editFieldMode=false, specialUnits=[], specialSlots=[], specialAssignments=[], currentSpecialUnit=0, deviceMode=localStorage.getItem('coachLineupDeviceMode')||'auto';
+let pendingLineupLabel='Current lineup';
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -30,9 +33,71 @@ function showAuth(){ $('auth').classList.remove('hidden'); $('app').classList.ad
 function showApp(){ $('auth').classList.add('hidden'); $('app').classList.remove('hidden'); }
 function msg(t){ $('authMsg').textContent=t||''; }
 function userId(){ return sb.auth.getUser().then(r=>r.data.user?.id); }
-function roleCanEdit(){ return membership && ['owner','coach'].includes(membership.role); }
+function roleCanEdit(){ return membership && ['owner','admin','coach'].includes(membership.role); }
+
+
+const ALLOWED_REGULAR_SLOTS=new Set(DEFAULT_POS.map(x=>x[2]));
+const SPECIAL_DEFAULTS={
+  'Kickoff':[
+    ['K','K',50,82],['L1','L1',16,62],['L2','L2',29,62],['L3','L3',41,62],['L4','L4',50,62],
+    ['R1','R1',84,62],['R2','R2',71,62],['R3','R3',59,62],['S1','S1',35,38],['S2','S2',65,38],['S3','S3',50,22]
+  ],
+  'Kick Return':[
+    ['KR1','KR1',38,22],['KR2','KR2',62,22],['L1','L1',15,44],['L2','L2',28,44],['L3','L3',41,44],
+    ['R1','R1',85,44],['R2','R2',72,44],['R3','R3',59,44],['FBL','FB-L',38,64],['FBR','FB-R',62,64],['C','C',50,78]
+  ],
+  'Punt':[
+    ['P','P',50,80],['PP','PP',50,64],['LS','LS',50,44],['LT','LT',30,44],['LG','LG',40,44],['RG','RG',60,44],
+    ['RT','RT',70,44],['LW','LW',15,30],['RW','RW',85,30],['G1','G1',30,68],['G2','G2',70,68]
+  ],
+  'Punt Return':[
+    ['PR','PR',50,20],['CBL','CB-L',17,35],['CBR','CB-R',83,35],['L1','L1',26,54],['L2','L2',38,54],['L3','L3',50,54],
+    ['R1','R1',62,54],['R2','R2',74,54],['S1','S1',35,73],['S2','S2',50,73],['S3','S3',65,73]
+  ],
+  'FG/PAT':[
+    ['K','K',50,78],['H','H',58,68],['LS','LS',50,50],['LT','LT',30,50],['LG','LG',40,50],['C','C',50,50],
+    ['RG','RG',60,50],['RT','RT',70,50],['LW','LW',18,50],['RW','RW',82,50],['TE','TE',76,60]
+  ],
+  'FG Block':[
+    ['E1','E1',22,62],['T1','T1',34,62],['N','N',50,62],['T2','T2',66,62],['E2','E2',78,62],
+    ['L1','L1',28,45],['L2','L2',40,45],['R1','R1',60,45],['R2','R2',72,45],['S1','S1',40,27],['S2','S2',60,27]
+  ]
+};
+
+function applyDeviceMode(mode=deviceMode){
+  deviceMode=mode;
+  localStorage.setItem('coachLineupDeviceMode',mode);
+  document.body.classList.remove('mode-mobile','mode-tablet');
+  if(mode==='mobile') document.body.classList.add('mode-mobile');
+  if(mode==='tablet') document.body.classList.add('mode-tablet');
+}
+function displayYForRegular(p){
+  const y=Number(p.y_pct);
+  if(p.side==='offense') return 8+(y/50)*84;
+  return 8+((y-50)/50)*84;
+}
+function storedYFromDisplay(side,displayY){
+  const d=Math.max(8,Math.min(92,displayY));
+  return side==='offense' ? ((d-8)/84)*50 : 50+((d-8)/84)*50;
+}
+function setActiveView(view){
+  activeView=view;
+  ['offense','defense','special'].forEach(v=>{
+    const id=v==='special'?'specialTab':v+'Tab';
+    $(id)?.classList.toggle('active',v===view);
+  });
+  $('specialUnitSelect').classList.toggle('hidden',view!=='special');
+  renderField();
+}
+function toggleEditField(){
+  editFieldMode=!editFieldMode;
+  $('editFieldBtn').textContent=editFieldMode?'DONE':'EDIT FIELD';
+  $('editFieldBtn').classList.toggle('activeEdit',editFieldMode);
+  renderField();
+}
 
 async function boot(){
+  applyDeviceMode();
   const {data:{session}}=await sb.auth.getSession();
   if(session) await loadApp(); else showAuth();
   sb.auth.onAuthStateChange(async(_e,s)=>{ if(s) await loadApp(); else showAuth(); });
@@ -54,6 +119,148 @@ async function loadApp(){
   $('teamRole').textContent=(membership.role||'coach').toUpperCase()+' • CODE '+team.invite_code;
   await loadTeamData();
   subscribe();
+  showDashboard();
+}
+
+
+function showDashboard(){
+  $('auth').classList.add('hidden');
+  $('app').classList.add('hidden');
+  $('dashboard').classList.remove('hidden');
+  if(team){
+    $('dashTeamName').textContent=team.name;
+    $('dashTeamRole').textContent=(membership?.role||'coach').toUpperCase()+' • TEAM CODE '+team.invite_code;
+  }
+  if(currentGame){
+    $('gameDayTitle').textContent='RESUME GAME';
+    $('gameDaySub').textContent=`vs ${currentGame.opponent||'Opponent'} • ${playCount} plays recorded`;
+  }else{
+    $('gameDayTitle').textContent='GAME DAY';
+    $('gameDaySub').textContent='Start a new game or open the field';
+  }
+}
+function showGameScreen(){
+  $('dashboard').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  renderAll();
+  setActiveView(activeView);
+}
+function openRosterManager(){
+  openModal(`<h2>Roster</h2>
+    <p class="muted">${players.length} active players</p>
+    <div class="rosterManage">
+      ${players.map(p=>`<button class="playerPick" onclick="editPlayer('${p.id}')">#${esc(p.jersey_number)} &nbsp; ${esc(p.name)} <small>${esc(p.primary_position||'')}</small></button>`).join('')}
+    </div>
+    <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button><button class="primary" onclick="closeModal();openPlayerModal()">+ ADD PLAYER</button></div>`);
+}
+function openTeamSettings(){
+  const isAdmin=['owner','admin'].includes(membership?.role);
+  openModal(`<h2>Team Settings</h2>
+    <div class="notice"><b>${esc(team?.name||'Team')}</b><br>Invite code:<br><span class="inviteCode">${esc(team?.invite_code||'')}</span></div>
+    <p class="muted">Share this code only with coaches you want to join the team.</p>
+    <label class="deviceModeLabel">Screen layout
+      <select id="deviceModeSelect" onchange="applyDeviceMode(this.value)">
+        <option value="auto" ${deviceMode==='auto'?'selected':''}>AUTO</option>
+        <option value="mobile" ${deviceMode==='mobile'?'selected':''}>MOBILE</option>
+        <option value="tablet" ${deviceMode==='tablet'?'selected':''}>TABLET</option>
+      </select>
+    </label>
+    ${isAdmin?`<button class="primary full" onclick="openTeamAdmin()">🛡️ TEAM ADMIN</button>`:''}
+    <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
+}
+
+async function openTeamAdmin(){
+  if(!['owner','admin'].includes(membership?.role)) return alert('Team Admin is restricted to owners and admins.');
+  const {data,error}=await sb.rpc('get_team_admin_members',{p_team_id:team.id});
+  if(error) return alert(error.message);
+  const members=data||[];
+  const isOwner=membership?.role==='owner';
+
+  openModal(`<h2>Team Admin</h2>
+    <div class="notice">
+      <b>${esc(team.name)}</b><br>
+      Current invite code: <span class="inviteCode">${esc(team.invite_code)}</span>
+      <button class="secondary full" style="margin-top:10px" onclick="rotateInviteCode()">REGENERATE INVITE CODE</button>
+    </div>
+
+    <h3>Team Members</h3>
+    <div class="adminMemberList">
+      ${members.map(m=>`
+        <div class="adminMemberRow">
+          <div>
+            <b>${esc(m.email||'Unknown user')}</b>
+            <small>Joined ${new Date(m.joined_at).toLocaleDateString()}</small>
+          </div>
+          <div class="adminMemberActions">
+            ${m.role==='owner'
+              ? `<span class="roleBadge owner">OWNER</span>`
+              : isOwner
+                ? `<select class="roleSelect" onchange="changeMemberRole('${m.user_id}',this.value)">
+                    <option value="admin" ${m.role==='admin'?'selected':''}>ADMIN</option>
+                    <option value="coach" ${m.role==='coach'?'selected':''}>COACH</option>
+                    <option value="viewer" ${m.role==='viewer'?'selected':''}>VIEWER</option>
+                  </select>`
+                : `<span class="roleBadge">${esc(m.role).toUpperCase()}</span>`}
+            ${m.role!=='owner' && !(membership?.role==='admin' && m.role==='admin')
+              ? `<button class="dangerBtn" onclick="removeTeamMember('${m.user_id}','${esc(m.email||'this member')}')">REMOVE</button>`
+              : ''}
+          </div>
+        </div>`).join('')}
+    </div>
+
+    ${isOwner?`
+      <div class="dangerZone">
+        <h3>Danger Zone</h3>
+        <p>Deleting the team permanently removes its roster, games, lineups, saved templates and stats.</p>
+        <button class="dangerBtn full" onclick="deleteTeamConfirm()">DELETE TEAM</button>
+      </div>`:''}
+
+    <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
+}
+
+async function rotateInviteCode(){
+  if(!confirm('Generate a new invite code? The old code will stop working.')) return;
+  const {data,error}=await sb.rpc('rotate_team_invite_code',{p_team_id:team.id});
+  if(error) return alert(error.message);
+  team.invite_code=data;
+  $('teamRole').textContent=(membership.role||'coach').toUpperCase()+' • CODE '+team.invite_code;
+  $('dashTeamRole').textContent=(membership.role||'coach').toUpperCase()+' • TEAM CODE '+team.invite_code;
+  await openTeamAdmin();
+}
+
+async function changeMemberRole(userId,newRole){
+  const {error}=await sb.rpc('set_team_member_role',{
+    p_team_id:team.id,
+    p_user_id:userId,
+    p_role:newRole
+  });
+  if(error) return alert(error.message);
+  await openTeamAdmin();
+}
+
+async function removeTeamMember(userId,email){
+  if(!confirm(`Remove ${email} from this team? They will immediately lose access to team data.`)) return;
+  const {error}=await sb.rpc('remove_team_member',{
+    p_team_id:team.id,
+    p_user_id:userId
+  });
+  if(error) return alert(error.message);
+  await openTeamAdmin();
+}
+
+async function deleteTeamConfirm(){
+  const typed=window.prompt(`Type the exact team name to permanently delete it:\n\n${team.name}`);
+  if(typed===null) return;
+  if(typed!==team.name) return alert('Team name did not match. Nothing was deleted.');
+  if(!confirm('This permanently deletes the team and all of its football data. Continue?')) return;
+  const {error}=await sb.rpc('delete_team_safe',{
+    p_team_id:team.id,
+    p_confirm_name:typed
+  });
+  if(error) return alert(error.message);
+  team=null; membership=null; lines=[]; players=[]; positions=[]; assignments=[]; currentGame=null; counts={}; playCount=0;
+  closeModal();
+  await loadApp();
 }
 
 async function ensureDefaults(){
@@ -65,16 +272,45 @@ async function ensureDefaults(){
     if(r.error) throw r.error;
     lines=r.data||[];
   }
-  if(!positions.length && roleCanEdit()){
-    const rows=DEFAULT_POS.map(x=>({
-      team_id:team.id, side:x[1], slot_key:x[2], label:x[3], x_pct:x[4], y_pct:x[5]
+
+  if(roleCanEdit()){
+    // Add any missing standard positions (including the new TE) without disturbing custom labels/locations.
+    const existing=new Set(positions.map(p=>`${p.side}:${p.slot_key}`));
+    const missing=DEFAULT_POS.filter(x=>!existing.has(`${x[1]}:${x[2]}`)).map(x=>({
+      team_id:team.id,side:x[1],slot_key:x[2],label:x[3],x_pct:x[4],y_pct:x[5]
     }));
-    const r=await sb.from('position_labels').insert(rows).select();
+    if(missing.length){
+      const r=await sb.from('position_labels').insert(missing).select();
+      if(r.error) throw r.error;
+      positions=[...positions,...(r.data||[])];
+    }
+    // Standardize the middle linebacker label while keeping its saved location.
+    const mlb=positions.find(p=>p.side==='defense'&&p.slot_key==='LBC');
+    if(mlb && mlb.label==='LB (Left Center)'){
+      await sb.from('position_labels').update({label:'MLB'}).eq('id',mlb.id);
+      mlb.label='MLB';
+    }
+  }
+
+  // Only display the 11 approved offense and 11 approved defense slots.
+  positions=positions.filter(p=>ALLOWED_REGULAR_SLOTS.has(p.slot_key));
+
+  await loadSpecialTeams();
+  if(!specialUnits.length && roleCanEdit()){
+    const names=Object.keys(SPECIAL_DEFAULTS);
+    const r=await sb.from('special_team_units').insert(names.map((name,i)=>({team_id:team.id,name,sort_order:i}))).select();
     if(r.error) throw r.error;
-    positions=r.data||[];
+    specialUnits=r.data||[];
+    for(const unit of specialUnits){
+      const defs=SPECIAL_DEFAULTS[unit.name]||SPECIAL_DEFAULTS['Kickoff'];
+      const sr=await sb.from('special_team_slots').insert(defs.map((x,i)=>({
+        unit_id:unit.id,slot_key:x[0],label:x[1],x_pct:x[2],y_pct:x[3],sort_order:i
+      }))).select();
+      if(sr.error) throw sr.error;
+    }
+    await loadSpecialTeams();
   }
 }
-
 async function loadTeamData(){
   try{
     const [p,l,pos,g]=await Promise.all([
@@ -97,6 +333,23 @@ async function loadTeamData(){
   }catch(e){ alert(e.message||String(e)); }
 }
 
+
+async function loadSpecialTeams(){
+  const {data:u,error:ue}=await sb.from('special_team_units').select('*').eq('team_id',team.id).order('sort_order');
+  if(ue){ console.error(ue); specialUnits=[]; return; }
+  specialUnits=u||[];
+  if(!specialUnits.length){ specialSlots=[]; specialAssignments=[]; return; }
+  const ids=specialUnits.map(x=>x.id);
+  const [{data:s,error:se},{data:a,error:ae}]=await Promise.all([
+    sb.from('special_team_slots').select('*').in('unit_id',ids).order('sort_order'),
+    sb.from('special_team_assignments').select('*').in('unit_id',ids)
+  ]);
+  if(se||ae){ console.error(se||ae); return; }
+  specialSlots=s||[];
+  specialAssignments=a||[];
+  if(currentSpecialUnit>=specialUnits.length) currentSpecialUnit=0;
+}
+
 async function loadAssignments(){
   if(!lines.length){ assignments=[]; return; }
   const ids=lines.map(l=>l.id);
@@ -116,11 +369,24 @@ async function loadCounts(){
   (pp||[]).forEach(r=>counts[r.player_id]=(counts[r.player_id]||0)+1);
 }
 
-function renderAll(){ renderLineSelect(); renderPlayers(); renderField(); renderSummary(); }
+function renderAll(){
+  renderLineSelect(); renderPlayers(); renderSpecialUnitSelect(); renderField(); renderSummary();
+}
 
 function renderLineSelect(){
   $('lineSelect').innerHTML=lines.map((l,i)=>`<option value="${i}" ${i===currentLine?'selected':''}>${esc(l.name)}</option>`).join('');
-  $('lineChips').innerHTML=lines.map((l,i)=>`<button class="chip lineChip" style="border-color:${esc(l.color)}" onclick="setLine(${i})">${i+1} ${esc(l.name)}</button>`).join('');
+  $('lineChips').innerHTML=lines.map((l,i)=>`<button class="chip lineChip ${i===currentLine?'activeLine':''}" style="border-color:${esc(l.color)};${i===currentLine?`background:${esc(l.color)}`:''}" onclick="setLine(${i})">${i+1} ${esc(l.name)}</button>`).join('');
+  const selected=lines[currentLine];
+  if(selected){
+    $('lineSelect').style.backgroundColor=selected.color||'#2584ff';
+    $('lineSelect').style.borderColor=selected.color||'#2584ff';
+    $('lineSelect').style.color='#fff';
+  }
+}
+
+
+function renderSpecialUnitSelect(){
+  $('specialUnitSelect').innerHTML=specialUnits.map((u,i)=>`<option value="${i}" ${i===currentSpecialUnit?'selected':''}>${esc(u.name)}</option>`).join('');
 }
 
 function renderPlayers(){
@@ -142,17 +408,98 @@ function currentLineAssignments(){
 function renderField(){
   const f=$('field');
   f.querySelectorAll('.slot').forEach(x=>x.remove());
+  f.classList.toggle('editing',editFieldMode);
+
+  if(activeView==='special'){
+    const unit=specialUnits[currentSpecialUnit];
+    if(!unit) return;
+    const slots=specialSlots.filter(s=>s.unit_id===unit.id).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+    const map=new Map(specialAssignments.filter(a=>a.unit_id===unit.id).map(a=>[a.slot_id,players.find(p=>p.id===a.player_id)]));
+    slots.forEach(slot=>{
+      const pl=map.get(slot.id);
+      const el=document.createElement('div');
+      el.className='slot specialSlot';
+      el.style.left=Number(slot.x_pct)+'%';
+      el.style.top=Number(slot.y_pct)+'%';
+      el.innerHTML=`${esc(slot.label)}<small>${pl?(displayMode==='names'?esc(pl.name):'#'+esc(pl.jersey_number)):'OPEN'}</small>`;
+      if(editFieldMode && roleCanEdit()) makeDraggable(el,slot,'special');
+      else if(roleCanEdit()) el.onclick=()=>openSpecialAssignment(slot.id);
+      f.appendChild(el);
+    });
+    return;
+  }
+
   const map={};
   currentLineAssignments().forEach(a=>{ map[a.position_label_id]=players.find(p=>p.id===a.player_id); });
-  positions.forEach(p=>{
+  positions.filter(p=>p.side===activeView).forEach(p=>{
     const pl=map[p.id];
-    const e=document.createElement('div');
-    e.className='slot '+(p.side==='defense'?'def':'');
-    e.style.left=Number(p.x_pct)+'%'; e.style.top=Number(p.y_pct)+'%';
-    e.innerHTML=`${esc(p.label)}<small>${pl?(displayMode==='names'?esc(pl.name):'#'+esc(pl.jersey_number)):'OPEN'}</small>`;
-    if(roleCanEdit()) e.onclick=()=>openLineupEditor(p.id);
-    f.appendChild(e);
+    const el=document.createElement('div');
+    el.className='slot '+(p.side==='defense'?'def':'');
+    el.style.left=Number(p.x_pct)+'%';
+    el.style.top=displayYForRegular(p)+'%';
+    el.innerHTML=`${esc(p.label)}<small>${pl?(displayMode==='names'?esc(pl.name):'#'+esc(pl.jersey_number)):'OPEN'}</small>`;
+    if(editFieldMode && roleCanEdit()) makeDraggable(el,p,'regular');
+    else if(roleCanEdit()) el.onclick=()=>openLineupEditor(p.id);
+    f.appendChild(el);
   });
+}
+
+function makeDraggable(el,item,type){
+  el.classList.add('draggable');
+  el.style.touchAction='none';
+  el.onpointerdown=(ev)=>{
+    ev.preventDefault();
+    el.setPointerCapture?.(ev.pointerId);
+    const field=$('field');
+    const rect=field.getBoundingClientRect();
+    const move=(e)=>{
+      const x=Math.max(4,Math.min(96,((e.clientX-rect.left)/rect.width)*100));
+      const y=Math.max(8,Math.min(92,((e.clientY-rect.top)/rect.height)*100));
+      el.style.left=x+'%'; el.style.top=y+'%';
+    };
+    const up=async(e)=>{
+      el.removeEventListener('pointermove',move);
+      el.removeEventListener('pointerup',up);
+      const x=parseFloat(el.style.left), displayY=parseFloat(el.style.top);
+      if(type==='regular'){
+        const y=storedYFromDisplay(item.side,displayY);
+        item.x_pct=x; item.y_pct=y;
+        const {error}=await sb.from('position_labels').update({x_pct:x,y_pct:y}).eq('id',item.id);
+        if(error) alert(error.message);
+      }else{
+        item.x_pct=x; item.y_pct=displayY;
+        const {error}=await sb.from('special_team_slots').update({x_pct:x,y_pct:displayY}).eq('id',item.id);
+        if(error) alert(error.message);
+      }
+      renderField();
+    };
+    el.addEventListener('pointermove',move);
+    el.addEventListener('pointerup',up);
+  };
+}
+
+async function openSpecialAssignment(slotId){
+  const unit=specialUnits[currentSpecialUnit];
+  const slot=specialSlots.find(s=>s.id===slotId);
+  const existing=specialAssignments.find(a=>a.unit_id===unit.id&&a.slot_id===slotId);
+  openModal(`<h2>${esc(unit.name)} — ${esc(slot?.label||'Position')}</h2>
+    <button class="secondary full" onclick="clearSpecialAssignment('${slotId}')">CLEAR POSITION</button>
+    <div class="picker">
+      ${players.map(p=>`<button class="playerPick ${existing?.player_id===p.id?'selected':''}" onclick="assignSpecialPlayer('${slotId}','${p.id}')">#${esc(p.jersey_number)} ${esc(p.name)}</button>`).join('')}
+    </div>
+    <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
+}
+async function clearSpecialAssignment(slotId){
+  const unit=specialUnits[currentSpecialUnit];
+  const {error}=await sb.from('special_team_assignments').delete().eq('unit_id',unit.id).eq('slot_id',slotId);
+  if(error) return alert(error.message);
+  closeModal(); await loadSpecialTeams(); renderField();
+}
+async function assignSpecialPlayer(slotId,playerId){
+  const unit=specialUnits[currentSpecialUnit];
+  const {error}=await sb.from('special_team_assignments').upsert({unit_id:unit.id,slot_id:slotId,player_id:playerId},{onConflict:'unit_id,slot_id'});
+  if(error) return alert(error.message);
+  closeModal(); await loadSpecialTeams(); renderField();
 }
 
 function renderSummary(){
@@ -251,6 +598,10 @@ function openLines(){
       <label>Line ${i+1}<input id="ln${i}" value="${esc(l.name)}"></label>
       <label>Color<input id="lc${i}" type="color" value="${/^#[0-9a-f]{6}$/i.test(l.color)?l.color:'#2584ff'}"></label>
     </div>`).join('')}
+    <div class="lineTemplateActions">
+      <button class="secondary" onclick="promptSaveLineup()">💾 SAVE CURRENT AS TEMPLATE</button>
+      <button class="secondary" onclick="openSavedLineups()">OPEN SAVED LINEUPS</button>
+    </div>
     <div class="modalFoot"><button class="secondary" onclick="closeModal()">CANCEL</button><button class="primary" onclick="saveLines()">SAVE</button></div>`);
 }
 async function saveLines(){
@@ -294,15 +645,318 @@ async function clearAssignment(positionId){
 async function assignPlayer(positionId,playerId){
   const line=lines[currentLine]; if(!line) return;
   await sb.from('line_assignments').delete().eq('line_id',line.id).eq('position_label_id',positionId);
-  await sb.from('line_assignments').delete().eq('line_id',line.id).eq('player_id',playerId);
   const {error}=await sb.from('line_assignments').insert({line_id:line.id,player_id:playerId,position_label_id:positionId});
   if(error) return alert(error.message);
   closeModal(); await loadAssignments(); renderField();
 }
 
+
+async function snapshotCurrentLineup(name, sourceGameId=null, isAuto=false, silent=false){
+  if(!team || !roleCanEdit()) return null;
+  const uid=await userId();
+  const cleanName=(name||'Saved Lineup').trim()||'Saved Lineup';
+
+  const {data:tpl,error:tplErr}=await sb.from('lineup_templates').insert({
+    team_id:team.id,
+    name:cleanName,
+    source_game_id:sourceGameId,
+    is_auto:isAuto,
+    created_by:uid
+  }).select().single();
+  if(tplErr){
+    if(!silent) alert(tplErr.message);
+    return null;
+  }
+
+  try{
+    const currentLines=[...lines].sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+    const {data:templateLines,error:lineErr}=await sb.from('lineup_template_lines').insert(
+      currentLines.map(l=>({
+        template_id:tpl.id,
+        name:l.name,
+        color:l.color||'#2584ff',
+        sort_order:l.sort_order||0
+      }))
+    ).select();
+    if(lineErr) throw lineErr;
+
+    const templateLineBySort=new Map((templateLines||[]).map(l=>[Number(l.sort_order||0),l]));
+    const posById=new Map(positions.map(p=>[p.id,p]));
+    const lineById=new Map(currentLines.map(l=>[l.id,l]));
+    const rows=[];
+
+    for(const a of assignments){
+      const liveLine=lineById.get(a.line_id);
+      const pos=posById.get(a.position_label_id);
+      const templateLine=liveLine?templateLineBySort.get(Number(liveLine.sort_order||0)):null;
+      if(!templateLine || !pos) continue;
+      rows.push({
+        template_line_id:templateLine.id,
+        player_id:a.player_id,
+        slot_key:pos.slot_key,
+        position_label:a.custom_position_label||pos.label||pos.slot_key,
+        sort_order:a.sort_order||0
+      });
+    }
+
+    if(rows.length){
+      const {error:aErr}=await sb.from('lineup_template_assignments').insert(rows);
+      if(aErr) throw aErr;
+    }
+
+    // Save movable offense/defense position labels and coordinates.
+    const posRows=positions.map(p=>({
+      template_id:tpl.id,side:p.side,slot_key:p.slot_key,label:p.label,
+      x_pct:Number(p.x_pct),y_pct:Number(p.y_pct)
+    }));
+    if(posRows.length){
+      const {error:pErr}=await sb.from('lineup_template_positions').insert(posRows);
+      if(pErr) throw pErr;
+    }
+
+    // Save all Special Teams units, layouts and player assignments.
+    for(const u of specialUnits){
+      const {data:tu,error:tuErr}=await sb.from('lineup_template_special_units').insert({
+        template_id:tpl.id,name:u.name,sort_order:u.sort_order||0
+      }).select().single();
+      if(tuErr) throw tuErr;
+      const assignBySlot=new Map(specialAssignments.filter(a=>a.unit_id===u.id).map(a=>[a.slot_id,a.player_id]));
+      const slots=specialSlots.filter(s=>s.unit_id===u.id);
+      if(slots.length){
+        const {error:tsErr}=await sb.from('lineup_template_special_slots').insert(slots.map(s=>({
+          template_unit_id:tu.id,slot_key:s.slot_key,label:s.label,x_pct:Number(s.x_pct),y_pct:Number(s.y_pct),
+          sort_order:s.sort_order||0,player_id:assignBySlot.get(s.id)||null
+        })));
+        if(tsErr) throw tsErr;
+      }
+    }
+
+    if(!silent) alert(`Saved "${cleanName}".`);
+    return tpl;
+  }catch(e){
+    await sb.from('lineup_templates').delete().eq('id',tpl.id);
+    if(!silent) alert(e.message||String(e));
+    return null;
+  }
+}
+
+async function promptSaveLineup(){
+  const suggested=currentGame
+    ? `vs ${currentGame.opponent||'Opponent'}`
+    : `Lineup ${new Date().toLocaleDateString()}`;
+  const name=window.prompt('Name this saved lineup:',suggested);
+  if(!name) return;
+  await snapshotCurrentLineup(name,null,false,false);
+}
+
+async function getSavedLineups(){
+  const {data,error}=await sb.from('lineup_templates')
+    .select('id,name,source_game_id,is_auto,created_at')
+    .eq('team_id',team.id)
+    .order('created_at',{ascending:false});
+  if(error){ alert(error.message); return []; }
+  return data||[];
+}
+
+async function openSavedLineups(){
+  const templates=await getSavedLineups();
+  const manual=templates.filter(t=>!t.is_auto);
+  openModal(`<h2>Saved Lineups</h2>
+    <p class="muted">Save today's setup once, then reuse it for future games. Loading a saved lineup changes the current line assignments, but it does not copy old game stats or play counts.</p>
+    <button class="primary full" onclick="promptSaveLineup()">💾 SAVE CURRENT LINEUP</button>
+    <div class="savedList">
+      ${manual.length?manual.map(t=>`
+        <div class="savedRow">
+          <button class="playerPick" onclick="loadSavedLineup('${t.id}','${esc(t.name)}')">
+            <b>${esc(t.name)}</b><small>${new Date(t.created_at).toLocaleDateString()}</small>
+          </button>
+          <button class="dangerBtn" onclick="deleteSavedLineup('${t.id}')">DELETE</button>
+        </div>`).join(''):`<div class="notice">No saved lineup templates yet. Tap <b>Save Current Lineup</b> to create one.</div>`}
+    </div>
+    <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
+}
+
+async function deleteSavedLineup(id){
+  if(!confirm('Delete this saved lineup?')) return;
+  const {error}=await sb.from('lineup_templates').delete().eq('id',id);
+  if(error) return alert(error.message);
+  await openSavedLineups();
+}
+
+async function applyLineupTemplate(templateId, label='Saved lineup'){
+  const {data:tLines,error:lErr}=await sb.from('lineup_template_lines')
+    .select('*').eq('template_id',templateId).order('sort_order');
+  if(lErr) return alert(lErr.message);
+  if(!tLines?.length) return alert('This saved lineup is empty.');
+
+  const tLineIds=tLines.map(x=>x.id);
+  const {data:tAssignments,error:aErr}=await sb.from('lineup_template_assignments')
+    .select('*').in('template_line_id',tLineIds);
+  if(aErr) return alert(aErr.message);
+
+  let current=[...lines].sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+
+  // Create any missing line slots so a saved lineup can be restored completely.
+  for(const tl of tLines){
+    if(!current.find(l=>Number(l.sort_order||0)===Number(tl.sort_order||0))){
+      const {data:newLine,error:newLineErr}=await sb.from('lines').insert({
+        team_id:team.id,
+        name:tl.name,
+        color:tl.color||'#2584ff',
+        sort_order:tl.sort_order||0
+      }).select().single();
+      if(newLineErr) return alert(newLineErr.message);
+      current.push(newLine);
+    }
+  }
+  current=current.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+
+  for(const tl of tLines){
+    const live=current.find(l=>Number(l.sort_order||0)===Number(tl.sort_order||0));
+    if(!live) continue;
+    const {error}=await sb.from('lines').update({
+      name:tl.name,
+      color:tl.color||'#2584ff'
+    }).eq('id',live.id);
+    if(error) return alert(error.message);
+  }
+
+  const currentLineIds=current.map(l=>l.id);
+  if(currentLineIds.length){
+    const {error:delErr}=await sb.from('line_assignments').delete().in('line_id',currentLineIds);
+    if(delErr) return alert(delErr.message);
+  }
+
+  const liveLineBySort=new Map(current.map(l=>[Number(l.sort_order||0),l]));
+  const templateLineById=new Map(tLines.map(l=>[l.id,l]));
+  const posBySlot=new Map(positions.map(p=>[p.slot_key,p]));
+  const activePlayerIds=new Set(players.map(p=>p.id));
+  const insertRows=[];
+
+  for(const ta of (tAssignments||[])){
+    if(!activePlayerIds.has(ta.player_id)) continue;
+    const tl=templateLineById.get(ta.template_line_id);
+    const liveLine=tl?liveLineBySort.get(Number(tl.sort_order||0)):null;
+    const pos=posBySlot.get(ta.slot_key);
+    if(!liveLine || !pos) continue;
+    insertRows.push({
+      line_id:liveLine.id,
+      player_id:ta.player_id,
+      position_label_id:pos.id,
+      custom_position_label:ta.position_label||null,
+      sort_order:ta.sort_order||0
+    });
+  }
+
+  if(insertRows.length){
+    const {error:insErr}=await sb.from('line_assignments').insert(insertRows);
+    if(insErr) return alert(insErr.message);
+  }
+
+  // Restore saved offense/defense position coordinates.
+  const {data:tPos,error:tPosErr}=await sb.from('lineup_template_positions').select('*').eq('template_id',templateId);
+  if(tPosErr) return alert(tPosErr.message);
+  for(const tp of (tPos||[])){
+    const live=positions.find(p=>p.side===tp.side&&p.slot_key===tp.slot_key);
+    if(live){
+      const {error}=await sb.from('position_labels').update({label:tp.label,x_pct:tp.x_pct,y_pct:tp.y_pct}).eq('id',live.id);
+      if(error) return alert(error.message);
+    }
+  }
+
+  // Restore saved Special Teams layouts and assignments when present.
+  const {data:tUnits,error:tUErr}=await sb.from('lineup_template_special_units').select('*').eq('template_id',templateId).order('sort_order');
+  if(tUErr) return alert(tUErr.message);
+  if(tUnits?.length){
+    await loadSpecialTeams();
+    for(const tu of tUnits){
+      let liveUnit=specialUnits.find(u=>u.name===tu.name);
+      if(!liveUnit){
+        const r=await sb.from('special_team_units').insert({team_id:team.id,name:tu.name,sort_order:tu.sort_order||0}).select().single();
+        if(r.error) return alert(r.error.message);
+        liveUnit=r.data;
+      }
+      const {data:tSlots,error:tSErr}=await sb.from('lineup_template_special_slots').select('*').eq('template_unit_id',tu.id).order('sort_order');
+      if(tSErr) return alert(tSErr.message);
+      const {data:liveSlots}=await sb.from('special_team_slots').select('*').eq('unit_id',liveUnit.id);
+      for(const ts of (tSlots||[])){
+        let ls=(liveSlots||[]).find(s=>s.slot_key===ts.slot_key);
+        if(!ls){
+          const r=await sb.from('special_team_slots').insert({unit_id:liveUnit.id,slot_key:ts.slot_key,label:ts.label,x_pct:ts.x_pct,y_pct:ts.y_pct,sort_order:ts.sort_order||0}).select().single();
+          if(r.error) return alert(r.error.message);
+          ls=r.data;
+        }else{
+          const r=await sb.from('special_team_slots').update({label:ts.label,x_pct:ts.x_pct,y_pct:ts.y_pct,sort_order:ts.sort_order||0}).eq('id',ls.id);
+          if(r.error) return alert(r.error.message);
+        }
+        await sb.from('special_team_assignments').delete().eq('unit_id',liveUnit.id).eq('slot_id',ls.id);
+        if(ts.player_id && players.some(p=>p.id===ts.player_id)){
+          const r=await sb.from('special_team_assignments').insert({unit_id:liveUnit.id,slot_id:ls.id,player_id:ts.player_id});
+          if(r.error) return alert(r.error.message);
+        }
+      }
+    }
+  }
+
+  pendingLineupLabel=label;
+  await loadTeamData();
+  closeModal();
+  alert(`Loaded "${label}". New game stats will still start at 0.`);
+}
+
+async function loadSavedLineup(templateId,name){
+  await applyLineupTemplate(templateId,name);
+}
+
+async function duplicatePreviousGameLineup(){
+  const {data,error}=await sb.from('lineup_templates')
+    .select('id,name,created_at,source_game_id')
+    .eq('team_id',team.id)
+    .eq('is_auto',true)
+    .not('source_game_id','is',null)
+    .order('created_at',{ascending:false})
+    .limit(1)
+    .maybeSingle();
+  if(error) return alert(error.message);
+  if(!data) return alert('There is not a previous game lineup to duplicate yet.');
+  await applyLineupTemplate(data.id,`Previous game: ${data.name}`);
+}
+
+
+
+async function resetCurrentField(){
+  if(!roleCanEdit()) return;
+  if(!confirm('Reset the positions in this view to the default formation? Player assignments will stay in place.')) return;
+  if(activeView==='special'){
+    const unit=specialUnits[currentSpecialUnit];
+    const defs=SPECIAL_DEFAULTS[unit?.name]||SPECIAL_DEFAULTS['Kickoff'];
+    const slots=specialSlots.filter(s=>s.unit_id===unit.id);
+    for(const d of defs){
+      const s=slots.find(x=>x.slot_key===d[0]);
+      if(s) await sb.from('special_team_slots').update({label:d[1],x_pct:d[2],y_pct:d[3]}).eq('id',s.id);
+    }
+    await loadSpecialTeams();
+  }else{
+    const defs=DEFAULT_POS.filter(x=>x[1]===activeView);
+    for(const d of defs){
+      const p=positions.find(x=>x.side===d[1]&&x.slot_key===d[2]);
+      if(p) await sb.from('position_labels').update({label:d[3],x_pct:d[4],y_pct:d[5]}).eq('id',p.id);
+    }
+    const r=await sb.from('position_labels').select('*').eq('team_id',team.id);
+    if(!r.error) positions=(r.data||[]).filter(p=>ALLOWED_REGULAR_SLOTS.has(p.slot_key));
+  }
+  renderField();
+}
+
 function openGameSetup(){
-  openModal(`<h2>${currentGame?'Current Game':'Start Game'}</h2>
-    ${currentGame?`<div class="notice"><b>vs ${esc(currentGame.opponent||'Opponent')}</b><br>${playCount} plays recorded</div>`:''}
+  openModal(`<h2>${currentGame?'Current Game':'Game Day'}</h2>
+    ${currentGame?`<div class="notice"><b>vs ${esc(currentGame.opponent||'Opponent')}</b><br>${playCount} plays recorded</div>`:`
+      <div class="notice"><b>Lineup for this game:</b><br>${esc(pendingLineupLabel)}</div>
+      <div class="gameLineupChoices">
+        <button class="secondary" onclick="closeModal();showGameScreen()">🏈 USE CURRENT / EDIT ON FIELD</button>
+        <button class="secondary" onclick="openSavedLineups()">💾 USE SAVED LINEUP</button>
+        <button class="secondary" onclick="duplicatePreviousGameLineup()">⧉ DUPLICATE PREVIOUS GAME</button>
+      </div>`}
     <div class="formgrid">
       <label>Opponent<input id="gameOpponent" value="${esc(currentGame?.opponent||'')}"></label>
       <label>Playing-time warning %<input id="gameThreshold" type="number" min="1" max="100" value="${threshold}"></label>
@@ -321,29 +975,49 @@ async function startGame(){
     created_by:uid, started_at:new Date().toISOString()
   }).select().single();
   if(error) return alert(error.message);
-  currentGame=data; playCount=0; counts={}; closeModal(); renderSummary();
+  currentGame=data; playCount=0; counts={};
+  await snapshotCurrentLineup(`vs ${opp} - ${new Date().toLocaleDateString()}`,data.id,true,true);
+  pendingLineupLabel='Current lineup';
+  closeModal(); renderSummary(); showGameScreen();
 }
 async function finishGame(){
   if(!currentGame) return;
   const {error}=await sb.from('games').update({status:'finished',finished_at:new Date().toISOString()}).eq('id',currentGame.id);
   if(error) return alert(error.message);
-  currentGame=null; playCount=0; counts={}; closeModal(); renderSummary();
+  currentGame=null; playCount=0; counts={}; pendingLineupLabel='Current lineup'; closeModal(); renderSummary(); showDashboard();
 }
 
 async function nextPlay(){
   if(!currentGame){ openGameSetup(); return; }
   const line=lines[currentLine]; if(!line) return alert('Create a line first.');
-  const a=currentLineAssignments();
-  if(!a.length) return alert('This line has no assigned players. Tap positions on the field first.');
+
+  let participants=[];
+  if(activeView==='special'){
+    const unit=specialUnits[currentSpecialUnit];
+    if(!unit) return alert('Select a special teams unit.');
+    const slots=new Map(specialSlots.filter(s=>s.unit_id===unit.id).map(s=>[s.id,s]));
+    participants=specialAssignments.filter(a=>a.unit_id===unit.id).map(a=>({
+      player_id:a.player_id,
+      position_label:`${unit.name}: ${slots.get(a.slot_id)?.label||''}`
+    }));
+  }else{
+    const posById=new Map(positions.filter(p=>p.side===activeView).map(p=>[p.id,p]));
+    participants=currentLineAssignments()
+      .filter(a=>posById.has(a.position_label_id))
+      .map(a=>({player_id:a.player_id,position_label:posById.get(a.position_label_id)?.label||''}));
+  }
+  if(!participants.length) return alert('There are no players assigned to this view yet.');
+
+  // One player is counted once per play even if a formation contains a duplicate assignment.
+  const unique=[...new Map(participants.map(x=>[x.player_id,x])).values()];
   const uid=await userId();
+  const note=activeView==='special' ? `special:${specialUnits[currentSpecialUnit]?.name||''}` : activeView;
   const {data:gp,error}=await sb.from('game_plays').insert({
-    game_id:currentGame.id, play_number:playCount+1, line_id:line.id, created_by:uid
+    game_id:currentGame.id, play_number:playCount+1, line_id:line.id, created_by:uid, note
   }).select().single();
   if(error) return alert(error.message);
-  const rows=a.map(x=>{
-    const pos=positions.find(p=>p.id===x.position_label_id);
-    return {play_id:gp.id,player_id:x.player_id,position_label:pos?.label||''};
-  });
+
+  const rows=unique.map(x=>({play_id:gp.id,player_id:x.player_id,position_label:x.position_label}));
   const pp=await sb.from('play_participants').insert(rows);
   if(pp.error){ await sb.from('game_plays').delete().eq('id',gp.id); return alert(pp.error.message); }
   playCount++;
@@ -351,7 +1025,6 @@ async function nextPlay(){
   currentGame.total_plays=playCount;
   renderSummary();
 }
-
 async function prevPlay(){
   if(!currentGame||playCount<=0) return;
   const {data:gp,error}=await sb.from('game_plays').select('id').eq('game_id',currentGame.id).eq('play_number',playCount).maybeSingle();
@@ -415,5 +1088,21 @@ $('numbersBtn').onclick=()=>{displayMode='numbers';$('numbersBtn').classList.add
 $('teamBtn').onclick=()=>openTeamModal(false);
 $('logoutBtn').onclick=()=>sb.auth.signOut();
 $('modal').onclick=e=>{ if(e.target===$('modal')) closeModal(); };
+
+
+$('offenseTab').onclick=()=>setActiveView('offense');
+$('defenseTab').onclick=()=>setActiveView('defense');
+$('specialTab').onclick=()=>setActiveView('special');
+$('editFieldBtn').onclick=toggleEditField;
+$('resetFieldBtn').onclick=resetCurrentField;
+$('specialUnitSelect').onchange=e=>{currentSpecialUnit=Number(e.target.value);renderField();};
+$('homeBtn').onclick=showDashboard;
+$('dashLogout').onclick=()=>sb.auth.signOut();
+$('gameDayCard').onclick=()=>{ if(currentGame) showGameScreen(); else openGameSetup(); };
+$('rosterCard').onclick=openRosterManager;
+$('linesCard').onclick=openLines;
+$('templatesCard').onclick=openSavedLineups;
+$('positionsCard').onclick=openPositions;
+$('settingsCard').onclick=openTeamSettings;
 
 boot();

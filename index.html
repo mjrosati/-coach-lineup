@@ -8,7 +8,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Coach Lineup">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="styles.css">
 <title>Coach Lineup</title>
 </head>
@@ -17,7 +16,7 @@
   <div class="auth-card">
     <div class="logo">🏈 <b>COACH <span>LINEUP</span></b></div>
     <h1 id="authTitle">Sign in</h1>
-    <p class="muted">Your team's lineup and game data sync across coaches' phones and tablets.</p>
+    <p class="muted">Shared football lineups, game-day substitutions and playing-time tracking.</p>
     <input id="email" type="email" placeholder="Email">
     <input id="password" type="password" placeholder="Password">
     <button class="primary" id="authBtn">Sign in</button>
@@ -26,8 +25,41 @@
   </div>
 </div>
 
+<div id="dashboard" class="hidden dashScreen">
+  <div class="dashTop">
+    <div class="dashBrand">🏈 <b>COACH <span>LINEUP</span></b></div>
+    <button class="secondary" id="dashLogout">SIGN OUT</button>
+  </div>
+  <div class="dashWrap">
+    <div class="teamHero">
+      <div>
+        <div class="eyebrow">TEAM DASHBOARD</div>
+        <h1 id="dashTeamName">Your Team</h1>
+        <div id="dashTeamRole" class="muted"></div>
+      </div>
+      <div class="teamBadge">🏈</div>
+    </div>
+
+    <button id="gameDayCard" class="dashCard gameDay">
+      <div class="dashIcon">🏟️</div>
+      <div><b id="gameDayTitle">GAME DAY</b><small id="gameDaySub">Start a new game or resume an active game</small></div>
+      <span>›</span>
+    </button>
+
+    <div class="dashGrid">
+      <button id="rosterCard" class="dashCard"><div class="dashIcon">👥</div><div><b>ROSTER</b><small>Add and edit players & jersey numbers</small></div><span>›</span></button>
+      <button id="linesCard" class="dashCard"><div class="dashIcon">🔄</div><div><b>LINES</b><small>Build, rename and color-code lineups</small></div><span>›</span></button>
+      <button id="templatesCard" class="dashCard"><div class="dashIcon">💾</div><div><b>SAVED LINEUPS</b><small>Save, reuse or duplicate a game lineup</small></div><span>›</span></button>
+      <button id="positionsCard" class="dashCard"><div class="dashIcon">🏷️</div><div><b>POSITIONS</b><small>Edit labels used on the field</small></div><span>›</span></button>
+      <button id="settingsCard" class="dashCard"><div class="dashIcon">⚙️</div><div><b>TEAM SETTINGS</b><small>Invite code and team information</small></div><span>›</span></button>
+    </div>
+    <div class="dashHint">Designed for sideline use • Rotate your phone for the largest Game Day field.</div>
+  </div>
+</div>
+
 <div id="app" class="hidden">
   <header class="top">
+    <button class="iconBtn homeBtn" id="homeBtn">⌂ HOME</button>
     <div class="brand">🏈 COACH <span>LINEUP</span></div>
     <select id="lineSelect"></select>
     <div class="spacer"></div>
@@ -44,7 +76,17 @@
       <button class="secondary full" id="positionsBtn">EDIT POSITION LABELS</button>
     </aside>
     <section class="main">
-      <div class="toolbar"><b>PLAY #<span id="playNo">0</span></b><span>1ST & 10</span><span>BALL ON 45</span><span class="spacer"></span><span id="warning"></span></div>
+      <div class="toolbar gameToolbar">
+        <b>PLAY #<span id="playNo">0</span></b>
+        <div class="viewTabs">
+          <button class="viewTab active" id="offenseTab">OFFENSE</button>
+          <button class="viewTab" id="defenseTab">DEFENSE</button>
+          <button class="viewTab" id="specialTab">SPECIAL TEAMS</button>
+        </div>
+        <select id="specialUnitSelect" class="hidden specialUnitSelect"></select>
+        <button class="editFieldBtn" id="editFieldBtn">EDIT FIELD</button>
+        <span class="spacer"></span><span id="warning"></span>
+      </div>
       <div class="fieldArea"><div id="field" class="field"><div class="mid"></div><div class="tag offense">OFFENSE</div><div class="tag defense">DEFENSE</div></div></div>
       <div class="bottom">
         <button class="chip" id="prevBtn">‹ PREV</button>
@@ -58,6 +100,7 @@
       <button id="subBtn">SUBSTITUTE</button>
       <button id="statsBtn">STATS</button>
       <button id="gameBtn">GAME</button>
+      <button id="resetFieldBtn">RESET FIELD</button>
     </aside>
   </main>
 </div>
