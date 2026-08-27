@@ -902,3 +902,79 @@ button:focus-visible,input:focus-visible,select:focus-visible{
 @media(display-mode:standalone){
   body{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
 }
+
+/* Tappable playing-time alert */
+#warning{
+  cursor:pointer;
+  user-select:none;
+  border-radius:8px;
+  padding:6px 8px;
+  transition:background .15s ease, transform .12s ease;
+}
+#warning:hover,
+#warning:focus-visible{
+  background:rgba(255,255,255,.06);
+}
+#warning:active{
+  transform:scale(.985);
+}
+#warning.hasAlert{
+  color:#ffd45e;
+  background:rgba(245,158,11,.09);
+  border:1px solid rgba(245,158,11,.22);
+}
+.alertPlayerList{
+  display:grid;
+  gap:8px;
+  margin:12px 0;
+}
+.alertPlayerRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 14px;
+  border:1px solid #37465c;
+  border-radius:12px;
+  background:#0d1622;
+}
+.alertPlayerIdentity{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+.alertPlayerIdentity small{
+  display:block;
+  margin-top:2px;
+  color:#8fa0b5;
+  font-size:11px;
+}
+.alertJersey{
+  min-width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  border-radius:10px;
+  background:#182437;
+  font-weight:900;
+}
+.alertPlayerStats{
+  display:grid;
+  justify-items:end;
+  gap:2px;
+  white-space:nowrap;
+}
+.alertPlayerStats span{
+  color:#9aa9ba;
+  font-size:12px;
+}
+.alertPlayerStats b{
+  color:#ff6b6b;
+  font-size:20px;
+}
+@media(max-width:760px){
+  .alertPlayerRow{padding:10px}
+  .alertJersey{min-width:38px;height:38px}
+  .alertPlayerStats b{font-size:17px}
+}

@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v22-current-user-role-fix";
+const CACHE="coach-lineup-v23-playing-time-alert-panel";
 const CORE=[
   "./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest",
   "./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png"

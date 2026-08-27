@@ -628,7 +628,14 @@ function renderSummary(){
     return pct>=threshold;
   });
   $('summary').textContent=`PLAY ${playCount} • ${over.length?`⚠️ ${over.length} OVER ${threshold}%`:'✓ PLAYING TIME OK'}`;
-  $('warning').textContent=over.length?'⚠️ PLAYING-TIME ALERT':'✓ ALL GOOD';
+  const warningEl=$('warning');
+  warningEl.textContent=over.length?'⚠️ PLAYING-TIME ALERT':'✓ ALL GOOD';
+  warningEl.classList.toggle('hasAlert',over.length>0);
+  warningEl.setAttribute('role','button');
+  warningEl.setAttribute('tabindex','0');
+  warningEl.setAttribute('aria-label',over.length
+    ? `Playing-time alert. ${over.length} player${over.length===1?'':'s'} at or above ${threshold} percent. Tap for details.`
+    : `Playing time is okay. Tap for details.`);
 }
 
 function setLine(i){ currentLine=i; renderLineSelect(); renderField(); }
@@ -1214,6 +1221,50 @@ async function prevPlay(){
   renderSummary();
 }
 
+
+function openPlayingTimeAlert(){
+  const rows=players.map(p=>{
+    const c=counts[p.id]||0;
+    const pct=playCount?Math.round(c/playCount*100):0;
+    return {p,c,pct};
+  }).filter(r=>r.pct>=threshold)
+    .sort((a,b)=>b.pct-a.pct || b.c-a.c);
+
+  if(!playCount){
+    openModal(`<h2>Playing-Time Alert</h2>
+      <div class="notice">No plays have been recorded yet.</div>
+      <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
+    return;
+  }
+
+  if(!rows.length){
+    openModal(`<h2>Playing-Time Alert</h2>
+      <div class="notice">✓ No players are currently at or above the ${threshold}% warning threshold.</div>
+      <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
+    return;
+  }
+
+  openModal(`<h2>⚠️ Playing-Time Alert</h2>
+    <div class="notice">Warning threshold: <b>${threshold}%</b> • Team plays: <b>${playCount}</b></div>
+    <div class="alertPlayerList">
+      ${rows.map(r=>`
+        <div class="alertPlayerRow">
+          <div class="alertPlayerIdentity">
+            <span class="alertJersey">#${esc(r.p.jersey_number)}</span>
+            <span><b>${esc(r.p.name)}</b>${r.p.primary_position?`<small>${esc(r.p.primary_position)}</small>`:''}</span>
+          </div>
+          <div class="alertPlayerStats">
+            <span>${r.c} / ${playCount} plays</span>
+            <b>${r.pct}%</b>
+          </div>
+        </div>`).join('')}
+    </div>
+    <div class="modalFoot">
+      <button class="secondary" onclick="closeModal()">CLOSE</button>
+      <button class="primary" onclick="closeModal();openStats()">VIEW ALL STATS</button>
+    </div>`);
+}
+
 function openStats(){
   const rows=players.map(p=>{
     const c=counts[p.id]||0, pct=playCount?Math.round(c/playCount*100):0;
@@ -1283,6 +1334,13 @@ $('linesBtn').onclick=openLines;
 $('positionsBtn').onclick=openPositions;
 $('subBtn').onclick=()=>{ const p=positions[0]; if(p) openLineupEditor(p.id); };
 $('statsBtn').onclick=openStats;
+$('warning').onclick=openPlayingTimeAlert;
+$('warning').onkeydown=e=>{
+  if(e.key==='Enter'||e.key===' '){
+    e.preventDefault();
+    openPlayingTimeAlert();
+  }
+};
 $('gameBtn').onclick=openGameSetup;
 $('nextBtn').onclick=nextPlay;
 $('nextSide').onclick=nextPlay;
