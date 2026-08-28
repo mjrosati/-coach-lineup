@@ -2960,7 +2960,7 @@ $('offenseTab').onclick=()=>setActiveView('offense');
 $('defenseTab').onclick=()=>setActiveView('defense');
 $('specialTab').onclick=()=>setActiveView('special');
 $('editFieldBtn').onclick=toggleEditField;
-$('resetFieldBtn').onclick=resetCurrentField;
+$('resetFieldBtn')?.addEventListener('click',resetCurrentField);
 $('fullscreenBtn').onclick=toggleFieldFullscreen;
 $('specialUnitSelect').onchange=e=>{currentSpecialUnit=Number(e.target.value);renderField();};
 $('homeBtn')?.addEventListener('click',showDashboard);
