@@ -2843,15 +2843,94 @@ function openPlayingTimeAlert(){
       <button class="primary" onclick="closeModal();recommendNextLine()">RECOMMEND NEXT LINE</button>
     </div>`);
 }
-function openStats(){
-  const rows=players.map(p=>{
-    const c=counts[p.id]||0, pct=playCount?Math.round(c/playCount*100):0;
-    return {p,c,pct};
-  }).sort((a,b)=>b.pct-a.pct);
-  openModal(`<h2>Playing Time</h2>
-    <div class="notice">Warning threshold: <b>${threshold}%</b> • Plays: <b>${playCount}</b></div>
-    ${rows.map(r=>`<div class="statRow"><span>#${esc(r.p.jersey_number)}</span><span>${esc(r.p.name)}</span><span>${r.c} plays</span><b style="${r.pct>=threshold?'color:#ff5b5b':''}">${r.pct}%</b></div>`).join('')}
-    <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
+async function openStats(){
+  if(!currentGame?.id) return alert('Start or resume a game to view player stats.');
+
+  try{
+    const {data:gamePlays,error:gpErr}=await sb.from('game_plays')
+      .select('id,play_number')
+      .eq('game_id',currentGame.id)
+      .order('play_number',{ascending:true});
+    if(gpErr) throw gpErr;
+
+    const ids=(gamePlays||[]).map(p=>p.id);
+    let participants=[];
+    if(ids.length){
+      const {data,error}=await sb.from('play_participants')
+        .select('play_id,player_id,position_label')
+        .in('play_id',ids);
+      if(error) throw error;
+      participants=data||[];
+    }
+
+    const total=(gamePlays||[]).length;
+    const rows=players.map(p=>{
+      const mine=participants.filter(x=>String(x.player_id)===String(p.id));
+      const pos={};
+      mine.forEach(x=>{
+        const label=x.position_label||'Unknown';
+        pos[label]=(pos[label]||0)+1;
+      });
+      const currentLines=lines.filter(line=>
+        assignments.some(a=>String(a.line_id)===String(line.id)&&String(a.player_id)===String(p.id))
+      ).map(line=>line.name);
+      return {
+        id:p.id,
+        jersey:p.jersey_number||'',
+        name:p.name||'Player',
+        plays:mine.length,
+        pct:total?Math.round(mine.length/total*100):0,
+        positions:pos,
+        currentLines
+      };
+    });
+
+    window.playerStatsRows=rows;
+    window.playerStatsTotal=total;
+    window.playerStatsSort='low';
+    renderAllPlayerStats();
+  }catch(e){
+    console.error('Player stats failed',e);
+    alert(e?.message||'Unable to load player stats.');
+  }
+}
+
+function renderAllPlayerStats(){
+  const rows=(window.playerStatsRows||[]).slice();
+  const sort=window.playerStatsSort||'low';
+  if(sort==='low') rows.sort((a,b)=>a.pct-b.pct||a.name.localeCompare(b.name));
+  else if(sort==='high') rows.sort((a,b)=>b.pct-a.pct||a.name.localeCompare(b.name));
+  else if(sort==='plays') rows.sort((a,b)=>b.plays-a.plays||a.name.localeCompare(b.name));
+  else rows.sort((a,b)=>a.name.localeCompare(b.name));
+
+  const total=window.playerStatsTotal||0;
+  openModal(`<div class="allPlayerStats">
+    <div class="playerStatsHead">
+      <div><small>CURRENT GAME • ${total} RECORDED PLAYS</small><h2>All Player Stats</h2></div>
+      <button class="secondary" onclick="closeModal()">✕ CLOSE</button>
+    </div>
+    <div class="playerStatsSort">
+      <button onclick="playerStatsSort='low';renderAllPlayerStats()">LOWEST %</button>
+      <button onclick="playerStatsSort='high';renderAllPlayerStats()">HIGHEST %</button>
+      <button onclick="playerStatsSort='plays';renderAllPlayerStats()">MOST PLAYS</button>
+      <button onclick="playerStatsSort='name';renderAllPlayerStats()">NAME</button>
+    </div>
+    <div class="playerStatsColumns"><span>PLAYER</span><span>PLAYS</span><span>%</span></div>
+    <div class="playerStatsRows">
+      ${rows.map(r=>{
+        const positions=Object.entries(r.positions).sort((a,b)=>b[1]-a[1])
+          .map(([label,n])=>`${esc(label)} ${n}`).join(' · ')||'No recorded positions';
+        const lineText=r.currentLines.length?r.currentLines.map(esc).join(' · '):'No current line';
+        return `<div class="playerStatsRow" onclick="this.classList.toggle('expanded')">
+          <div class="psPlayer"><b>#${esc(r.jersey)} ${esc(r.name)}</b></div>
+          <div class="psPlays">${r.plays}</div>
+          <div class="psPct"><b>${r.pct}%</b></div>
+          <div class="psDetail"><div><b>Positions played:</b> ${positions}</div><div><b>Current lines:</b> ${lineText}</div></div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="playerStatsHint">Tap any player for position and line details.</div>
+  </div>`);
 }
 
 function subscribe(){

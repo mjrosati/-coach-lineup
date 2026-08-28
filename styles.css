@@ -2072,3 +2072,20 @@ body:-webkit-full-screen .fullscreenPlayPanel,
     grid-template-columns:46px minmax(0,1fr) 78px;
   }
 }
+
+/* All-player game stats */
+.allPlayerStats{width:min(760px,96vw)}
+.playerStatsHead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.playerStatsHead small{font-size:9px;font-weight:900;letter-spacing:.7px;opacity:.7}
+.playerStatsHead h2{margin:2px 0 10px}
+.playerStatsSort{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.playerStatsSort button{font-size:10px;padding:7px 9px}
+.playerStatsColumns,.playerStatsRow{display:grid;grid-template-columns:minmax(0,1fr) 65px 60px;gap:8px;align-items:center}
+.playerStatsColumns{font-size:9px;font-weight:900;opacity:.65;padding:0 10px 5px}
+.playerStatsRows{max-height:64vh;overflow:auto}
+.playerStatsRow{padding:10px;border-top:1px solid rgba(255,255,255,.12);cursor:pointer}
+.psPlays,.psPct{text-align:center}.psPct{font-size:16px}
+.psDetail{display:none;grid-column:1/-1;padding:8px 0 2px;font-size:11px;line-height:1.6;opacity:.9}
+.playerStatsRow.expanded .psDetail{display:block}
+.playerStatsHint{text-align:center;font-size:10px;opacity:.65;margin-top:9px}
+@media(max-width:600px){.playerStatsColumns,.playerStatsRow{grid-template-columns:minmax(0,1fr) 50px 52px}.psPlayer{font-size:11px}}
