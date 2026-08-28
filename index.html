@@ -55,6 +55,8 @@
       <button id="templatesCard" class="dashCard"><div class="dashIcon">💾</div><div><b>SAVED LINEUPS</b><small>Save, reuse or duplicate a game lineup</small></div><span>›</span></button>
       <button id="positionsCard" class="dashCard"><div class="dashIcon">🏷️</div><div><b>POSITIONS</b><small>Edit labels used on the field</small></div><span>›</span></button>
       <button id="playbookCard" class="dashCard"><div class="dashIcon">📘</div><div><b>PLAYBOOK</b><small>Running, passing & special plays • PDF</small></div><span>›</span></button>
+      <button id="gameHistoryCard" class="dashCard"><div class="dashIcon">📊</div><div><b>GAME HISTORY</b><small>Past games, play totals & reports</small></div><span>›</span></button>
+      <button id="installCard" class="dashCard"><div class="dashIcon">📲</div><div><b>INSTALL APP</b><small>Add Coach Lineup to your home screen</small></div><span>›</span></button>
       <button id="settingsCard" class="dashCard"><div class="dashIcon">⚙️</div><div><b>TEAM SETTINGS</b><small>Invite code and team information</small></div><span>›</span></button>
     </div>
     <div class="dashHint">Designed for sideline use • Rotate your phone for the largest Game Day field.</div>
@@ -97,6 +99,12 @@
         <select id="specialUnitSelect" class="hidden specialUnitSelect"></select>
         <button class="editFieldBtn" id="editFieldBtn">EDIT FIELD</button>
         <span class="spacer"></span><span id="warning"></span>
+      </div>
+      <div class="gameStrip" id="gameStrip">
+        <button id="quarterDisplay" class="quarterDisplay" title="Set quarter">Q1</button>
+        <button id="clockDisplay" class="clockDisplay" title="Set game clock">8:00</button>
+        <button id="clockToggleBtn" class="clockToggleBtn">▶ START</button>
+        <button id="possessionDisplay" class="possessionDisplay ours">OUR BALL</button>
       </div>
       <div class="fieldArea"><div id="field" class="field"><div class="mid"></div><div class="tag offense">OFFENSE</div><div class="tag defense">DEFENSE</div></div></div>
       <div class="bottom">

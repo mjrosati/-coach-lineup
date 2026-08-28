@@ -21,6 +21,9 @@ const DEFAULT_POS = [
 
 let team=null, membership=null, lines=[], players=[], positions=[], assignments=[], playbookPlays=[];
 let gameModeLocked=false, sidelineMode=false;
+let gameQuarter='Q1', possession='ours', clockSeconds=480, clockRunning=false, clockTimer=null, clockEndAt=null;
+let deferredInstallPrompt=null;
+
 let currentLine=0, displayMode='names', currentGame=null, playCount=0, counts={}, threshold=75, channel=null;
 let activeView='offense', editFieldMode=false, specialUnits=[], specialSlots=[], specialAssignments=[], currentSpecialUnit=0, deviceMode=localStorage.getItem('coachLineupDeviceMode')||'auto';
 let fieldFullscreen=false;
@@ -207,7 +210,161 @@ async function loadApp(){
 }
 
 
+
+function gameStateKey(id=currentGame?.id){ return id?`coachLineupGameState:${id}`:null; }
+function persistGameState(){
+  const key=gameStateKey(); if(!key) return;
+  const state={quarter:gameQuarter,possession,clockSeconds,clockRunning,clockEndAt};
+  try{ localStorage.setItem(key,JSON.stringify(state)); }catch(e){}
+}
+function loadGameState(){
+  gameQuarter='Q1'; possession='ours'; clockSeconds=480; clockRunning=false; clockEndAt=null;
+  const key=gameStateKey(); if(key){
+    try{
+      const s=JSON.parse(localStorage.getItem(key)||'null');
+      if(s){
+        gameQuarter=s.quarter||'Q1';
+        possession=s.possession==='theirs'?'theirs':'ours';
+        clockSeconds=Math.max(0,Number(s.clockSeconds??480));
+        clockRunning=!!s.clockRunning;
+        clockEndAt=s.clockEndAt?Number(s.clockEndAt):null;
+        if(clockRunning && clockEndAt){
+          clockSeconds=Math.max(0,Math.ceil((clockEndAt-Date.now())/1000));
+          if(clockSeconds<=0){ clockRunning=false; clockEndAt=null; }
+        }
+      }
+    }catch(e){}
+  }
+  syncClockTimer();
+  renderGameStrip();
+}
+function formatClock(sec){
+  sec=Math.max(0,Math.floor(Number(sec)||0));
+  return `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`;
+}
+function renderGameStrip(){
+  const q=$('quarterDisplay'), c=$('clockDisplay'), p=$('possessionDisplay'), b=$('clockToggleBtn');
+  if(q) q.textContent=gameQuarter;
+  if(c) c.textContent=formatClock(clockSeconds);
+  if(p){
+    p.textContent=possession==='ours'?'OUR BALL':'THEIR BALL';
+    p.classList.toggle('ours',possession==='ours');
+    p.classList.toggle('theirs',possession==='theirs');
+  }
+  if(b) b.textContent=clockRunning?'⏸ PAUSE':'▶ START';
+}
+function tickClock(){
+  if(!clockRunning || !clockEndAt) return;
+  clockSeconds=Math.max(0,Math.ceil((clockEndAt-Date.now())/1000));
+  if(clockSeconds<=0){
+    clockRunning=false; clockEndAt=null;
+    if(clockTimer){ clearInterval(clockTimer); clockTimer=null; }
+  }
+  renderGameStrip(); persistGameState();
+}
+function syncClockTimer(){
+  if(clockTimer){ clearInterval(clockTimer); clockTimer=null; }
+  if(clockRunning){
+    if(!clockEndAt) clockEndAt=Date.now()+clockSeconds*1000;
+    clockTimer=setInterval(tickClock,250);
+  }
+}
+function toggleGameClock(){
+  if(!currentGame) return alert('Start a game first.');
+  if(clockRunning){
+    tickClock(); clockRunning=false; clockEndAt=null;
+  }else{
+    if(clockSeconds<=0) return openClockSettings();
+    clockRunning=true; clockEndAt=Date.now()+clockSeconds*1000;
+  }
+  syncClockTimer(); persistGameState(); renderGameStrip();
+}
+function setQuarter(q){
+  gameQuarter=q; persistGameState(); renderGameStrip();
+}
+function togglePossession(){
+  possession=possession==='ours'?'theirs':'ours';
+  persistGameState(); renderGameStrip();
+}
+function openClockSettings(){
+  openModal(`<h2>Quarter & Game Clock</h2>
+    <div class="quarterPicker">
+      ${['Q1','Q2','Q3','Q4','OT'].map(q=>`<button class="${gameQuarter===q?'primary':'secondary'}" onclick="setQuarter('${q}');openClockSettings()">${q}</button>`).join('')}
+    </div>
+    <div class="formgrid">
+      <label>Minutes<input id="clockMin" type="number" min="0" max="99" value="${Math.floor(clockSeconds/60)}"></label>
+      <label>Seconds<input id="clockSec" type="number" min="0" max="59" value="${clockSeconds%60}"></label>
+    </div>
+    <button class="secondary full possessionSetting" onclick="togglePossession();openClockSettings()">${possession==='ours'?'🏈 OUR BALL':'THEIR BALL'}</button>
+    <div class="modalFoot">
+      <button class="secondary" onclick="closeModal()">CANCEL</button>
+      <button class="primary" onclick="saveClockSettings()">SAVE</button>
+    </div>`);
+}
+function saveClockSettings(){
+  const m=Math.max(0,Math.min(99,Number($('clockMin').value||0)));
+  const s=Math.max(0,Math.min(59,Number($('clockSec').value||0)));
+  clockSeconds=Math.floor(m*60+s);
+  clockRunning=false; clockEndAt=null; syncClockTimer();
+  persistGameState(); renderGameStrip(); closeModal();
+}
+async function openAllGameHistory(){
+  if(!team) return;
+  const {data,error}=await sb.from('games').select('id,opponent,status,total_plays,started_at,finished_at,created_at').eq('team_id',team.id).order('created_at',{ascending:false}).limit(50);
+  if(error) return alert(error.message);
+  const games=data||[];
+  openModal(`<h2>🏈 Game History</h2>
+    <p class="muted">Your most recent games are saved here.</p>
+    <div class="savedGamesList">${games.length?games.map(g=>`
+      <button class="savedGameRow" onclick="openSavedGameReport('${g.id}')">
+        <span><b>vs ${esc(g.opponent||'Opponent')}</b><small>${new Date(g.started_at||g.created_at).toLocaleDateString()}</small></span>
+        <span>${Number(g.total_plays||0)} plays</span>
+        <span class="gameStatus ${g.status==='active'?'active':''}">${String(g.status||'').toUpperCase()}</span>
+      </button>`).join(''):`<div class="notice">No saved games yet.</div>`}</div>
+    <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
+}
+async function openSavedGameReport(gameId){
+  const {data:g,error:ge}=await sb.from('games').select('*').eq('id',gameId).single();
+  if(ge) return alert(ge.message);
+  const {data:plays,error:pe}=await sb.from('game_plays').select('id,play_number,line_id,note,created_at').eq('game_id',gameId).order('play_number');
+  if(pe) return alert(pe.message);
+  const ids=(plays||[]).map(x=>x.id);
+  let participants=[];
+  if(ids.length){
+    const {data,error}=await sb.from('play_participants').select('game_play_id,player_id').in('game_play_id',ids);
+    if(error) return alert(error.message);
+    participants=data||[];
+  }
+  const playerCounts={};
+  participants.forEach(x=>playerCounts[x.player_id]=(playerCounts[x.player_id]||0)+1);
+  const rows=players.map(p=>({p,c:playerCounts[p.id]||0})).sort((a,b)=>b.c-a.c||a.p.name.localeCompare(b.p.name));
+  const total=Number(g.total_plays||plays?.length||0);
+  openModal(`<h2>Game Report</h2>
+    <div class="notice"><b>vs ${esc(g.opponent||'Opponent')}</b><br>${new Date(g.started_at||g.created_at).toLocaleDateString()} • ${total} plays • ${String(g.status||'').toUpperCase()}</div>
+    <div class="endReport">${rows.map(r=>`<div class="statRow"><span>#${esc(r.p.jersey_number)}</span><span>${esc(r.p.name)}</span><span>${r.c} plays</span><b>${total?Math.round(r.c/total*100):0}%</b></div>`).join('')}</div>
+    <div class="modalFoot"><button class="secondary" onclick="openAllGameHistory()">BACK</button><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
+}
+function openInstallApp(){
+  if(deferredInstallPrompt){
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.finally(()=>{ deferredInstallPrompt=null; });
+    return;
+  }
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  const msg=ios
+    ? 'On iPhone/iPad: tap the Share button in Safari, then choose “Add to Home Screen,” then tap Add.'
+    : 'Coach Lineup can be installed from your browser menu. Look for “Install app” or “Add to Home Screen.”';
+  openModal(`<h2>📲 Install Coach Lineup</h2>
+    <div class="notice">${msg}</div>
+    <p class="muted">Installing it gives you an app icon and a cleaner full-screen game-day experience.</p>
+    <div class="modalFoot"><button class="primary" onclick="closeModal()">GOT IT</button></div>`);
+}
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault(); deferredInstallPrompt=e;
+});
+
 function showDashboard(){
+  if(currentGame) loadGameState();
   $('auth').classList.add('hidden');
   $('app').classList.add('hidden');
   $('dashboard').classList.remove('hidden');
@@ -224,6 +381,7 @@ function showDashboard(){
   }
 }
 function showGameScreen(){
+  if(currentGame) loadGameState();
   $('dashboard').classList.add('hidden');
   $('app').classList.remove('hidden');
   renderAll();
@@ -280,6 +438,13 @@ async function openTeamAdmin(){
       <b>${esc(team.name)}</b><br>
       Current invite code: <span class="inviteCode">${esc(team.invite_code)}</span>
       <button class="secondary full" style="margin-top:10px" onclick="rotateInviteCode()">REGENERATE INVITE CODE</button>
+    </div>
+
+    <div class="roleGuide">
+      <div><b>OWNER</b><span>Everything, including team deletion and assigning admins.</span></div>
+      <div><b>ADMIN</b><span>Manage members and all football data.</span></div>
+      <div><b>COACH</b><span>Edit roster, lines, plays and run games.</span></div>
+      <div><b>VIEWER</b><span>View team and game information without editing.</span></div>
     </div>
 
     <h3>Team Members</h3>
@@ -1420,7 +1585,7 @@ async function openGameHistory(){
   if(error) return alert(error.message);
   const rows=data||[];
   openModal(`<h2>Game History</h2>
-    <div class="notice"><b>vs ${esc(currentGame.opponent||'Opponent')}</b> • ${rows.length} recorded plays</div>
+    <div class="notice"><b>vs ${esc(currentGame.opponent||'Opponent')}</b> • ${gameQuarter} • ${formatClock(clockSeconds)} • ${possession==='ours'?'OUR BALL':'THEIR BALL'}<br>${rows.length} recorded plays</div>
     <div class="historyList">${rows.length?rows.map(r=>{
       const line=lines.find(l=>l.id===r.line_id);
       const view=String(r.note||'').startsWith('special:')?String(r.note).replace('special:','Special — '):String(r.note||'').toUpperCase();
@@ -1447,6 +1612,7 @@ async function finishGame(){
 }
 async function confirmFinishGame(){
   if(!currentGame) return;
+  if(clockTimer){clearInterval(clockTimer);clockTimer=null;} clockRunning=false; clockEndAt=null;
   const {error}=await sb.from('games').update({status:'finished',finished_at:new Date().toISOString()}).eq('id',currentGame.id);
   if(error) return alert(error.message);
   currentGame=null; playCount=0; counts={}; pendingLineupLabel='Current lineup'; closeModal(); renderSummary(); showDashboard();
@@ -1480,6 +1646,9 @@ async function startGame(){
   }).select().single();
   if(error) return alert(error.message);
   currentGame=data; playCount=0; counts={};
+  gameQuarter='Q1'; possession='ours'; clockSeconds=480; clockRunning=false; clockEndAt=null;
+  persistGameState(); renderGameStrip();
+
   await snapshotCurrentLineup(`vs ${opp} - ${new Date().toLocaleDateString()}`,data.id,true,true);
   pendingLineupLabel='Current lineup';
   closeModal(); renderSummary(); showGameScreen();
@@ -1701,6 +1870,11 @@ $('recommendBtn')?.addEventListener('click',recommendNextLine);
 $('historyBtn')?.addEventListener('click',openGameHistory);
 $('lockBtn')?.addEventListener('click',toggleGameLock);
 $('sidelineBtn')?.addEventListener('click',toggleSidelineMode);
+$('clockToggleBtn')?.addEventListener('click',toggleGameClock);
+$('clockDisplay')?.addEventListener('click',openClockSettings);
+$('quarterDisplay')?.addEventListener('click',openClockSettings);
+$('possessionDisplay')?.addEventListener('click',togglePossession);
+
 $('nextBtn').onclick=nextPlay;
 $('nextSide').onclick=nextPlay;
 $('prevBtn').onclick=prevPlay;
@@ -1729,5 +1903,8 @@ $('templatesCard')?.addEventListener('click',openSavedLineups);
 $('positionsCard')?.addEventListener('click',openPositions);
 $('settingsCard')?.addEventListener('click',openTeamSettings);
 $('playbookCard')?.addEventListener('click',()=>openPlaybook());
+$('gameHistoryCard')?.addEventListener('click',openAllGameHistory);
+$('installCard')?.addEventListener('click',openInstallApp);
+
 
 boot();
