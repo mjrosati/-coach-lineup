@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v35-smart-substitution";
+const CACHE="coach-lineup-v36-complete-game-day-upgrades";
 const CORE=[
   "./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest",
   "./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png"

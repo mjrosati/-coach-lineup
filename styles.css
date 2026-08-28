@@ -1338,3 +1338,24 @@ body.sidelineMode .tdPlayBtn{
 .smartSubPlayer.smartRecommended{border-color:#4ea874!important}
 body.sidelineMode .recommendedSub{min-height:72px}
 body.sidelineMode .smartSubPlayer{min-height:55px}
+
+/* Complete game-day upgrades */
+.gameStrip{flex-wrap:wrap}
+.driveDisplay,.downDisplay,.distanceDisplay{min-height:38px;font-size:10px;font-weight:900}
+.downDisplay{border-color:#4d9eea!important}
+.reportTiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.reportTiles div{padding:10px;border:1px solid #344b64;border-radius:10px;text-align:center;background:#0b1724}
+.reportTiles b{display:block;font-size:22px}
+.reportTiles span{font-size:9px;color:#94a8bc}
+.smartPlayRow{display:flex;flex-direction:column;align-items:flex-start;width:100%;padding:10px;margin:5px 0;text-align:left}
+.smartPlayRow small{font-size:9px;color:#95a9bc}
+.historyEditRow{width:100%;text-align:left}
+.pregameIssues{display:flex;flex-direction:column;gap:6px;max-height:55vh;overflow:auto}
+.pregameIssues>div{padding:8px;border:1px solid #5a4521;border-radius:8px;background:#2b220f}
+.gradeEdit{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.statRow small{display:block;font-size:8px;color:#8fa4b8;margin-top:2px}
+@media(max-width:650px){
+  .reportTiles{grid-template-columns:1fr 1fr}
+  .gameStrip button{flex:1 1 auto}
+  .gradeEdit{grid-template-columns:1fr}
+}

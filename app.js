@@ -21,7 +21,7 @@ const DEFAULT_POS = [
 
 let team=null, membership=null, lines=[], players=[], positions=[], assignments=[], playbookPlays=[];
 let gameModeLocked=false, sidelineMode=false;
-let gameQuarter='Q1', possession='ours', clockSeconds=480, clockRunning=false, clockTimer=null, clockEndAt=null;
+let gameQuarter='Q1', possession='ours', clockSeconds=480, clockRunning=false, clockTimer=null, clockEndAt=null, gameDown=1, gameDistance=10, driveNumber=1;
 let deferredInstallPrompt=null;
 let playerSortMode='jersey', pendingCalledPlay=null, lastRecordedCall=null;
 
@@ -215,11 +215,11 @@ async function loadApp(){
 function gameStateKey(id=currentGame?.id){ return id?`coachLineupGameState:${id}`:null; }
 function persistGameState(){
   const key=gameStateKey(); if(!key) return;
-  const state={quarter:gameQuarter,possession,clockSeconds,clockRunning,clockEndAt};
+  const state={quarter:gameQuarter,possession,clockSeconds,clockRunning,clockEndAt,down:gameDown,distance:gameDistance,driveNumber};
   try{ localStorage.setItem(key,JSON.stringify(state)); }catch(e){}
 }
 function loadGameState(){
-  gameQuarter='Q1'; possession='ours'; clockSeconds=480; clockRunning=false; clockEndAt=null;
+  gameQuarter='Q1'; possession='ours'; clockSeconds=480; clockRunning=false; clockEndAt=null; gameDown=1; gameDistance=10; driveNumber=1;
   const key=gameStateKey(); if(key){
     try{
       const s=JSON.parse(localStorage.getItem(key)||'null');
@@ -229,6 +229,9 @@ function loadGameState(){
         clockSeconds=Math.max(0,Number(s.clockSeconds??480));
         clockRunning=!!s.clockRunning;
         clockEndAt=s.clockEndAt?Number(s.clockEndAt):null;
+        gameDown=Math.max(1,Math.min(4,Number(s.down||1)));
+        gameDistance=Math.max(0,Number(s.distance??10));
+        driveNumber=Math.max(1,Number(s.driveNumber||1));
         if(clockRunning && clockEndAt){
           clockSeconds=Math.max(0,Math.ceil((clockEndAt-Date.now())/1000));
           if(clockSeconds<=0){ clockRunning=false; clockEndAt=null; }
@@ -253,6 +256,10 @@ function renderGameStrip(){
     p.classList.toggle('theirs',possession==='theirs');
   }
   if(b) b.textContent=clockRunning?'⏸ PAUSE':'▶ START';
+  const d=$('downDisplay'), dist=$('distanceDisplay'), drv=$('driveDisplay');
+  if(d) d.textContent=`${gameDown}${gameDown===1?'ST':gameDown===2?'ND':gameDown===3?'RD':'TH'} DOWN`;
+  if(dist) dist.textContent=`${gameDistance} TO GO`;
+  if(drv) drv.textContent=`DRIVE ${driveNumber}`;
 }
 function tickClock(){
   if(!clockRunning || !clockEndAt) return;
@@ -285,8 +292,31 @@ function setQuarter(q){
 }
 function togglePossession(){
   possession=possession==='ours'?'theirs':'ours';
-  persistGameState(); renderGameStrip();
+  driveNumber++;
+  gameDown=1;
+  gameDistance=10;
+  persistGameState();
+  renderGameStrip();
 }
+
+function cycleDown(){
+  gameDown=gameDown>=4?1:gameDown+1;
+  persistGameState();
+  renderGameStrip();
+}
+function openDownDistance(){
+  openModal(`<h2>Down & Distance</h2>
+    <div class="downPicker">
+      ${[1,2,3,4].map(d=>`<button class="${gameDown===d?'primary':'secondary'}" onclick="gameDown=${d};persistGameState();openDownDistance()">${d}${d===1?'ST':d===2?'ND':d===3?'RD':'TH'}</button>`).join('')}
+    </div>
+    <label>Yards to go<input id="distanceInput" type="number" min="0" max="99" value="${gameDistance}"></label>
+    <div class="notice">Drive <b>${driveNumber}</b> • ${possession==='ours'?'OUR BALL':'THEIR BALL'}</div>
+    <div class="modalFoot">
+      <button class="secondary" onclick="closeModal()">CANCEL</button>
+      <button class="primary" onclick="gameDistance=Math.max(0,Number($('distanceInput').value||0));persistGameState();renderGameStrip();closeModal()">SAVE</button>
+    </div>`);
+}
+
 function openClockSettings(){
   openModal(`<h2>Quarter & Game Clock</h2>
     <div class="quarterPicker">
@@ -327,7 +357,7 @@ async function openAllGameHistory(){
 async function openSavedGameReport(gameId){
   const {data:g,error:ge}=await sb.from('games').select('*').eq('id',gameId).single();
   if(ge) return alert(ge.message);
-  const {data:plays,error:pe}=await sb.from('game_plays').select('id,play_number,line_id,note,created_at').eq('game_id',gameId).order('play_number');
+  const {data:plays,error:pe}=await sb.from('game_plays').select('id,play_number,line_id,note,created_at,drive_number,down,distance,quality_play,touchdown').eq('game_id',gameId).order('play_number');
   if(pe) return alert(pe.message);
   const ids=(plays||[]).map(x=>x.id);
   let participants=[];
@@ -336,6 +366,7 @@ async function openSavedGameReport(gameId){
     if(error) return alert(error.message);
     participants=data||[];
   }
+  const positionBreakdown=await positionBreakdownForGame(gameId);
   const playerCounts={};
   participants.forEach(x=>playerCounts[x.player_id]=(playerCounts[x.player_id]||0)+1);
   const rows=players.map(p=>({p,c:playerCounts[p.id]||0})).sort((a,b)=>b.c-a.c||a.p.name.localeCompare(b.p.name));
@@ -348,10 +379,10 @@ async function openSavedGameReport(gameId){
   const calledRows=Object.values(called).sort((a,b)=>b.count-a.count||String(a.name).localeCompare(String(b.name)));
   openModal(`<h2>Game Report</h2>
     <div class="notice"><b>vs ${esc(g.opponent||'Opponent')}</b><br>${new Date(g.started_at||g.created_at).toLocaleDateString()} • ${total} plays • ${String(g.status||'').toUpperCase()}<br><b>${(callResults||[]).length}</b> playbook calls • <b>${qualityCount}</b> quality • <b>${tdCount}</b> touchdowns</div>
-    <div class="endReport">${rows.map(r=>`<div class="statRow"><span>#${esc(r.p.jersey_number)}</span><span>${esc(r.p.name)}</span><span>${r.c} plays</span><b>${total?Math.round(r.c/total*100):0}%</b></div>`).join('')}</div>
+    <div class="endReport">${rows.map(r=>`<div class="statRow"><span>#${esc(r.p.jersey_number)}</span><span>${esc(r.p.name)}</span><span>${r.c} plays<small>${Object.entries(positionBreakdown[r.p.id]||{}).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([k,v])=>`${esc(k)} ${v}`).join(' • ')}</small></span><b>${total?Math.round(r.c/total*100):0}%</b></div>`).join('')}</div>
     <h3>Called Plays</h3>
     ${calledRows.length?`<div class="calledPlayReport">${calledRows.map(p=>`<div><span>${esc(p.code?`${p.code} — ${p.name}`:p.name)}</span><small>${esc(playCategoryLabel(p.category))}</small><b>${p.count}×</b></div>`).join('')}</div>`:`<div class="notice">No playbook calls were recorded for this game.</div>`}
-    <div class="modalFoot"><button class="secondary" onclick="openAllGameHistory()">BACK</button><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
+    <div class="modalFoot"><button class="secondary" onclick="openAllGameHistory()">BACK</button><button class="secondary" onclick="openPrintableGameReport(\'${gameId}\')">PDF / PRINT</button><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
 }
 function openInstallApp(){
   if(deferredInstallPrompt){
@@ -1908,6 +1939,130 @@ function toggleSidelineMode(){
     if(typeof showGameScreen==='function' && currentGame) showGameScreen();
   }
 }
+
+async function recentUsageData(limit=8){
+  if(!currentGame) return {plays:[],byPlayer:{}};
+  const {data:plays}=await sb.from('game_plays').select('id,play_number').eq('game_id',currentGame.id).order('play_number',{ascending:false}).limit(limit);
+  const ids=(plays||[]).map(x=>x.id), byPlayer={};
+  if(ids.length){
+    const {data:pp}=await sb.from('play_participants').select('play_id,player_id').in('play_id',ids);
+    (pp||[]).forEach(x=>{ byPlayer[x.player_id]??=[]; byPlayer[x.player_id].push(x.play_id); });
+  }
+  return {plays:plays||[],byPlayer};
+}
+async function openSmartUsageAlert(){
+  const rec=await recentUsageData(8), recentIds=rec.plays.map(x=>x.id);
+  const rows=players.filter(playerCanPlay).map(p=>{
+    const ids=rec.byPlayer[p.id]||[]; let streak=0;
+    for(const id of recentIds){ if(ids.includes(id)) streak++; else break; }
+    return {p,streak,missed:recentIds.filter(id=>!ids.includes(id)).length,total:counts[p.id]||0};
+  }).sort((a,b)=>b.streak-a.streak||b.missed-a.missed||a.total-b.total);
+  openModal(`<h2>Smart Playing-Time Alert</h2>
+    <div class="alertPlayerList">${rows.map(r=>`<div class="alertPlayerRow"><div><b>#${esc(r.p.jersey_number)} ${esc(r.p.name)}</b><small>${r.total} total plays</small></div><div><b>${r.streak} straight</b><small>${r.missed} of last ${recentIds.length} missed</small></div></div>`).join('')}</div>
+    <div class="modalFoot"><button class="primary" onclick="closeModal();openQuickSub()">SMART SUBSTITUTE</button><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
+}
+
+
+async function pregameLineupCheck(){
+  const issues=[];
+  for(const side of ['offense','defense']){
+    const sidePositions=positions.filter(p=>p.side===side);
+    for(const line of lines){
+      const posIds=new Set(sidePositions.map(p=>p.id));
+      const aa=assignments.filter(a=>a.line_id===line.id&&posIds.has(a.position_label_id));
+      const used=new Set();
+      aa.forEach(a=>{
+        if(used.has(a.player_id)) issues.push(`${line.name} ${side}: duplicate player`);
+        used.add(a.player_id);
+        const pl=players.find(p=>p.id===a.player_id);
+        if(pl&&!playerCanPlay(pl)) issues.push(`${line.name} ${side}: #${pl.jersey_number} ${pl.name} is ${availabilityLabel(pl)}`);
+      });
+      if(aa.length<sidePositions.length) issues.push(`${line.name} ${side}: ${sidePositions.length-aa.length} open position(s)`);
+    }
+  }
+  players.filter(playerCanPlay).forEach(p=>{
+    if(!assignments.some(a=>a.player_id===p.id)) issues.push(`#${p.jersey_number} ${p.name}: not assigned to any regular line`);
+  });
+  openModal(`<h2>Pregame Lineup Check</h2>
+    ${issues.length?`<div class="pregameIssues">${issues.map(x=>`<div>⚠️ ${esc(x)}</div>`).join('')}</div>`:`<div class="notice">✓ Lineups look ready. No issues found.</div>`}
+    <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
+}
+
+
+async function openSmartPlaySuggestion(){
+  if(!currentGame) return alert('Start a game first.');
+  const {data:results}=await sb.from('play_call_results').select('playbook_play_id,quality_play,touchdown,game_play_id').eq('team_id',team.id);
+  const ids=[...new Set((results||[]).map(r=>r.game_play_id).filter(Boolean))];
+  let contextRows=[];
+  if(ids.length){
+    const {data}=await sb.from('game_plays').select('id,down,distance').in('id',ids);
+    contextRows=data||[];
+  }
+  const ctx=new Map(contextRows.map(x=>[x.id,x])), stats={};
+  (results||[]).forEach(r=>{
+    const c=ctx.get(r.game_play_id);
+    if(c?.down && c.down!==gameDown) return;
+    const k=r.playbook_play_id; if(!k) return;
+    stats[k]??={calls:0,q:0,td:0}; stats[k].calls++; if(r.quality_play)stats[k].q++; if(r.touchdown)stats[k].td++;
+  });
+  const ranked=playbookPlays.map(p=>({p,s:stats[p.id]||{calls:0,q:0,td:0}}))
+    .sort((a,b)=>(b.s.calls?b.s.q/b.s.calls:0)-(a.s.calls?a.s.q/a.s.calls:0)||b.s.calls-a.s.calls);
+  openModal(`<h2>★ Play Suggestion</h2>
+    <div class="notice">${gameDown}${gameDown===1?'st':gameDown===2?'nd':gameDown===3?'rd':'th'} & ${gameDistance} • based on your recorded results</div>
+    <div class="playList">${ranked.slice(0,8).map((x,i)=>`<button class="smartPlayRow" onclick="choosePlayForGame('${x.p.id}')"><span>${i===0?'★ ':''}${esc(playCallLabel(x.p))}</span><small>${x.s.calls?`${x.s.calls} calls • ${Math.round(x.s.q/x.s.calls*100)}% quality • ${x.s.td} TD`:'No history yet'}</small></button>`).join('')}</div>
+    <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
+}
+
+
+async function openHalftimeReport(){
+  if(!currentGame) return alert('Start a game first.');
+  const {data:plays}=await sb.from('game_plays').select('quality_play,touchdown,drive_number').eq('game_id',currentGame.id);
+  const total=(plays||[]).length, quality=(plays||[]).filter(x=>x.quality_play).length, td=(plays||[]).filter(x=>x.touchdown).length;
+  const drives=Math.max(0,...(plays||[]).map(x=>x.drive_number||1));
+  const low=players.filter(playerCanPlay).map(p=>({p,c:counts[p.id]||0})).sort((a,b)=>a.c-b.c).slice(0,5);
+  openModal(`<h2>Halftime Report</h2>
+    <div class="reportTiles"><div><b>${total}</b><span>PLAYS</span></div><div><b>${total?Math.round(quality/total*100):0}%</b><span>QUALITY</span></div><div><b>${td}</b><span>TD</span></div><div><b>${drives}</b><span>DRIVES</span></div></div>
+    <h3>Players Needing More Time</h3>${low.map(x=>`<div class="statRow"><span>#${esc(x.p.jersey_number)}</span><span>${esc(x.p.name)}</span><b>${x.c} plays</b></div>`).join('')}
+    <div class="modalFoot"><button class="primary" onclick="closeModal();openSmartPlaySuggestion()">PLAY SUGGESTION</button><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
+}
+
+
+async function editRecordedPlay(playId){
+  const {data:r,error}=await sb.from('game_plays').select('*').eq('id',playId).single();
+  if(error) return alert(error.message);
+  openModal(`<h2>Correct Play ${r.play_number}</h2>
+    <div class="formgrid"><label>Down<input id="editDown" type="number" min="1" max="4" value="${r.down||1}"></label><label>Distance<input id="editDist" type="number" min="0" max="99" value="${r.distance??10}"></label></div>
+    <div class="gradeEdit"><button class="${r.quality_play?'primary':'secondary'}" onclick="saveRecordedPlayCorrection('${playId}',true,false)">✓ QUALITY</button><button class="${r.touchdown?'primary':'secondary'}" onclick="saveRecordedPlayCorrection('${playId}',true,true)">🏈 TD</button><button class="secondary" onclick="saveRecordedPlayCorrection('${playId}',false,false)">RECORD ONLY</button></div>
+    <div class="modalFoot"><button class="secondary" onclick="closeModal()">CANCEL</button></div>`);
+}
+async function saveRecordedPlayCorrection(playId,quality,touchdown){
+  const down=Math.max(1,Math.min(4,Number($('editDown')?.value||1))), distance=Math.max(0,Number($('editDist')?.value||0));
+  const {error}=await sb.from('game_plays').update({down,distance,quality_play:quality,touchdown}).eq('id',playId);
+  if(error) return alert(error.message);
+  await sb.from('play_call_results').update({quality_play:quality,touchdown}).eq('game_play_id',playId);
+  closeModal(); openGameHistory();
+}
+
+
+async function positionBreakdownForGame(gameId){
+  const {data:plays}=await sb.from('game_plays').select('id').eq('game_id',gameId);
+  const ids=(plays||[]).map(x=>x.id); if(!ids.length)return {};
+  const {data:pp}=await sb.from('play_participants').select('player_id,position_label').in('play_id',ids);
+  const out={};
+  (pp||[]).forEach(x=>{out[x.player_id]??={};const pos=x.position_label||'Unknown';out[x.player_id][pos]=(out[x.player_id][pos]||0)+1;});
+  return out;
+}
+async function openPrintableGameReport(gameId){
+  const {data:g}=await sb.from('games').select('*').eq('id',gameId).single();
+  const {data:plays}=await sb.from('game_plays').select('*').eq('game_id',gameId).order('play_number');
+  const pos=await positionBreakdownForGame(gameId);
+  const quality=(plays||[]).filter(x=>x.quality_play).length, td=(plays||[]).filter(x=>x.touchdown).length;
+  const w=window.open('','_blank'); if(!w)return alert('Allow pop-ups to open the report.');
+  const rows=players.map(p=>`<tr><td>#${esc(p.jersey_number)}</td><td>${esc(p.name)}</td><td>${Object.entries(pos[p.id]||{}).map(([k,v])=>`${esc(k)} ${v}`).join(', ')||'—'}</td></tr>`).join('');
+  w.document.write(`<html><head><title>Game Report</title><style>body{font-family:Arial,sans-serif;padding:28px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #ccc;text-align:left}</style></head><body><h1>${esc(team?.name||'Coach Lineup')} Game Report</h1><h2>vs ${esc(g?.opponent||'Opponent')}</h2><p>${(plays||[]).length} plays • ${quality} quality • ${td} touchdowns</p><table><tr><th>#</th><th>Player</th><th>Position Plays</th></tr>${rows}</table><script>setTimeout(()=>window.print(),500)<\/script></body></html>`);
+  w.document.close();
+}
+
 async function openGameHistory(){
   if(!currentGame) return alert('Start a game first.');
   const {data,error}=await sb.from('game_plays').select('id,play_number,line_id,note,created_at').eq('game_id',currentGame.id).order('play_number',{ascending:false});
@@ -1919,7 +2074,7 @@ async function openGameHistory(){
       const line=lines.find(l=>l.id===r.line_id);
       const info=parseGameNote(r.note);
       const view=String(info.view||'').startsWith('special:')?String(info.view).replace('special:','Special — '):String(info.view||'').toUpperCase();
-      return `<div class="historyRow ${info.play?'calledHistoryRow':''}"><b>Play ${r.play_number}</b><span>${esc(line?.name||'Line')}</span><span>${esc(view)}${info.play?`<small class="historyCalledPlay">🏈 ${esc(info.play.code?`${info.play.code} — ${info.play.name}`:info.play.name)}</small>`:''}</span></div>`;
+      return `<button class="historyRow historyEditRow ${info.play?'calledHistoryRow':''}" onclick="editRecordedPlay('${r.id}')"><b>Play ${r.play_number}${r.touchdown?' 🏈 TD':r.quality_play?' ✓':''}</b><span>D${r.drive_number||1} • ${r.down||'-'} & ${r.distance??'-'}</span><span>${esc(view)}${info.play?`<small class="historyCalledPlay">🏈 ${esc(info.play.code?`${info.play.code} — ${info.play.name}`:info.play.name)}</small>`:''}</span></button>`;
     }).join(''):`<div class="notice">No plays recorded yet.</div>`}</div>
     <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
 }
@@ -1958,7 +2113,7 @@ async function confirmFinishGame(){
 function openGameSetup(){
   openModal(`<h2>${currentGame?'Current Game':'Game Day'}</h2>
     ${currentGame?`<div class="notice"><b>vs ${esc(currentGame.opponent||'Opponent')}</b><br>${playCount} plays recorded</div>`:`
-      <div class="notice"><b>Lineup for this game:</b><br>${esc(pendingLineupLabel)}</div>
+      <div class="notice"><b>Lineup for this game:</b><br>${esc(pendingLineupLabel)}</div><button class="secondary full" onclick="pregameLineupCheck()">✓ PREGAME LINEUP CHECK</button>
       <div class="gameLineupChoices">
         <button class="secondary" onclick="closeModal();showGameScreen()">🏈 USE CURRENT / EDIT ON FIELD</button>
         <button class="secondary" onclick="openSavedLineups()">💾 USE SAVED LINEUP</button>
@@ -2037,7 +2192,7 @@ async function nextPlay(resultType='record'){
   const note=encodeGameNote(baseNote,calledPlayForRecord);
 
   nextPlay.busy=true;
-  document.querySelectorAll('#nextBtn,#nextSide,.fullscreenControls .primary').forEach(b=>{
+  document.querySelectorAll('#recordBtn,#qualityBtn,#tdBtn,.fullscreenControls .primary').forEach(b=>{
     b.disabled=true; b.classList.add('savingPlay');
   });
 
@@ -2055,15 +2210,27 @@ async function nextPlay(resultType='record'){
     currentGame.total_plays=playCount;
     unique.forEach(r=>counts[r.player_id]=(counts[r.player_id]||0)+1);
     renderSummary();
-    if(calledPlayForRecord){
-      const {data:gp}=await sb.from('game_plays').select('id').eq('game_id',currentGame.id).eq('play_number',playCount).maybeSingle();
-      if(gp?.id){
-        const quality=resultType==='quality' || resultType==='td';
-        const touchdown=resultType==='td';
-        await saveCallResult(gp.id,calledPlayForRecord,quality,touchdown);
-      }
-      pendingCalledPlay=null; renderCalledPlay();
+    const {data:gp}=await sb.from('game_plays').select('id').eq('game_id',currentGame.id).eq('play_number',playCount).maybeSingle();
+    if(gp?.id){
+      const quality=resultType==='quality' || resultType==='td';
+      const touchdown=resultType==='td';
+      await sb.from('game_plays').update({
+        drive_number:driveNumber,
+        down:gameDown,
+        distance:gameDistance,
+        possession,
+        quality_play:quality,
+        touchdown
+      }).eq('id',gp.id);
+      if(calledPlayForRecord) await saveCallResult(gp.id,calledPlayForRecord,quality,touchdown);
     }
+    if(calledPlayForRecord){
+      pendingCalledPlay=null;
+      renderCalledPlay();
+    }
+    gameDown=gameDown>=4?1:gameDown+1;
+    persistGameState();
+    renderGameStrip();
 
     // Automatically rotate to the next configured line after each recorded play.
     if(lines.length>1){
@@ -2082,11 +2249,12 @@ async function nextPlay(resultType='record'){
     if(g){ playCount=Number(g.total_plays||0); currentGame.total_plays=playCount; renderSummary(); }
   }finally{
     nextPlay.busy=false;
-    document.querySelectorAll('#nextBtn,#nextSide,.fullscreenControls .primary').forEach(b=>{
+    document.querySelectorAll('#recordBtn,#qualityBtn,#tdBtn,.fullscreenControls .primary').forEach(b=>{
       b.disabled=false; b.classList.remove('savingPlay');
     });
   }
 }
+function nextLineOnly(){ if(lines.length){ currentLine=(currentLine+1)%lines.length; renderLineSelect(); renderField(); } }
 async function recordCurrentPlay(){ return nextPlay('record'); }
 async function recordQualityPlay(){ return nextPlay('quality'); }
 async function recordTouchdownPlay(){ return nextPlay('td'); }
@@ -2210,17 +2378,19 @@ $('linesBtn').onclick=openLines;
 $('positionsBtn').onclick=openPositions;
 $('subBtn').onclick=openQuickSub;
 $('statsBtn').onclick=openStats;
-$('warning').onclick=openPlayingTimeAlert;
+$('warning').onclick=openSmartUsageAlert;
 $('warning').onkeydown=e=>{
   if(e.key==='Enter'||e.key===' '){
     e.preventDefault();
-    openPlayingTimeAlert();
+    openSmartUsageAlert();
   }
 };
 $('gameBtn').onclick=openGameSetup;
 $('playbookBtn')?.addEventListener('click',()=>openPlaybook());
 $('recommendBtn')?.addEventListener('click',recommendNextLine);
 $('historyBtn')?.addEventListener('click',openGameHistory);
+$('playSuggestBtn')?.addEventListener('click',openSmartPlaySuggestion);
+$('halftimeBtn')?.addEventListener('click',openHalftimeReport);
 $('lockBtn')?.addEventListener('click',toggleGameLock);
 $('sidelineBtn')?.addEventListener('click',toggleSidelineMode);
 $('sortJerseyBtn')?.addEventListener('click',()=>setPlayerSort('jersey'));
@@ -2230,8 +2400,11 @@ $('clockToggleBtn')?.addEventListener('click',toggleGameClock);
 $('clockDisplay')?.addEventListener('click',openClockSettings);
 $('quarterDisplay')?.addEventListener('click',openClockSettings);
 $('possessionDisplay')?.addEventListener('click',togglePossession);
+$('downDisplay')?.addEventListener('click',cycleDown);
+$('distanceDisplay')?.addEventListener('click',openDownDistance);
+$('driveDisplay')?.addEventListener('click',openDownDistance);
 
-$('nextBtn').onclick=nextPlay;
+$('nextBtn').onclick=nextLineOnly;
 $('nextSide').onclick=nextPlay;
 $('prevBtn').onclick=prevPlay;
 $('search').oninput=renderPlayers;
