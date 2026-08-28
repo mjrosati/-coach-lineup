@@ -1142,24 +1142,59 @@ function playersCurrentlyOnField(){
   );
 }
 
+
+function subPositionRank(player,side,label){
+  const prefs=playerPositionPrefs(player,side);
+  const i=prefs.findIndex(x=>String(x).toLowerCase()===String(label||'').toLowerCase());
+  return i<0?99:i+1;
+}
+function subPlayCount(playerId){ return Number(playerPlayCounts?.[playerId]||0); }
+function rankedSubPlayers(positionId,existingPlayerId=''){
+  const pos=positions.find(p=>p.id===positionId);
+  if(!pos) return [];
+  const onField=playersCurrentlyOnField();
+  const prev=previousLinePlayerIds();
+  return players.filter(pl=>{
+    if(!playerCanPlay(pl)) return false;
+    if(onField.has(pl.id) && pl.id!==existingPlayerId) return false;
+    return true;
+  }).map(pl=>({
+    pl,
+    rank:subPositionRank(pl,pos.side,pos.label),
+    plays:subPlayCount(pl.id),
+    rested:!prev.has(pl.id)
+  })).sort((a,b)=>
+    Number(a.rank===99)-Number(b.rank===99) ||
+    a.rank-b.rank ||
+    Number(b.rested)-Number(a.rested) ||
+    a.plays-b.plays ||
+    jerseyNumberValue(a.pl)-jerseyNumberValue(b.pl)
+  );
+}
+function subReason(c){
+  const match=c.rank===1?'1st position':c.rank===2?'2nd position':c.rank===3?'3rd position':'other position';
+  return `${match} • ${c.plays} plays${c.rested?' • rested last line':''}`;
+}
+
 function openLineupEditor(positionId){
   const pos=positions.find(p=>p.id===positionId);
   const existing=currentLineAssignments().find(a=>a.position_label_id===positionId);
-  const onField=playersCurrentlyOnField();
-  openModal(`<h2>${esc(pos?.label||'Position')} — Assign Player</h2>
-    <p class="muted">Red = already used in this ${activeView.toUpperCase()} line. INJURED/OUT players cannot be selected.</p>
-    <div class="picker">
+  const ranked=rankedSubPlayers(positionId,existing?.player_id||'');
+  const candidates=ranked.filter(c=>c.pl.id!==existing?.player_id);
+  const recommended=candidates[0]||null;
+  openModal(`<h2>${esc(pos?.label||'Position')} — Substitute</h2>
+    <p class="muted">Recommendations use position preference, playing time, and whether the player rested on the previous line.</p>
+    ${recommended?`<button class="recommendedSub" onclick="assignPlayer('${positionId}','${recommended.pl.id}')">
+      <strong>★ RECOMMENDED</strong>
+      <b>#${esc(recommended.pl.jersey_number)} ${esc(recommended.pl.name)}</b>
+      <small>${esc(subReason(recommended))}</small>
+    </button>`:`<div class="notice">No active substitute is currently available.</div>`}
+    <div class="picker smartSubPicker">
       <button class="secondary full" onclick="clearAssignment('${positionId}')">CLEAR POSITION</button>
-      ${players.map(p=>{
-        const used=onField.has(p.id) && existing?.player_id!==p.id;
-        const unavailable=!playerCanPlay(p);
-        const disabled=used||unavailable;
-        return `<button class="playerPick ${existing?.player_id===p.id?'selected':''} ${used?'onFieldPlayer':''} ${availabilityClass(p)}" ${disabled?'disabled':''} onclick="assignPlayer('${positionId}','${p.id}')">
-          #${esc(p.jersey_number)} ${esc(p.name)}
-          ${used?' <span class="usedTag">ALREADY USED</span>':''}
-          ${unavailable?` <span class="usedTag">${availabilityLabel(p)}</span>`:''}
-        </button>`;
-      }).join('')}
+      ${ranked.map(c=>`<button class="playerPick smartSubPlayer ${existing?.player_id===c.pl.id?'selected':''} ${recommended?.pl.id===c.pl.id?'smartRecommended':''}" onclick="assignPlayer('${positionId}','${c.pl.id}')">
+        <span>#${esc(c.pl.jersey_number)} ${esc(c.pl.name)}</span>
+        <small>${existing?.player_id===c.pl.id?'CURRENT • ':''}${esc(subReason(c))}</small>
+      </button>`).join('')}
     </div>
     <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
 }

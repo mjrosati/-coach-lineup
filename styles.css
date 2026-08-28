@@ -1328,3 +1328,13 @@ body.sidelineMode .tdPlayBtn{
   .gradeRecordRow{gap:6px}
   .gradeRecordRow button{font-size:11px!important;padding:8px 5px!important}
 }
+
+/* Smart substitution */
+.recommendedSub{width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:12px;margin:8px 0 12px;border:2px solid #4ea874!important;background:#112d20!important;border-radius:12px}
+.recommendedSub strong{font-size:10px;letter-spacing:.8px}
+.recommendedSub b{font-size:16px}
+.recommendedSub small,.smartSubPlayer small{font-size:9px;color:#9db1c4}
+.smartSubPlayer{display:flex!important;flex-direction:column;align-items:flex-start!important;gap:3px;text-align:left!important}
+.smartSubPlayer.smartRecommended{border-color:#4ea874!important}
+body.sidelineMode .recommendedSub{min-height:72px}
+body.sidelineMode .smartSubPlayer{min-height:55px}
