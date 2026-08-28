@@ -755,6 +755,24 @@ function renderPlayers(){
       ${roleCanEdit()?`<button class="iconBtn" onclick="editPlayer('${p.id}')">✎</button>`:''}
     </div>`).join('');
 }
+
+function previousLinePlayerIds(){
+  if(!lines.length || currentLine<0 || activeView==='special') return new Set();
+  const prevIndex=(currentLine-1+lines.length)%lines.length;
+  const prevLine=lines[prevIndex];
+  if(!prevLine) return new Set();
+
+  const sidePositionIds=new Set(
+    positions.filter(p=>p.side===activeView).map(p=>p.id)
+  );
+
+  return new Set(
+    assignments
+      .filter(a=>a.line_id===prevLine.id && sidePositionIds.has(a.position_label_id))
+      .map(a=>a.player_id)
+  );
+}
+
 function currentLineAssignments(){
   const line=lines[currentLine]; if(!line) return [];
   return assignments.filter(a=>a.line_id===line.id);
@@ -813,7 +831,7 @@ function renderField(){
   positions.filter(p=>p.side===activeView).forEach(p=>{
     const pl=map[p.id];
     const el=document.createElement('div');
-    el.className='slot '+(p.side==='defense'?'def ':'')+(pl?availabilityClass(pl):'');
+    el.className='slot '+(p.side==='defense'?'def ':'')+(pl?availabilityClass(pl):'')+(pl&&previousLinePlayerIds().has(pl.id)?' playedPreviousLine':'');
     el.style.left=Number(p.x_pct)+'%';
     el.style.top=displayYForRegular(p)+'%';
     el.innerHTML=`${esc(p.label)}<small>${pl?(displayMode==='names'?esc(pl.name):'#'+esc(pl.jersey_number)):'OPEN'}${pl&&!playerCanPlay(pl)?` • ${availabilityLabel(pl)}`:''}</small>`;

@@ -1266,3 +1266,11 @@ body.sidelineMode .actions #subBtn{
   .playerBasics label:last-child{grid-column:1/-1}
   .playerPositionEditor{grid-template-columns:1fr}
 }
+
+/* Previous-line repeat indicator */
+.slot.playedPreviousLine small{
+  font-weight:1000!important;
+}
+.slot.playedPreviousLine{
+  border-width:3px!important;
+}

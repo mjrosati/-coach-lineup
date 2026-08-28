@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v31-player-multi-positions";
+const CACHE="coach-lineup-v32-previous-line-bold";
 const CORE=[
   "./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest",
   "./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png"
