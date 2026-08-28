@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v27-suggestions-phase2";
+const CACHE="coach-lineup-v28-phase3-sort-playcalls";
 const CORE=[
   "./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest",
   "./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png"

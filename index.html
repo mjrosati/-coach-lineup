@@ -84,6 +84,7 @@
       <div class="teamHead"><div><b id="teamName">No Team</b><small id="teamRole"></small></div><button class="iconBtn" id="logoutBtn">↪</button></div>
       <button class="primary full" id="addPlayerBtn">+ ADD PLAYER</button>
       <input id="search" class="search" placeholder="Search players...">
+      <div class="playerSortControls inlineSort" aria-label="Sort players"><span>SORT</span><button id="sortJerseyBtn" type="button">#</button><button id="sortNameBtn" type="button">NAME</button><button id="sortPositionBtn" type="button">POS</button></div>
       <div id="players"></div>
       <button class="secondary full" id="linesBtn">MANAGE LINES</button>
       <button class="secondary full" id="positionsBtn">EDIT POSITION LABELS</button>
@@ -100,6 +101,7 @@
         <button class="editFieldBtn" id="editFieldBtn">EDIT FIELD</button>
         <span class="spacer"></span><span id="warning"></span>
       </div>
+      <div id="calledPlayBanner" class="calledPlayBanner hidden"></div>
       <div class="gameStrip" id="gameStrip">
         <button id="quarterDisplay" class="quarterDisplay" title="Set quarter">Q1</button>
         <button id="clockDisplay" class="clockDisplay" title="Set game clock">8:00</button>

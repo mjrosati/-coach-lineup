@@ -23,6 +23,7 @@ let team=null, membership=null, lines=[], players=[], positions=[], assignments=
 let gameModeLocked=false, sidelineMode=false;
 let gameQuarter='Q1', possession='ours', clockSeconds=480, clockRunning=false, clockTimer=null, clockEndAt=null;
 let deferredInstallPrompt=null;
+let playerSortMode='jersey', pendingCalledPlay=null;
 
 let currentLine=0, displayMode='names', currentGame=null, playCount=0, counts={}, threshold=75, channel=null;
 let activeView='offense', editFieldMode=false, specialUnits=[], specialSlots=[], specialAssignments=[], currentSpecialUnit=0, deviceMode=localStorage.getItem('coachLineupDeviceMode')||'auto';
@@ -339,9 +340,14 @@ async function openSavedGameReport(gameId){
   participants.forEach(x=>playerCounts[x.player_id]=(playerCounts[x.player_id]||0)+1);
   const rows=players.map(p=>({p,c:playerCounts[p.id]||0})).sort((a,b)=>b.c-a.c||a.p.name.localeCompare(b.p.name));
   const total=Number(g.total_plays||plays?.length||0);
+  const called={};
+  (plays||[]).forEach(x=>{ const info=parseGameNote(x.note); if(info.play){ const key=info.play.id||`${info.play.code}|${info.play.name}`; if(!called[key]) called[key]={...info.play,count:0}; called[key].count++; } });
+  const calledRows=Object.values(called).sort((a,b)=>b.count-a.count||String(a.name).localeCompare(String(b.name)));
   openModal(`<h2>Game Report</h2>
     <div class="notice"><b>vs ${esc(g.opponent||'Opponent')}</b><br>${new Date(g.started_at||g.created_at).toLocaleDateString()} • ${total} plays • ${String(g.status||'').toUpperCase()}</div>
     <div class="endReport">${rows.map(r=>`<div class="statRow"><span>#${esc(r.p.jersey_number)}</span><span>${esc(r.p.name)}</span><span>${r.c} plays</span><b>${total?Math.round(r.c/total*100):0}%</b></div>`).join('')}</div>
+    <h3>Called Plays</h3>
+    ${calledRows.length?`<div class="calledPlayReport">${calledRows.map(p=>`<div><span>${esc(p.code?`${p.code} — ${p.name}`:p.name)}</span><small>${esc(playCategoryLabel(p.category))}</small><b>${p.count}×</b></div>`).join('')}</div>`:`<div class="notice">No playbook calls were recorded for this game.</div>`}
     <div class="modalFoot"><button class="secondary" onclick="openAllGameHistory()">BACK</button><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
 }
 function openInstallApp(){
@@ -386,7 +392,43 @@ function showGameScreen(){
   $('app').classList.remove('hidden');
   renderAll();
   setActiveView(activeView);
+  renderCalledPlay();
 }
+
+function loadPlayerSort(){
+  try{ playerSortMode=localStorage.getItem('coachLineupPlayerSort')||'jersey'; }catch(e){ playerSortMode='jersey'; }
+  if(!['jersey','name','position'].includes(playerSortMode)) playerSortMode='jersey';
+}
+function setPlayerSort(mode,refresh='sidebar'){
+  if(!['jersey','name','position'].includes(mode)) mode='jersey';
+  playerSortMode=mode;
+  try{ localStorage.setItem('coachLineupPlayerSort',mode); }catch(e){}
+  renderPlayers();
+  if(refresh==='roster') openRosterManager();
+}
+function jerseyNumberValue(v){
+  const m=String(v??'').match(/\d+/); return m?Number(m[0]):99999;
+}
+function sortedPlayers(list=players){
+  return [...list].sort((a,b)=>{
+    if(playerSortMode==='name'){
+      return String(a.name||'').localeCompare(String(b.name||''),undefined,{sensitivity:'base'}) || jerseyNumberValue(a.jersey_number)-jerseyNumberValue(b.jersey_number);
+    }
+    if(playerSortMode==='position'){
+      return String(a.primary_position||'ZZZ').localeCompare(String(b.primary_position||'ZZZ'),undefined,{sensitivity:'base'}) || jerseyNumberValue(a.jersey_number)-jerseyNumberValue(b.jersey_number) || String(a.name||'').localeCompare(String(b.name||''));
+    }
+    return jerseyNumberValue(a.jersey_number)-jerseyNumberValue(b.jersey_number) || String(a.name||'').localeCompare(String(b.name||''),undefined,{sensitivity:'base'});
+  });
+}
+function playerSortControls(context='sidebar'){
+  return `<div class="playerSortControls" aria-label="Sort players">
+    <span>SORT</span>
+    <button class="${playerSortMode==='jersey'?'activeSort':''}" onclick="setPlayerSort('jersey','${context}')">#</button>
+    <button class="${playerSortMode==='name'?'activeSort':''}" onclick="setPlayerSort('name','${context}')">NAME</button>
+    <button class="${playerSortMode==='position'?'activeSort':''}" onclick="setPlayerSort('position','${context}')">POS</button>
+  </div>`;
+}
+
 function availabilityLabel(p){
   return (p?.availability_status||'active').toUpperCase();
 }
@@ -398,10 +440,12 @@ function playerCanPlay(p){ return (p?.availability_status||'active')==='active';
 
 function openRosterManager(){
   const unavailable=players.filter(p=>!playerCanPlay(p)).length;
+  const roster=sortedPlayers(players);
   openModal(`<h2>Roster</h2>
     <p class="muted">${players.length} players${unavailable?` • ${unavailable} unavailable`:''}</p>
+    ${playerSortControls('roster')}
     <div class="rosterManage">
-      ${players.map(p=>`<button class="playerPick rosterPlayer ${availabilityClass(p)}" onclick="editPlayer('${p.id}')">
+      ${roster.map(p=>`<button class="playerPick rosterPlayer ${availabilityClass(p)}" onclick="editPlayer('${p.id}')">
         <span>#${esc(p.jersey_number)} &nbsp; ${esc(p.name)}</span>
         <span class="rosterStatus">${availabilityLabel(p)}</span>
         <small>${esc(p.primary_position||'')}</small>
@@ -662,7 +706,8 @@ function renderSpecialUnitSelect(){
 
 function renderPlayers(){
   const q=($('search').value||'').toLowerCase();
-  $('players').innerHTML=players
+  [['sortJerseyBtn','jersey'],['sortNameBtn','name'],['sortPositionBtn','position']].forEach(([id,m])=>$(id)?.classList.toggle('activeSort',playerSortMode===m));
+  $('players').innerHTML=sortedPlayers(players)
     .filter(p=>(`${p.name} ${p.jersey_number} ${p.primary_position||''} ${availabilityLabel(p)}`).toLowerCase().includes(q))
     .map(p=>`<div class="player ${availabilityClass(p)}">
       <span class="num">#${esc(p.jersey_number)}</span>
@@ -670,7 +715,6 @@ function renderPlayers(){
       ${roleCanEdit()?`<button class="iconBtn" onclick="editPlayer('${p.id}')">✎</button>`:''}
     </div>`).join('');
 }
-
 function currentLineAssignments(){
   const line=lines[currentLine]; if(!line) return [];
   return assignments.filter(a=>a.line_id===line.id);
@@ -1357,6 +1401,33 @@ function playCategoryLabel(c){
 function playLabelsArray(v){
   return String(v||'').split(',').map(x=>x.trim()).filter(Boolean).slice(0,12);
 }
+
+function playCallLabel(p){ return p ? `${p.play_code?`${p.play_code} — `:''}${p.name}` : ''; }
+function encodeGameNote(base,play){
+  if(!play) return base;
+  return `call:${JSON.stringify({v:1,view:base,id:play.id||null,name:play.name||'',code:play.play_code||'',category:play.category||'',formation:play.formation||''})}`;
+}
+function parseGameNote(note){
+  const raw=String(note||'');
+  if(raw.startsWith('call:')){
+    try{ const d=JSON.parse(raw.slice(5)); return {view:d.view||'',play:d}; }catch(e){}
+  }
+  return {view:raw,play:null};
+}
+function choosePlayForGame(id){
+  const p=playbookPlays.find(x=>x.id===id); if(!p) return;
+  if(!currentGame) return alert('Start a game before calling a play.');
+  pendingCalledPlay=p;
+  closeModal(); renderCalledPlay();
+}
+function clearCalledPlay(){ pendingCalledPlay=null; renderCalledPlay(); }
+function renderCalledPlay(){
+  const box=$('calledPlayBanner'); if(!box) return;
+  if(!pendingCalledPlay){ box.classList.add('hidden'); box.innerHTML=''; return; }
+  box.classList.remove('hidden');
+  box.innerHTML=`<span><small>NEXT CALL</small><b>${esc(playCallLabel(pendingCalledPlay))}</b>${pendingCalledPlay.formation?`<em>${esc(pendingCalledPlay.formation)}</em>`:''}</span><button type="button" onclick="clearCalledPlay()">×</button>`;
+}
+
 async function reloadPlaybook(){
   const {data,error}=await sb.from('playbook_plays').select('*').eq('team_id',team.id)
     .order('category').order('sort_order').order('created_at');
@@ -1383,10 +1454,10 @@ function openPlaybook(category='all'){
               <span class="playCategory">${playCategoryLabel(p.category)}</span>
               <h3>${esc(p.play_code?`${p.play_code} — ${p.name}`:p.name)}</h3>
             </div>
-            ${roleCanEdit()?`<div class="playCardBtns">
-              <button class="iconBtn" onclick="openPlayEditor('${p.id}')">✎</button>
-              <button class="dangerBtn" onclick="deletePlay('${p.id}','${esc(p.name)}')">DELETE</button>
-            </div>`:''}
+            <div class="playCardBtns">
+              ${currentGame?`<button class="callPlayBtn" onclick="choosePlayForGame('${p.id}')">CALL PLAY</button>`:''}
+              ${roleCanEdit()?`<button class="iconBtn" onclick="openPlayEditor('${p.id}')">✎</button><button class="dangerBtn" onclick="deletePlay('${p.id}','${esc(p.name)}')">DELETE</button>`:''}
+            </div>
           </div>
           ${p.formation?`<div class="playMeta"><b>Formation:</b> ${esc(p.formation)}</div>`:''}
           ${p.description?`<div class="playDesc">${esc(p.description)}</div>`:''}
@@ -1588,8 +1659,9 @@ async function openGameHistory(){
     <div class="notice"><b>vs ${esc(currentGame.opponent||'Opponent')}</b> • ${gameQuarter} • ${formatClock(clockSeconds)} • ${possession==='ours'?'OUR BALL':'THEIR BALL'}<br>${rows.length} recorded plays</div>
     <div class="historyList">${rows.length?rows.map(r=>{
       const line=lines.find(l=>l.id===r.line_id);
-      const view=String(r.note||'').startsWith('special:')?String(r.note).replace('special:','Special — '):String(r.note||'').toUpperCase();
-      return `<div class="historyRow"><b>Play ${r.play_number}</b><span>${esc(line?.name||'Line')}</span><span>${esc(view)}</span></div>`;
+      const info=parseGameNote(r.note);
+      const view=String(info.view||'').startsWith('special:')?String(info.view).replace('special:','Special — '):String(info.view||'').toUpperCase();
+      return `<div class="historyRow ${info.play?'calledHistoryRow':''}"><b>Play ${r.play_number}</b><span>${esc(line?.name||'Line')}</span><span>${esc(view)}${info.play?`<small class="historyCalledPlay">🏈 ${esc(info.play.code?`${info.play.code} — ${info.play.name}`:info.play.name)}</small>`:''}</span></div>`;
     }).join(''):`<div class="notice">No plays recorded yet.</div>`}</div>
     <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
 }
@@ -1603,8 +1675,15 @@ function endGameReportHtml(){
 }
 async function finishGame(){
   if(!currentGame) return;
+  const {data:plays,error}=await sb.from('game_plays').select('note').eq('game_id',currentGame.id).order('play_number');
+  if(error) return alert(error.message);
+  const called={};
+  (plays||[]).forEach(x=>{ const info=parseGameNote(x.note); if(info.play){ const key=info.play.id||`${info.play.code}|${info.play.name}`; if(!called[key]) called[key]={...info.play,count:0}; called[key].count++; } });
+  const calledRows=Object.values(called).sort((a,b)=>b.count-a.count||String(a.name).localeCompare(String(b.name)));
   openModal(`<h2>End-of-Game Report</h2>
     ${endGameReportHtml()}
+    <h3>Called Plays</h3>
+    ${calledRows.length?`<div class="calledPlayReport">${calledRows.map(p=>`<div><span>${esc(p.code?`${p.code} — ${p.name}`:p.name)}</span><small>${esc(playCategoryLabel(p.category))}</small><b>${p.count}×</b></div>`).join('')}</div>`:`<div class="notice">No playbook calls were recorded.</div>`}
     <div class="modalFoot">
       <button class="secondary" onclick="closeModal()">KEEP GAME OPEN</button>
       <button class="primary" onclick="confirmFinishGame()">END GAME</button>
@@ -1695,7 +1774,8 @@ async function nextPlay(){
   }
 
   const unique=[...new Map(participants.map(x=>[x.player_id,x])).values()];
-  const note=activeView==='special' ? `special:${specialUnits[currentSpecialUnit]?.name||''}` : activeView;
+  const baseNote=activeView==='special' ? `special:${specialUnits[currentSpecialUnit]?.name||''}` : activeView;
+  const note=encodeGameNote(baseNote,pendingCalledPlay);
 
   nextPlay.busy=true;
   document.querySelectorAll('#nextBtn,#nextSide,.fullscreenControls .primary').forEach(b=>{
@@ -1716,6 +1796,7 @@ async function nextPlay(){
     currentGame.total_plays=playCount;
     unique.forEach(r=>counts[r.player_id]=(counts[r.player_id]||0)+1);
     renderSummary();
+    if(pendingCalledPlay){ pendingCalledPlay=null; renderCalledPlay(); }
 
     // Automatically rotate to the next configured line after each recorded play.
     if(lines.length>1){
@@ -1870,6 +1951,9 @@ $('recommendBtn')?.addEventListener('click',recommendNextLine);
 $('historyBtn')?.addEventListener('click',openGameHistory);
 $('lockBtn')?.addEventListener('click',toggleGameLock);
 $('sidelineBtn')?.addEventListener('click',toggleSidelineMode);
+$('sortJerseyBtn')?.addEventListener('click',()=>setPlayerSort('jersey'));
+$('sortNameBtn')?.addEventListener('click',()=>setPlayerSort('name'));
+$('sortPositionBtn')?.addEventListener('click',()=>setPlayerSort('position'));
 $('clockToggleBtn')?.addEventListener('click',toggleGameClock);
 $('clockDisplay')?.addEventListener('click',openClockSettings);
 $('quarterDisplay')?.addEventListener('click',openClockSettings);
@@ -1908,3 +1992,5 @@ $('installCard')?.addEventListener('click',openInstallApp);
 
 
 boot();
+
+loadPlayerSort();
