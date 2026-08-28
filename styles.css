@@ -1859,3 +1859,104 @@ body:-webkit-full-screen .fullscreenPlayPanel,
     padding:5px 3px!important;
   }
 }
+
+/* Fullscreen Game Day: bottom game-status strip + personnel-only Next Line */
+.field-fullscreen .fullscreenControls{
+  position:fixed!important;
+  left:0!important;
+  right:0!important;
+  bottom:0!important;
+  z-index:120!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  padding:6px 8px calc(6px + env(safe-area-inset-bottom))!important;
+  background:#071018f2!important;
+  border-top:1px solid #31445c!important;
+}
+
+/* Put the quarter / clock / possession / drive / down / distance row
+   directly above the fullscreen controls. */
+.field-fullscreen .gameStrip{
+  display:grid!important;
+  position:fixed!important;
+  left:0!important;
+  right:0!important;
+  bottom:58px!important;
+  z-index:115!important;
+  grid-template-columns:64px 96px 84px minmax(120px,1fr) 82px 92px 92px!important;
+  gap:5px!important;
+  margin:0!important;
+  padding:6px 8px!important;
+  border-radius:0!important;
+  border-left:0!important;
+  border-right:0!important;
+  background:#0b1420f5!important;
+  box-shadow:0 -6px 18px rgba(0,0,0,.32)!important;
+}
+.field-fullscreen .gameStrip button{
+  min-height:38px!important;
+  padding:5px 6px!important;
+  font-size:10px!important;
+}
+.field-fullscreen .gameStrip .clockDisplay{
+  font-size:18px!important;
+}
+
+/* Keep the field visible behind the two bottom control rows. */
+.field-fullscreen .fieldArea{
+  bottom:106px!important;
+  height:auto!important;
+}
+
+/* The selected-play call/grading bar sits above the game strip when a play is selected. */
+.field-fullscreen #calledPlayBanner:not(.hidden){
+  display:block!important;
+  position:fixed!important;
+  left:8px!important;
+  right:8px!important;
+  bottom:112px!important;
+  z-index:116!important;
+  margin:0!important;
+  max-width:none!important;
+}
+
+/* Avoid duplicate floating selected-play panel in fullscreen; use the normal call line instead. */
+.field-fullscreen .fullscreenPlayPanel{
+  display:none!important;
+}
+
+@media(max-width:850px){
+  .field-fullscreen .gameStrip{
+    grid-template-columns:52px 78px 72px minmax(92px,1fr) 68px 78px 78px!important;
+    gap:3px!important;
+    padding:4px 5px!important;
+  }
+  .field-fullscreen .gameStrip button{
+    min-height:34px!important;
+    font-size:8px!important;
+    padding:3px!important;
+  }
+  .field-fullscreen .gameStrip .clockDisplay{
+    font-size:15px!important;
+  }
+  .field-fullscreen .fullscreenControls{
+    gap:3px!important;
+    padding:4px 5px calc(4px + env(safe-area-inset-bottom))!important;
+  }
+  .field-fullscreen .fullscreenControls button,
+  .field-fullscreen .fullscreenLineBadge{
+    min-height:34px!important;
+    padding:4px 6px!important;
+    font-size:8px!important;
+  }
+  .field-fullscreen .gameStrip{
+    bottom:48px!important;
+  }
+  .field-fullscreen .fieldArea{
+    bottom:91px!important;
+  }
+  .field-fullscreen #calledPlayBanner:not(.hidden){
+    bottom:96px!important;
+  }
+}
