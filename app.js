@@ -427,6 +427,7 @@ function showGameScreen(){
   renderAll();
   setActiveView(activeView);
   renderCalledPlay();
+  updatePlayRecordButtons();
 }
 
 function loadPlayerSort(){
@@ -1616,13 +1617,25 @@ function choosePlayForGame(id){
   pendingCalledPlay=p;
   closeModal(); renderCalledPlay();
 }
-function clearCalledPlay(){ pendingCalledPlay=null; renderCalledPlay(); }
+function clearCalledPlay(){ pendingCalledPlay=null; renderCalledPlay(); updatePlayRecordButtons(); }
+
+function updatePlayRecordButtons(){
+  const show=!!pendingCalledPlay;
+  ['recordBtn','qualityBtn','tdBtn','bottomRecordBtn','bottomQualityBtn','bottomTdBtn'].forEach(id=>{
+    const el=$(id);
+    if(!el) return;
+    el.classList.toggle('playRecordHidden',!show);
+    el.disabled=!show;
+  });
+}
+
 function renderCalledPlay(){
   const box=$('calledPlayBanner'); if(!box) return;
-  if(!pendingCalledPlay){ box.classList.add('hidden'); box.innerHTML=''; return; }
+  if(!pendingCalledPlay){ box.classList.add('hidden'); box.innerHTML=''; updatePlayRecordButtons(); return; }
   box.classList.remove('hidden');
   box.innerHTML=`<span><small>NEXT CALL</small><b>${esc(playCallLabel(pendingCalledPlay))}</b>${pendingCalledPlay.formation?`<em>${esc(pendingCalledPlay.formation)}</em>`:''}</span>
     <div class="nextCallButtons">${pendingCalledPlay.attachment_path?`<button class="viewDiagramBtn" onclick="viewNextCallAttachment()">${String(pendingCalledPlay.attachment_type||'').startsWith('image/')?'🖼️ VIEW PLAY':'📄 VIEW PDF'}</button>`:''}<button class="clearCallBtn" onclick="clearCalledPlay()">×</button></div>`;
+  updatePlayRecordButtons();
 }
 async function reloadPlaybook(){
   const {data,error}=await sb.from('playbook_plays').select('*').eq('team_id',team.id)
@@ -2152,6 +2165,11 @@ async function startGame(){
   closeModal(); renderSummary(); showGameScreen();
 }
 async function nextPlay(resultType='record'){
+  if(!pendingCalledPlay){
+    alert('Select a play from the Playbook first.');
+    return;
+  }
+
   if(nextPlay.busy) return;
   if(!currentGame){ openGameSetup(); return; }
   const line=lines[currentLine]; if(!line) return alert('Create a line first.');
@@ -2240,8 +2258,7 @@ async function nextPlay(resultType='record'){
 
     // Automatically rotate to the next configured line after each recorded play.
     if(lines.length>1){
-      currentLine=(currentLine+1)%lines.length;
-      renderLineSelect();
+renderLineSelect();
       renderField();
     }
 

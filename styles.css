@@ -1472,3 +1472,14 @@ body.sidelineMode .smartSubPlayer{min-height:55px}
     padding-bottom:86px;
   }
 }
+
+/* Play grading buttons only appear after a play is selected */
+.playRecordHidden{
+  display:none!important;
+}
+.calledPlayBanner:not(.hidden) + *{
+  /* keep normal layout; recording buttons are controlled independently */
+}
+body.sidelineMode #nextBtn{
+  display:block!important;
+}
