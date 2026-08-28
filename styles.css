@@ -1018,3 +1018,17 @@ button:focus-visible,input:focus-visible,select:focus-visible{
   .playCardTop{display:block}
   .playCardBtns{margin-top:8px}
 }
+
+/* Normal game screen: keep OFFENSE / DEFENSE / SPECIAL TEAMS label off the formation */
+body:not(.fullscreen) .field .sideLabel,
+body:not(.fullscreen) .field .fieldSideLabel,
+body:not(.fullscreen) .field .viewLabel,
+body:not(.fullscreen) .field .fieldViewLabel {
+  top: 10px !important;
+  bottom: auto !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  z-index: 8 !important;
+  pointer-events: none !important;
+}
