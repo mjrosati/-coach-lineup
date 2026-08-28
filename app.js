@@ -1221,37 +1221,36 @@ function subReason(c){
 
 
 function currentAssignmentForPosition(positionId){
-  const line=currentLineObj();
+  const line=lines[currentLine];
   if(!line) return null;
-  const side=String(currentSide||'offense').toLowerCase();
-  return (assignments||[]).find(a=>String(a.line_id)===String(line.id) &&
-    String(a.side||'').toLowerCase()===side &&
-    String(a.position_label_id||a.position_id||'')===String(positionId));
+  return currentLineAssignments().find(a=>String(a.position_label_id)===String(positionId))||null;
 }
 
 function openReplacePlayerModal(positionId){
-  const line=currentLineObj();
+  const line=lines[currentLine];
   if(!line) return alert('No current line is selected.');
 
-  const side=String(currentSide||'offense').toLowerCase();
+  const side=String(activeView||'offense').toLowerCase();
   if(side==='special') return openLineupEditor(positionId);
 
-  const pos=(positionLabels||[]).find(p=>String(p.id)===String(positionId));
-  const posLabel=pos?.label||pos?.name||'Position';
+  const pos=positions.find(p=>String(p.id)===String(positionId));
+  const posLabel=pos?.label||'Position';
   const assignment=currentAssignmentForPosition(positionId);
   const currentPlayerId=assignment?.player_id||'';
 
+  const sidePositionIds=new Set(
+    positions.filter(p=>String(p.side).toLowerCase()===side).map(p=>String(p.id))
+  );
+
   const usedOnSide=new Set(
-    (assignments||[])
-      .filter(a=>String(a.line_id)===String(line.id) &&
-        String(a.side||'').toLowerCase()===side &&
-        String(a.player_id||'') &&
-        String(a.position_label_id||a.position_id||'')!==String(positionId))
+    currentLineAssignments()
+      .filter(a=>sidePositionIds.has(String(a.position_label_id)))
+      .filter(a=>String(a.position_label_id)!==String(positionId))
       .map(a=>String(a.player_id))
   );
 
-  const eligible=(players||[])
-    .filter(p=>String(p.availability_status||'active')==='active')
+  const eligible=players
+    .filter(p=>playerCanPlay(p))
     .filter(p=>!usedOnSide.has(String(p.id)) || String(p.id)===String(currentPlayerId))
     .slice()
     .sort((a,b)=>{
@@ -1261,10 +1260,10 @@ function openReplacePlayerModal(positionId){
       const bi=bp.findIndex(x=>String(x).toLowerCase()===String(posLabel).toLowerCase());
       const ar=ai<0?99:ai, br=bi<0?99:bi;
       if(ar!==br) return ar-br;
-      return String(a.last_name||a.name||'').localeCompare(String(b.last_name||b.name||''));
+      return String(a.name||'').localeCompare(String(b.name||''));
     });
 
-  const modal=`
+  openModal(`
     <div class="replacePlayerModal">
       <div class="replacePlayerHeader">
         <div>
@@ -1274,14 +1273,14 @@ function openReplacePlayerModal(positionId){
         <button class="secondary" onclick="closeModal()">✕ CLOSE</button>
       </div>
       <div class="replacePlayerList">
-        ${eligible.map(p=>{
-          const prefs=(side==='offense'?p.offense_positions:p.defense_positions)||[];
+        ${eligible.map(pl=>{
+          const prefs=(side==='offense'?pl.offense_positions:pl.defense_positions)||[];
           const prefIndex=prefs.findIndex(x=>String(x).toLowerCase()===String(posLabel).toLowerCase());
           const prefText=prefIndex>=0?`Preferred #${prefIndex+1}`:'Available';
-          const current=String(p.id)===String(currentPlayerId);
-          return `<button class="replacePlayerRow ${current?'current':''}" onclick="replacePlayerAtPosition('${positionId}','${p.id}')">
-            <span class="replacePlayerJersey">${esc(p.jersey_number||p.number||'')}</span>
-            <span class="replacePlayerName">${esc(playerName(p))}</span>
+          const current=String(pl.id)===String(currentPlayerId);
+          return `<button class="replacePlayerRow ${current?'current':''}" onclick="replacePlayerAtPosition('${positionId}','${pl.id}')">
+            <span class="replacePlayerJersey">#${esc(pl.jersey_number||'')}</span>
+            <span class="replacePlayerName">${esc(pl.name||'Player')}</span>
             <span class="replacePlayerPref">${current?'CURRENT':prefText}</span>
           </button>`;
         }).join('')}
@@ -1289,44 +1288,44 @@ function openReplacePlayerModal(positionId){
           <span></span><span>OPEN POSITION</span><span>CLEAR</span>
         </button>
       </div>
-    </div>`;
-  openModal(modal);
+    </div>`);
 }
 
 async function replacePlayerAtPosition(positionId,newPlayerId){
-  const line=currentLineObj();
+  const line=lines[currentLine];
   if(!line) return;
 
-  const side=String(currentSide||'offense').toLowerCase();
   const existing=currentAssignmentForPosition(positionId);
 
   try{
-    if(existing){
-      if(newPlayerId){
-        const {error}=await sb.from('line_assignments')
-          .update({player_id:newPlayerId})
-          .eq('id',existing.id);
-        if(error) throw error;
-      }else{
-        const {error}=await sb.from('line_assignments')
-          .delete()
-          .eq('id',existing.id);
-        if(error) throw error;
+    if(newPlayerId){
+      const player=players.find(p=>String(p.id)===String(newPlayerId));
+      if(!playerCanPlay(player)){
+        return alert(`${player?.name||'This player'} is marked ${availabilityLabel(player)} and cannot be assigned.`);
       }
-    }else if(newPlayerId){
-      const {error}=await sb.from('line_assignments').insert({
-        line_id:line.id,
-        side,
-        position_label_id:positionId,
-        player_id:newPlayerId
-      });
-      if(error) throw error;
+
+      const pos=positions.find(p=>String(p.id)===String(positionId));
+      const side=pos?.side;
+      const sidePositionIds=new Set(
+        positions.filter(p=>p.side===side).map(p=>String(p.id))
+      );
+      const duplicate=currentLineAssignments().find(a=>
+        String(a.player_id)===String(newPlayerId) &&
+        String(a.position_label_id)!==String(positionId) &&
+        sidePositionIds.has(String(a.position_label_id))
+      );
+      if(duplicate){
+        const duplicatePos=positions.find(p=>String(p.id)===String(duplicate.position_label_id));
+        return alert(`${player.name} is already assigned to ${duplicatePos?.label||'another position'} on this ${String(side||'').toUpperCase()} line.`);
+      }
     }
 
-    closeModal();
-    await loadAssignments();
-    renderField();
-    renderLineChips();
+    // Use the already-proven assignment functions so this follows the actual schema.
+    if(newPlayerId){
+      await assignPlayer(positionId,newPlayerId);
+    }else{
+      await clearAssignment(positionId);
+    }
   }catch(error){
     console.error('Replace player failed:',error);
     alert(`Could not replace player: ${error?.message||'Unknown error'}`);
