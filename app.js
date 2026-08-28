@@ -1922,6 +1922,12 @@ function toggleGameLock(){
   const b=$('lockBtn'); if(b) b.textContent=gameModeLocked?'🔒 GAME LOCKED':'🔓 LOCK GAME';
   renderField();
 }
+
+function closeModalToField(){
+  closeModal();
+  if(currentGame) showGameScreen();
+}
+
 function toggleSidelineMode(){
   sidelineMode=!sidelineMode;
   document.body.classList.toggle('sidelineMode',sidelineMode);

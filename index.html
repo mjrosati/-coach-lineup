@@ -119,7 +119,17 @@
         <span class="statsSummary" id="summary"></span>
       </div>
     </section>
-    <aside class="actions">
+    <div class="mobileSidelineNav">
+  <button onclick="setActiveView('offense')">OFFENSE</button>
+  <button onclick="setActiveView('defense')">DEFENSE</button>
+  <button onclick="setActiveView('special')">SPECIAL</button>
+  <button onclick="openQuickSub()">SUB</button>
+  <button onclick="openSmartUsageAlert()">TIME</button>
+  <button onclick="openPlaybook()">PLAYBOOK</button>
+  <button onclick="openSmartPlaySuggestion()">SUGGEST</button>
+  <button onclick="openGameHistory()">HISTORY</button>
+</div>
+<aside class="actions">
       <button class="recordPlayBtn" id="recordBtn" onclick="recordCurrentPlay()">RECORD</button>
   <button class="qualityPlayBtn" id="qualityBtn" onclick="recordQualityPlay()">✓ QUALITY</button>
   <button class="tdPlayBtn" id="tdBtn" onclick="recordTouchdownPlay()">🏈 TD</button>

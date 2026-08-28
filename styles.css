@@ -1359,3 +1359,116 @@ body.sidelineMode .smartSubPlayer{min-height:55px}
   .gameStrip button{flex:1 1 auto}
   .gradeEdit{grid-template-columns:1fr}
 }
+
+/* Mobile Sideline Navigation */
+.mobileSidelineNav{
+  display:none;
+}
+@media(max-width:700px){
+  body.sidelineMode{
+    overflow:auto!important;
+  }
+  body.sidelineMode .app{
+    min-height:100dvh;
+  }
+  body.sidelineMode .mobileSidelineNav{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:6px;
+    position:sticky;
+    top:0;
+    z-index:80;
+    padding:7px;
+    margin:0 0 7px;
+    background:#07111c;
+    border:1px solid #263c52;
+    border-radius:10px;
+  }
+  body.sidelineMode .mobileSidelineNav button{
+    min-height:44px!important;
+    padding:6px 4px!important;
+    font-size:10px!important;
+    font-weight:900!important;
+  }
+
+  /* Keep the field readable without forcing the user to hunt horizontally. */
+  body.sidelineMode .gameStrip{
+    position:sticky;
+    top:102px;
+    z-index:60;
+    display:grid!important;
+    grid-template-columns:repeat(3,1fr);
+    gap:5px;
+    padding:6px;
+    background:#07111c;
+    border-radius:10px;
+  }
+  body.sidelineMode .gameStrip button,
+  body.sidelineMode .gameStrip .clockDisplay{
+    min-height:42px!important;
+    font-size:10px!important;
+  }
+  body.sidelineMode .calledPlayBanner{
+    position:sticky;
+    top:205px;
+    z-index:55;
+    margin-bottom:6px;
+  }
+
+  /* Let the field fit the phone instead of using the oversized desktop sideline height. */
+  body.sidelineMode .field{
+    height:min(56dvh,520px)!important;
+    min-height:390px!important;
+    margin-bottom:8px;
+  }
+  body.sidelineMode .field .slot{
+    transform:scale(1.02)!important;
+  }
+
+  /* Convert the large desktop action area into an easy thumb-friendly strip. */
+  body.sidelineMode aside.actions{
+    display:grid!important;
+    grid-template-columns:repeat(3,1fr)!important;
+    gap:6px!important;
+    position:sticky;
+    bottom:0;
+    z-index:90;
+    padding:7px!important;
+    margin-top:6px;
+    background:#07111c;
+    border-top:1px solid #2a4158;
+  }
+  body.sidelineMode aside.actions button{
+    min-height:48px!important;
+    padding:6px 4px!important;
+    font-size:10px!important;
+  }
+
+  /* Hide duplicate/nonessential controls in mobile sideline mode.
+     They remain available through the compact nav above. */
+  body.sidelineMode aside.actions #statsBtn,
+  body.sidelineMode aside.actions #gameBtn,
+  body.sidelineMode aside.actions #playbookBtn,
+  body.sidelineMode aside.actions #recommendBtn,
+  body.sidelineMode aside.actions #historyBtn,
+  body.sidelineMode aside.actions #playSuggestBtn,
+  body.sidelineMode aside.actions #halftimeBtn,
+  body.sidelineMode aside.actions #resetFieldBtn,
+  body.sidelineMode aside.actions #fullscreenBtn{
+    display:none!important;
+  }
+
+  /* Keep the main sideline actions visible */
+  body.sidelineMode aside.actions #recordBtn,
+  body.sidelineMode aside.actions #qualityBtn,
+  body.sidelineMode aside.actions #tdBtn,
+  body.sidelineMode aside.actions #subBtn,
+  body.sidelineMode aside.actions #lockBtn,
+  body.sidelineMode aside.actions #sidelineBtn{
+    display:block!important;
+  }
+
+  body.sidelineMode .bottomControls{
+    padding-bottom:86px;
+  }
+}
