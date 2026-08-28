@@ -1756,30 +1756,93 @@ async function openPlayAttachment(id){
   const w=window.open(data.signedUrl,'_blank');
   if(!w) alert('Your browser blocked the attachment window. Allow pop-ups for Coach Lineup and try again.');
 }
+function normalizedAttachmentType(file){
+  const raw=String(file?.type||'').toLowerCase().trim();
+  const name=String(file?.name||'').toLowerCase();
+  if(raw==='application/pdf' || name.endsWith('.pdf')) return 'application/pdf';
+  if(raw==='image/jpeg' || name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'image/jpeg';
+  if(raw==='image/png' || name.endsWith('.png')) return 'image/png';
+  if(raw==='image/webp' || name.endsWith('.webp')) return 'image/webp';
+  if(raw==='image/heic' || name.endsWith('.heic')) return 'image/heic';
+  if(raw==='image/heif' || name.endsWith('.heif')) return 'image/heif';
+  return raw;
+}
+
+function showAttachmentFileName(){
+  const input=$('playAttachmentFile');
+  const label=$('playAttachmentFileName');
+  if(!label) return;
+  const file=input?.files?.[0];
+  label.textContent=file?`${file.name} • ${(file.size/1024/1024).toFixed(1)} MB`:'No file selected';
+}
+
 async function uploadPlayAttachment(playId,file,oldPath=''){
   if(!file) return true;
+
+  const contentType=normalizedAttachmentType(file);
   const allowed=['application/pdf','image/jpeg','image/png','image/webp','image/heic','image/heif'];
-  if(!allowed.includes(file.type)) { alert('Please choose a PDF, JPG, PNG, WEBP, HEIC, or HEIF file.'); return false; }
-  if(file.size>15*1024*1024) { alert('Attachment must be 15 MB or smaller.'); return false; }
+  if(!allowed.includes(contentType)){
+    alert('Please choose a PDF, JPG, PNG, WEBP, HEIC, or HEIF file.');
+    return false;
+  }
+  if(file.size>15*1024*1024){
+    alert(`"${file.name}" is ${(file.size/1024/1024).toFixed(1)} MB. Attachments must be 15 MB or smaller.`);
+    return false;
+  }
 
   const cleanName=String(file.name||'attachment').replace(/[^a-zA-Z0-9._-]+/g,'-');
   const path=`${team.id}/${playId}/${Date.now()}-${cleanName}`;
-  const {error:uploadError}=await sb.storage.from('playbook-attachments').upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type});
-  if(uploadError){ alert(uploadError.message); return false; }
+
+  // Safari/iOS Files can report PDF type as blank or application/octet-stream.
+  // Re-wrap the file so Supabase receives the correct MIME type.
+  let uploadBody=file;
+  if(String(file.type||'').toLowerCase()!==contentType){
+    uploadBody=new File([file],file.name,{type:contentType,lastModified:file.lastModified||Date.now()});
+  }
+
+  const saveBtn=$('savePlayBtn');
+  if(saveBtn){
+    saveBtn.disabled=true;
+    saveBtn.textContent='UPLOADING…';
+  }
+
+  const {error:uploadError}=await sb.storage
+    .from('playbook-attachments')
+    .upload(path,uploadBody,{
+      cacheControl:'3600',
+      upsert:false,
+      contentType
+    });
+
+  if(uploadError){
+    if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='SAVE PLAY'; }
+    console.error('Play attachment upload failed:',uploadError);
+    alert(`PDF upload failed: ${uploadError.message}`);
+    return false;
+  }
 
   const {error:updateError}=await sb.from('playbook_plays').update({
     attachment_path:path,
     attachment_name:file.name,
-    attachment_type:file.type,
+    attachment_type:contentType,
     updated_at:new Date().toISOString()
   }).eq('id',playId);
+
   if(updateError){
     await sb.storage.from('playbook-attachments').remove([path]);
-    alert(updateError.message); return false;
+    if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='SAVE PLAY'; }
+    console.error('Play attachment database update failed:',updateError);
+    alert(`The PDF uploaded, but could not be attached to the play: ${updateError.message}`);
+    return false;
   }
 
   if(oldPath && oldPath!==path){
     await sb.storage.from('playbook-attachments').remove([oldPath]);
+  }
+
+  if(saveBtn){
+    saveBtn.disabled=false;
+    saveBtn.textContent='SAVE PLAY';
   }
   return true;
 }
@@ -1814,7 +1877,8 @@ function openPlayEditor(id=''){
       <label class="wideLabel">Labels — separate with commas<input id="playLabels" value="${esc((p?.labels||[]).join(', '))}" placeholder="Goal Line, Red Zone, 3rd & Short"></label>
       <label class="wideLabel">Description / Notes<textarea id="playDescription" rows="5" placeholder="Blocking, motion, reads, coaching points...">${esc(p?.description||'')}</textarea></label>
       <label class="wideLabel playAttachmentPicker">Picture or PDF
-        <input id="playAttachmentFile" type="file" accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif">
+        <input id="playAttachmentFile" type="file" accept=".pdf,application/pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,image/*" onchange="showAttachmentFileName()">
+        <span id="playAttachmentFileName" class="attachmentFileName">No file selected</span>
         <small>PDF or image • maximum 15 MB${p?.attachment_path?' • choosing a new file replaces the current attachment':''}</small>
       </label>
       ${p?.attachment_path?`<div class="wideLabel currentAttachment">
@@ -1824,7 +1888,7 @@ function openPlayEditor(id=''){
     </div>
     <div class="modalFoot">
       <button class="secondary" onclick="openPlaybook()">CANCEL</button>
-      <button class="primary" onclick="savePlay('${p?.id||''}')">SAVE PLAY</button>
+      <button class="primary" id="savePlayBtn" onclick="savePlay('${p?.id||''}')">SAVE PLAY</button>
     </div>`);
 }
 async function savePlay(id=''){

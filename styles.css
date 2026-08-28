@@ -1642,3 +1642,24 @@ body:-webkit-full-screen .fullscreenPlayPanel,
     font-size:9px!important;
   }
 }
+
+/* More reliable mobile PDF attachment picker */
+.playAttachmentPicker input[type=file]{
+  width:100%;
+  min-height:48px;
+}
+.attachmentFileName{
+  display:block;
+  margin-top:6px;
+  padding:7px 9px;
+  border:1px solid #304860;
+  border-radius:8px;
+  background:#091522;
+  font-size:10px;
+  color:#b9c9d8;
+  overflow-wrap:anywhere;
+}
+#savePlayBtn:disabled{
+  opacity:.65;
+  cursor:wait;
+}
