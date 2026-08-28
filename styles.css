@@ -1960,3 +1960,15 @@ body:-webkit-full-screen .fullscreenPlayPanel,
     bottom:96px!important;
   }
 }
+
+/* Game Day player cards: tap to substitute */
+.field .slot.tappableSub{
+  cursor:pointer;
+  touch-action:manipulation;
+}
+.field .slot.tappableSub:hover{
+  filter:brightness(1.08);
+}
+.field .slot.tappableSub:active{
+  transform:translate(-50%,-50%) scale(.96)!important;
+}

@@ -872,7 +872,11 @@ function renderField(){
     el.style.top=displayYForRegular(p)+'%';
     el.innerHTML=`${esc(p.label)}<small>${pl?(displayMode==='names'?esc(pl.name):'#'+esc(pl.jersey_number)):'OPEN'}${pl&&!playerCanPlay(pl)?` • ${availabilityLabel(pl)}`:''}</small>`;
     if(editFieldMode && roleCanEdit()) makeDraggable(el,p,'regular');
-    else if(roleCanEdit() && !gameModeLocked) el.onclick=()=>openLineupEditor(p.id);
+    else if(roleCanEdit()) {
+      el.classList.add('tappableSub');
+      el.title='Tap to substitute this player';
+      el.onclick=()=>openLineupEditor(p.id);
+    }
     f.appendChild(el);
   });
 }
@@ -2298,7 +2302,7 @@ function recommendNextLine(){
   alert(`Recommended next line: ${line.name}\nAverage plays for this group: ${avg}\n\nCoach Lineup switched to this line.`);
 }
 function openQuickSub(){
-  if(gameModeLocked) return alert('Game Mode is locked. Unlock editing before making substitutions.');
+  // Game Mode Lock protects setup/field editing, but substitutions remain available during a game.
   if(activeView==='special'){
     const unit=specialUnits[currentSpecialUnit];
     if(!unit) return;
