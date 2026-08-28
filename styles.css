@@ -1694,3 +1694,116 @@ body:-webkit-full-screen .fullscreenPlayPanel,
   opacity:.65;
   cursor:wait;
 }
+
+/* Fullscreen Game Day play picker */
+.fullscreenPickPlayBtn{
+  font-weight:950!important;
+}
+.fullscreenPlayPickerOverlay{
+  position:fixed;
+  inset:0;
+  z-index:18000;
+  background:rgba(1,7,13,.88);
+  display:flex;
+  align-items:stretch;
+  justify-content:flex-end;
+}
+.fullscreenPlayPickerSheet{
+  width:min(520px,96vw);
+  height:100dvh;
+  background:#07121e;
+  border-left:1px solid #33506b;
+  display:flex;
+  flex-direction:column;
+  box-shadow:-16px 0 40px rgba(0,0,0,.45);
+}
+.fullscreenPickerHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:12px;
+  border-bottom:1px solid #29435a;
+}
+.fullscreenPickerHeader small{
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:1px;
+  color:#7f9bb3;
+}
+.fullscreenPickerHeader h2{
+  margin:2px 0 0;
+  font-size:19px;
+}
+.fullscreenPickerTabs{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:6px;
+  padding:8px 10px;
+}
+.fullscreenPickerTabs button{
+  min-height:42px;
+  font-size:10px;
+  font-weight:900;
+}
+.fullscreenPickerTabs button.active{
+  outline:2px solid #3c92ff;
+}
+.fullscreenPickerList{
+  flex:1;
+  overflow:auto;
+  padding:4px 10px 12px;
+}
+.fullscreenPickerPlay{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 82px;
+  gap:7px;
+  margin:7px 0;
+}
+.fullscreenPickerSelect,
+.fullscreenPickerView{
+  min-height:58px!important;
+}
+.fullscreenPickerSelect{
+  text-align:left!important;
+  padding:8px 10px!important;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+.fullscreenPickerSelect small{
+  font-size:8px;
+  opacity:.72;
+  font-weight:900;
+}
+.fullscreenPickerSelect b{
+  font-size:13px;
+}
+.fullscreenPickerSelect span{
+  font-size:9px;
+  opacity:.72;
+}
+.fullscreenPickerView{
+  font-size:10px!important;
+  font-weight:900!important;
+}
+.fullscreenPickerFooter{
+  flex:0 0 auto;
+  padding:9px 10px;
+  border-top:1px solid #29435a;
+}
+.fullscreenPickerFooter button{
+  width:100%;
+  min-height:46px;
+}
+@media(max-width:700px){
+  .fullscreenPlayPickerSheet{
+    width:100vw;
+  }
+  .fullscreenPickerPlay{
+    grid-template-columns:minmax(0,1fr) 74px;
+  }
+  .fullscreenPickerSelect b{
+    font-size:12px;
+  }
+}

@@ -1577,36 +1577,7 @@ function parseGameNote(note){
 
 async function viewNextCallAttachment(){
   if(!pendingCalledPlay?.attachment_path) return alert('This play does not have a picture or PDF attached.');
-  const {data,error}=await sb.storage.from('playbook-attachments').createSignedUrl(pendingCalledPlay.attachment_path,3600);
-  if(error) return alert(error.message);
-
-  const type=String(pendingCalledPlay.attachment_type||'');
-  const isImage=type.startsWith('image/');
-  const viewer=document.createElement('div');
-  viewer.className='playFullscreenViewer';
-  viewer.innerHTML=`
-    <div class="playViewerTop">
-      <b>${esc(playCallLabel(pendingCalledPlay))}</b>
-      <div class="playViewerActions">
-        <button onclick="togglePlayViewerFullscreen(this.closest('.playFullscreenViewer'))">⛶ FULL SCREEN</button>
-        <button onclick="closePlayViewer(this.closest('.playFullscreenViewer'))">✕ CLOSE</button>
-      </div>
-    </div>
-    <div class="playViewerBody">
-      ${isImage
-        ? `<img src="${data.signedUrl}" alt="${esc(pendingCalledPlay.name)}">`
-        : `<iframe src="${data.signedUrl}#toolbar=1&navpanes=0&view=FitH" title="${esc(pendingCalledPlay.name)}" allowfullscreen></iframe>`
-      }
-    </div>`;
-  document.body.appendChild(viewer);
-
-  // On desktop/tablet browsers that allow it, enter true browser fullscreen immediately.
-  try{
-    if(viewer.requestFullscreen) await viewer.requestFullscreen();
-    else if(viewer.webkitRequestFullscreen) viewer.webkitRequestFullscreen();
-  }catch(e){
-    // Mobile Safari may require a direct button tap; the FULL SCREEN button remains available.
-  }
+  await openPlayAttachmentViewer(pendingCalledPlay);
 }
 
 async function togglePlayViewerFullscreen(viewer){
@@ -1628,7 +1599,9 @@ function closePlayViewer(viewer){
     if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
     else if(document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
   }catch(e){}
+  const objectUrl=viewer?.dataset?.objectUrl;
   viewer?.remove();
+  if(objectUrl) setTimeout(()=>URL.revokeObjectURL(objectUrl),1500);
 }
 
 async function saveCallResult(gamePlayId,play,quality=false,touchdown=false){
@@ -1655,6 +1628,120 @@ function renderCallResultBar(){
   el.innerHTML=`<span><small>LAST CALL</small><b>${esc(lastRecordedCall.play_code?`${lastRecordedCall.play_code} — ${lastRecordedCall.play_name}`:lastRecordedCall.play_name||'Play')}</b></span>
     <button class="${lastRecordedCall.quality_play?'resultOn':''}" onclick="updateLastCallResult('quality_play',${!lastRecordedCall.quality_play})">✓ QUALITY</button>
     <button class="${lastRecordedCall.touchdown?'resultOn touchdownOn':''}" onclick="updateLastCallResult('touchdown',${!lastRecordedCall.touchdown})">🏈 TD</button>`;
+}
+
+
+function fullscreenPlayPickerCard(p){
+  const attachment=!!p.attachment_path;
+  return `<div class="fullscreenPickerPlay">
+    <button class="fullscreenPickerSelect" onclick="selectFullscreenPlay('${p.id}')">
+      <small>${esc(playCategoryLabel(p.category))}</small>
+      <b>${esc(playCallLabel(p))}</b>
+      ${p.formation?`<span>${esc(p.formation)}</span>`:''}
+    </button>
+    ${attachment?`<button class="fullscreenPickerView" onclick="viewPlayAttachmentById('${p.id}')">${String(p.attachment_type||'').startsWith('image/')?'🖼️ VIEW':'📄 VIEW'}</button>`:''}
+  </div>`;
+}
+
+function openFullscreenPlayPicker(category='all'){
+  const cats=['running','passing','special'];
+  const filtered=(category==='all'?playbookPlays:playbookPlays.filter(p=>p.category===category))
+    .slice()
+    .sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)||String(a.play_code||'').localeCompare(String(b.play_code||''),undefined,{numeric:true})||String(a.name||'').localeCompare(String(b.name||'')));
+
+  const overlay=document.createElement('div');
+  overlay.id='fullscreenPlayPickerOverlay';
+  overlay.className='fullscreenPlayPickerOverlay';
+  overlay.innerHTML=`
+    <div class="fullscreenPlayPickerSheet">
+      <div class="fullscreenPickerHeader">
+        <div>
+          <small>GAME DAY</small>
+          <h2>PICK A PLAY</h2>
+        </div>
+        <button class="secondary" onclick="closeFullscreenPlayPicker()">✕ CLOSE</button>
+      </div>
+      <div class="fullscreenPickerTabs">
+        <button class="${category==='all'?'active':''}" onclick="replaceFullscreenPlayPicker('all')">ALL</button>
+        ${cats.map(c=>`<button class="${category===c?'active':''}" onclick="replaceFullscreenPlayPicker('${c}')">${playCategoryLabel(c)}</button>`).join('')}
+      </div>
+      <div class="fullscreenPickerList">
+        ${filtered.length?filtered.map(fullscreenPlayPickerCard).join(''):'<div class="emptyState">No plays in this category.</div>'}
+      </div>
+      ${team?.playbook_pdf_path?`<div class="fullscreenPickerFooter"><button class="secondary" onclick="viewWholePlaybookPdf()">📖 VIEW FULL PLAYBOOK</button></div>`:''}
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function replaceFullscreenPlayPicker(category){
+  closeFullscreenPlayPicker();
+  openFullscreenPlayPicker(category);
+}
+
+function closeFullscreenPlayPicker(){
+  $('fullscreenPlayPickerOverlay')?.remove();
+}
+
+function selectFullscreenPlay(id){
+  const p=playbookPlays.find(x=>x.id===id);
+  if(!p) return;
+  pendingCalledPlay=p;
+  closeFullscreenPlayPicker();
+  renderCalledPlay();
+}
+
+async function viewPlayAttachmentById(id){
+  const p=playbookPlays.find(x=>x.id===id);
+  if(!p?.attachment_path) return alert('This play does not have an attached image or PDF.');
+  await openPlayAttachmentViewer(p);
+}
+
+async function openPlayAttachmentViewer(play){
+  const type=String(play.attachment_type||'').toLowerCase();
+  const name=String(play.attachment_name||play.name||'play');
+  const isImage=type.startsWith('image/');
+  const isPdf=type==='application/pdf' || name.toLowerCase().endsWith('.pdf');
+
+  const {data:blob,error}=await sb.storage.from('playbook-attachments').download(play.attachment_path);
+  if(error || !blob){
+    console.error('Play attachment download failed:',error);
+    alert(`Could not load this play: ${error?.message||'Download failed'}`);
+    return;
+  }
+
+  let displayBlob=blob;
+  if(isPdf && blob.type!=='application/pdf'){
+    displayBlob=new Blob([await blob.arrayBuffer()],{type:'application/pdf'});
+  }
+  const objectUrl=URL.createObjectURL(displayBlob);
+  const viewer=document.createElement('div');
+  viewer.className='playFullscreenViewer';
+  viewer.dataset.objectUrl=objectUrl;
+  viewer.innerHTML=`
+    <div class="playViewerTop">
+      <b>${esc(playCallLabel(play))}</b>
+      <div class="playViewerActions">
+        ${isPdf?`<button onclick="openPlayPdfTab(this.closest('.playFullscreenViewer'))">↗ OPEN PDF</button>`:''}
+        <button onclick="togglePlayViewerFullscreen(this.closest('.playFullscreenViewer'))">⛶ FULL SCREEN</button>
+        <button onclick="closePlayViewer(this.closest('.playFullscreenViewer'))">✕ CLOSE</button>
+      </div>
+    </div>
+    <div class="playViewerBody">
+      ${isImage
+        ? `<img src="${objectUrl}" alt="${esc(play.name||'Play')}">`
+        : isPdf
+          ? `<iframe src="${objectUrl}" title="${esc(play.name||'Play')}" allowfullscreen></iframe>`
+          : `<div class="attachmentUnsupported">Preview unavailable.</div>`
+      }
+    </div>`;
+  document.body.appendChild(viewer);
+}
+
+function openPlayPdfTab(viewer){
+  const url=viewer?.dataset?.objectUrl;
+  if(!url) return;
+  const w=window.open(url,'_blank');
+  if(!w) alert('Your browser blocked the PDF window. Allow pop-ups for Coach Lineup and try again.');
 }
 
 function choosePlayForGame(id){
