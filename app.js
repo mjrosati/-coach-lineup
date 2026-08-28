@@ -23,7 +23,7 @@ let team=null, membership=null, lines=[], players=[], positions=[], assignments=
 let gameModeLocked=false, sidelineMode=false;
 let gameQuarter='Q1', possession='ours', clockSeconds=480, clockRunning=false, clockTimer=null, clockEndAt=null;
 let deferredInstallPrompt=null;
-let playerSortMode='jersey', pendingCalledPlay=null;
+let playerSortMode='jersey', pendingCalledPlay=null, lastRecordedCall=null;
 
 let currentLine=0, displayMode='names', currentGame=null, playCount=0, counts={}, threshold=75, channel=null;
 let activeView='offense', editFieldMode=false, specialUnits=[], specialSlots=[], specialAssignments=[], currentSpecialUnit=0, deviceMode=localStorage.getItem('coachLineupDeviceMode')||'auto';
@@ -340,11 +340,14 @@ async function openSavedGameReport(gameId){
   participants.forEach(x=>playerCounts[x.player_id]=(playerCounts[x.player_id]||0)+1);
   const rows=players.map(p=>({p,c:playerCounts[p.id]||0})).sort((a,b)=>b.c-a.c||a.p.name.localeCompare(b.p.name));
   const total=Number(g.total_plays||plays?.length||0);
+  const {data:callResults}=await sb.from('play_call_results').select('*').eq('game_id',gameId);
+  const qualityCount=(callResults||[]).filter(x=>x.quality_play).length;
+  const tdCount=(callResults||[]).filter(x=>x.touchdown).length;
   const called={};
   (plays||[]).forEach(x=>{ const info=parseGameNote(x.note); if(info.play){ const key=info.play.id||`${info.play.code}|${info.play.name}`; if(!called[key]) called[key]={...info.play,count:0}; called[key].count++; } });
   const calledRows=Object.values(called).sort((a,b)=>b.count-a.count||String(a.name).localeCompare(String(b.name)));
   openModal(`<h2>Game Report</h2>
-    <div class="notice"><b>vs ${esc(g.opponent||'Opponent')}</b><br>${new Date(g.started_at||g.created_at).toLocaleDateString()} • ${total} plays • ${String(g.status||'').toUpperCase()}</div>
+    <div class="notice"><b>vs ${esc(g.opponent||'Opponent')}</b><br>${new Date(g.started_at||g.created_at).toLocaleDateString()} • ${total} plays • ${String(g.status||'').toUpperCase()}<br><b>${(callResults||[]).length}</b> playbook calls • <b>${qualityCount}</b> quality • <b>${tdCount}</b> touchdowns</div>
     <div class="endReport">${rows.map(r=>`<div class="statRow"><span>#${esc(r.p.jersey_number)}</span><span>${esc(r.p.name)}</span><span>${r.c} plays</span><b>${total?Math.round(r.c/total*100):0}%</b></div>`).join('')}</div>
     <h3>Called Plays</h3>
     ${calledRows.length?`<div class="calledPlayReport">${calledRows.map(p=>`<div><span>${esc(p.code?`${p.code} — ${p.name}`:p.name)}</span><small>${esc(playCategoryLabel(p.category))}</small><b>${p.count}×</b></div>`).join('')}</div>`:`<div class="notice">No playbook calls were recorded for this game.</div>`}
@@ -1501,6 +1504,46 @@ function parseGameNote(note){
   }
   return {view:raw,play:null};
 }
+
+async function viewNextCallAttachment(){
+  if(!pendingCalledPlay?.attachment_path) return alert('This play does not have a picture or PDF attached.');
+  const {data,error}=await sb.storage.from('playbook-attachments').createSignedUrl(pendingCalledPlay.attachment_path,3600);
+  if(error) return alert(error.message);
+  const type=String(pendingCalledPlay.attachment_type||'');
+  const isImage=type.startsWith('image/');
+  const viewer=document.createElement('div');
+  viewer.className='playFullscreenViewer';
+  viewer.innerHTML=`<div class="playViewerTop"><b>${esc(playCallLabel(pendingCalledPlay))}</b><button onclick="this.closest('.playFullscreenViewer').remove()">✕ CLOSE</button></div>
+    <div class="playViewerBody">${isImage?`<img src="${data.signedUrl}" alt="${esc(pendingCalledPlay.name)}">`:`<iframe src="${data.signedUrl}" title="${esc(pendingCalledPlay.name)}"></iframe>`}</div>`;
+  document.body.appendChild(viewer);
+  try{ await viewer.requestFullscreen?.(); }catch(e){}
+}
+async function saveCallResult(gamePlayId,play,quality=false,touchdown=false){
+  if(!gamePlayId||!play) return;
+  const uid=await userId();
+  const payload={team_id:team.id,game_id:currentGame.id,game_play_id:gamePlayId,playbook_play_id:play.id||null,
+    play_name:play.name||null,play_code:play.play_code||null,category:play.category||null,
+    quality_play:!!quality,touchdown:!!touchdown,created_by:uid,updated_at:new Date().toISOString()};
+  const {data,error}=await sb.from('play_call_results').upsert(payload,{onConflict:'game_play_id'}).select().single();
+  if(error){ console.error(error); return; }
+  lastRecordedCall=data;
+}
+async function updateLastCallResult(field,value){
+  if(!lastRecordedCall?.id) return alert('Record a called play first.');
+  const patch={[field]:!!value,updated_at:new Date().toISOString()};
+  const {data,error}=await sb.from('play_call_results').update(patch).eq('id',lastRecordedCall.id).select().single();
+  if(error) return alert(error.message);
+  lastRecordedCall=data; renderCallResultBar();
+}
+function renderCallResultBar(){
+  const el=$('callResultBar'); if(!el) return;
+  if(!lastRecordedCall){ el.classList.add('hidden'); el.innerHTML=''; return; }
+  el.classList.remove('hidden');
+  el.innerHTML=`<span><small>LAST CALL</small><b>${esc(lastRecordedCall.play_code?`${lastRecordedCall.play_code} — ${lastRecordedCall.play_name}`:lastRecordedCall.play_name||'Play')}</b></span>
+    <button class="${lastRecordedCall.quality_play?'resultOn':''}" onclick="updateLastCallResult('quality_play',${!lastRecordedCall.quality_play})">✓ QUALITY</button>
+    <button class="${lastRecordedCall.touchdown?'resultOn touchdownOn':''}" onclick="updateLastCallResult('touchdown',${!lastRecordedCall.touchdown})">🏈 TD</button>`;
+}
+
 function choosePlayForGame(id){
   const p=playbookPlays.find(x=>x.id===id); if(!p) return;
   if(!currentGame) return alert('Start a game before calling a play.');
@@ -1512,9 +1555,9 @@ function renderCalledPlay(){
   const box=$('calledPlayBanner'); if(!box) return;
   if(!pendingCalledPlay){ box.classList.add('hidden'); box.innerHTML=''; return; }
   box.classList.remove('hidden');
-  box.innerHTML=`<span><small>NEXT CALL</small><b>${esc(playCallLabel(pendingCalledPlay))}</b>${pendingCalledPlay.formation?`<em>${esc(pendingCalledPlay.formation)}</em>`:''}</span><button type="button" onclick="clearCalledPlay()">×</button>`;
+  box.innerHTML=`<span><small>NEXT CALL</small><b>${esc(playCallLabel(pendingCalledPlay))}</b>${pendingCalledPlay.formation?`<em>${esc(pendingCalledPlay.formation)}</em>`:''}</span>
+    <div class="nextCallButtons">${pendingCalledPlay.attachment_path?`<button class="viewDiagramBtn" onclick="viewNextCallAttachment()">${String(pendingCalledPlay.attachment_type||'').startsWith('image/')?'🖼️ VIEW PLAY':'📄 VIEW PDF'}</button>`:''}<button class="clearCallBtn" onclick="clearCalledPlay()">×</button></div>`;
 }
-
 async function reloadPlaybook(){
   const {data,error}=await sb.from('playbook_plays').select('*').eq('team_id',team.id)
     .order('category').order('sort_order').order('created_at');
@@ -1912,7 +1955,7 @@ async function startGame(){
   pendingLineupLabel='Current lineup';
   closeModal(); renderSummary(); showGameScreen();
 }
-async function nextPlay(){
+async function nextPlay(resultType='record'){
   if(nextPlay.busy) return;
   if(!currentGame){ openGameSetup(); return; }
   const line=lines[currentLine]; if(!line) return alert('Create a line first.');
@@ -1955,7 +1998,8 @@ async function nextPlay(){
 
   const unique=[...new Map(participants.map(x=>[x.player_id,x])).values()];
   const baseNote=activeView==='special' ? `special:${specialUnits[currentSpecialUnit]?.name||''}` : activeView;
-  const note=encodeGameNote(baseNote,pendingCalledPlay);
+  const calledPlayForRecord=pendingCalledPlay;
+  const note=encodeGameNote(baseNote,calledPlayForRecord);
 
   nextPlay.busy=true;
   document.querySelectorAll('#nextBtn,#nextSide,.fullscreenControls .primary').forEach(b=>{
@@ -1976,7 +2020,15 @@ async function nextPlay(){
     currentGame.total_plays=playCount;
     unique.forEach(r=>counts[r.player_id]=(counts[r.player_id]||0)+1);
     renderSummary();
-    if(pendingCalledPlay){ pendingCalledPlay=null; renderCalledPlay(); }
+    if(calledPlayForRecord){
+      const {data:gp}=await sb.from('game_plays').select('id').eq('game_id',currentGame.id).eq('play_number',playCount).maybeSingle();
+      if(gp?.id){
+        const quality=resultType==='quality' || resultType==='td';
+        const touchdown=resultType==='td';
+        await saveCallResult(gp.id,calledPlayForRecord,quality,touchdown);
+      }
+      pendingCalledPlay=null; renderCalledPlay();
+    }
 
     // Automatically rotate to the next configured line after each recorded play.
     if(lines.length>1){
@@ -2000,6 +2052,11 @@ async function nextPlay(){
     });
   }
 }
+async function recordCurrentPlay(){ return nextPlay('record'); }
+async function recordQualityPlay(){ return nextPlay('quality'); }
+async function recordTouchdownPlay(){ return nextPlay('td'); }
+
+
 async function prevPlay(){
   if(!currentGame||playCount<=0) return;
   if(!confirm(`Undo Play ${playCount}? Playing-time counts will be corrected.`)) return;

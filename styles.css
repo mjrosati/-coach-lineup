@@ -1274,3 +1274,57 @@ body.sidelineMode .actions #subBtn{
 .slot.playedPreviousLine{
   border-width:3px!important;
 }
+
+/* Next Call full-screen diagram + call results */
+.nextCallButtons{display:flex;gap:6px;align-items:center}
+.viewDiagramBtn{min-height:40px!important;padding:6px 12px!important;font-size:11px!important;font-weight:900!important;border-color:#4d9eea!important}
+.clearCallBtn{min-width:38px!important}
+.playFullscreenViewer{position:fixed;inset:0;z-index:10000;background:#03070c;display:flex;flex-direction:column}
+.playViewerTop{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;background:#0b1521}
+.playViewerTop button{min-height:42px;font-weight:900}
+.playViewerBody{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:auto}
+.playViewerBody img{max-width:100%;max-height:100%;object-fit:contain}
+.playViewerBody iframe{width:100%;height:100%;border:0;background:white}
+.callResultBar{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:7px;align-items:center;margin:0 0 8px;padding:8px 10px;border:1px solid #344b64;border-radius:11px;background:#0b1724}
+.callResultBar span{display:flex;flex-direction:column;min-width:0}
+.callResultBar small{font-size:8px;font-weight:900;color:#879db4;letter-spacing:.8px}
+.callResultBar b{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.callResultBar button{min-height:42px;padding:6px 10px;font-size:10px;font-weight:900}
+.callResultBar .resultOn{border-color:#4ca874;background:#143627}
+.callResultBar .touchdownOn{border-color:#d0a443;background:#3a2d10}
+body.sidelineMode .callResultBar{position:relative;z-index:16}
+body.sidelineMode .callResultBar button{min-height:50px!important;font-size:12px!important}
+@media(max-width:600px){
+ .calledPlayBanner{align-items:flex-start}
+ .nextCallButtons{flex-direction:column}
+ .callResultBar{grid-template-columns:1fr 1fr}
+ .callResultBar span{grid-column:1/-1}
+}
+
+/* One-tap game recording */
+.recordPlayBtn,.qualityPlayBtn,.tdPlayBtn{
+  min-height:54px;
+  font-weight:1000!important;
+  letter-spacing:.3px;
+  border-width:2px!important;
+}
+.recordPlayBtn{background:#132438!important;border-color:#5c7897!important}
+.qualityPlayBtn{background:#123523!important;border-color:#4ea874!important}
+.tdPlayBtn{background:#392b0f!important;border-color:#d0a443!important}
+.gradeRecordRow{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:8px;
+  width:100%;
+}
+.gradeRecordRow button{width:100%;min-height:58px}
+body.sidelineMode .recordPlayBtn,
+body.sidelineMode .qualityPlayBtn,
+body.sidelineMode .tdPlayBtn{
+  min-height:64px!important;
+  font-size:15px!important;
+}
+@media(max-width:600px){
+  .gradeRecordRow{gap:6px}
+  .gradeRecordRow button{font-size:11px!important;padding:8px 5px!important}
+}
