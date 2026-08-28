@@ -1250,3 +1250,19 @@ body.sidelineMode .actions #subBtn{
 @media(max-width:600px){
   .currentAttachment{align-items:flex-start;flex-direction:column}
 }
+
+/* Player offense/defense position preferences */
+.playerBasics{grid-template-columns:120px minmax(180px,1fr) minmax(180px,1fr)}
+.playerPositionEditor{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+.positionSide{padding:12px;border:1px solid #32475f;border-radius:12px;background:#0b1622}
+.positionSide h3{margin:0 0 4px}
+.positionSide .muted{margin:0 0 10px;font-size:11px}
+.positionPreferenceGrid{display:grid;grid-template-columns:1fr;gap:8px}
+.positionPreferenceGrid label{font-size:11px;font-weight:800}
+.positionPreferenceGrid select{width:100%;margin-top:4px;min-height:42px}
+.rosterPlayer small{line-height:1.45}
+@media(max-width:700px){
+  .playerBasics{grid-template-columns:1fr 1fr}
+  .playerBasics label:last-child{grid-column:1/-1}
+  .playerPositionEditor{grid-template-columns:1fr}
+}

@@ -415,7 +415,7 @@ function sortedPlayers(list=players){
       return String(a.name||'').localeCompare(String(b.name||''),undefined,{sensitivity:'base'}) || jerseyNumberValue(a.jersey_number)-jerseyNumberValue(b.jersey_number);
     }
     if(playerSortMode==='position'){
-      return String(a.primary_position||'ZZZ').localeCompare(String(b.primary_position||'ZZZ'),undefined,{sensitivity:'base'}) || jerseyNumberValue(a.jersey_number)-jerseyNumberValue(b.jersey_number) || String(a.name||'').localeCompare(String(b.name||''));
+      return String(preferredSortPosition(a)).localeCompare(String(preferredSortPosition(b)),undefined,{numeric:true,sensitivity:'base'}) || jerseyNumberValue(a.jersey_number)-jerseyNumberValue(b.jersey_number) || String(a.name||'').localeCompare(String(b.name||''));
     }
     return jerseyNumberValue(a.jersey_number)-jerseyNumberValue(b.jersey_number) || String(a.name||'').localeCompare(String(b.name||''),undefined,{sensitivity:'base'});
   });
@@ -427,6 +427,46 @@ function playerSortControls(context='sidebar'){
     <button class="${playerSortMode==='name'?'activeSort':''}" onclick="setPlayerSort('name','${context}')">NAME</button>
     <button class="${playerSortMode==='position'?'activeSort':''}" onclick="setPlayerSort('position','${context}')">POS</button>
   </div>`;
+}
+
+
+function uniquePositionLabels(side){
+  const seen=new Set();
+  return positions
+    .filter(p=>p.side===side)
+    .map(p=>String(p.label||'').trim())
+    .filter(label=>{
+      if(!label) return false;
+      const key=label.toLowerCase();
+      if(seen.has(key)) return false;
+      seen.add(key); return true;
+    })
+    .sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'}));
+}
+function playerPositionPrefs(p,side){
+  const vals=Array.isArray(p?.[`${side}_positions`])?p[`${side}_positions`]:[];
+  return vals.filter(Boolean).slice(0,3);
+}
+function positionSelectOptions(side,selected=''){
+  const labels=uniquePositionLabels(side);
+  if(selected && !labels.some(x=>x===selected)) labels.unshift(selected);
+  return `<option value="">— NONE —</option>${labels.map(label=>`<option value="${esc(label)}" ${label===selected?'selected':''}>${esc(label)}</option>`).join('')}`;
+}
+function playerPositionsText(p,side){
+  const vals=playerPositionPrefs(p,side);
+  return vals.length?vals.join(' / '):'—';
+}
+function preferredSortPosition(p){
+  return playerPositionPrefs(p,'offense')[0] || playerPositionPrefs(p,'defense')[0] || p?.primary_position || 'ZZZ';
+}
+function collectPositionPrefs(side){
+  const vals=[1,2,3].map(i=>$(`pm${side==='offense'?'Off':'Def'}${i}`)?.value||'').filter(Boolean);
+  return [...new Set(vals)].slice(0,3);
+}
+function validatePositionPrefs(offense,defense){
+  if(new Set(offense).size!==offense.length){ alert('Choose each offense position only once for this player.'); return false; }
+  if(new Set(defense).size!==defense.length){ alert('Choose each defense position only once for this player.'); return false; }
+  return true;
 }
 
 function availabilityLabel(p){
@@ -448,7 +488,7 @@ function openRosterManager(){
       ${roster.map(p=>`<button class="playerPick rosterPlayer ${availabilityClass(p)}" onclick="editPlayer('${p.id}')">
         <span>#${esc(p.jersey_number)} &nbsp; ${esc(p.name)}</span>
         <span class="rosterStatus">${availabilityLabel(p)}</span>
-        <small>${esc(p.primary_position||'')}</small>
+        <small><b>O:</b> ${esc(playerPositionsText(p,'offense'))} &nbsp; <b>D:</b> ${esc(playerPositionsText(p,'defense'))}</small>
       </button>`).join('')}
     </div>
     <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button><button class="primary" onclick="closeModal();openPlayerModal()">+ ADD PLAYER</button></div>`);
@@ -711,7 +751,7 @@ function renderPlayers(){
     .filter(p=>(`${p.name} ${p.jersey_number} ${p.primary_position||''} ${availabilityLabel(p)}`).toLowerCase().includes(q))
     .map(p=>`<div class="player ${availabilityClass(p)}">
       <span class="num">#${esc(p.jersey_number)}</span>
-      <span>${esc(p.name)} <span class="miniStatus">${availabilityLabel(p)}</span><br><small class="muted">${esc(p.primary_position||'')}</small></span>
+      <span>${esc(p.name)} <span class="miniStatus">${availabilityLabel(p)}</span><br><small class="muted">O: ${esc(playerPositionsText(p,'offense'))} • D: ${esc(playerPositionsText(p,'defense'))}</small></span>
       ${roleCanEdit()?`<button class="iconBtn" onclick="editPlayer('${p.id}')">✎</button>`:''}
     </div>`).join('');
 }
@@ -937,11 +977,12 @@ async function saveRosterSetup(){
 
 function openPlayerModal(p=null){
   const status=p?.availability_status||'active';
+  const off=playerPositionPrefs(p,'offense');
+  const def=playerPositionPrefs(p,'defense');
   openModal(`<h2>${p?'Edit':'Add'} Player</h2>
-  <div class="formgrid">
+  <div class="formgrid playerBasics">
     <label>Jersey #<input id="pmNum" value="${esc(p?.jersey_number||'')}"></label>
     <label>Name<input id="pmName" value="${esc(p?.name||'')}"></label>
-    <label>Primary Position<input id="pmPos" value="${esc(p?.primary_position||'')}"></label>
     <label>Player Status
       <select id="pmStatus">
         <option value="active" ${status==='active'?'selected':''}>ACTIVE — Can play</option>
@@ -950,7 +991,30 @@ function openPlayerModal(p=null){
       </select>
     </label>
   </div>
-  <div class="notice statusHelp">INJURED and OUT players stay on the roster and keep their stats, but Coach Lineup will block them from being used on a new play.</div>
+
+  <div class="playerPositionEditor">
+    <section class="positionSide offensePrefs">
+      <h3>🏈 Offense Positions</h3>
+      <p class="muted">Choose up to 3. Options come from your offense lineup positions.</p>
+      <div class="positionPreferenceGrid">
+        <label>1st Position<select id="pmOff1">${positionSelectOptions('offense',off[0]||'')}</select></label>
+        <label>2nd Position<select id="pmOff2">${positionSelectOptions('offense',off[1]||'')}</select></label>
+        <label>3rd Position<select id="pmOff3">${positionSelectOptions('offense',off[2]||'')}</select></label>
+      </div>
+    </section>
+
+    <section class="positionSide defensePrefs">
+      <h3>🛡️ Defense Positions</h3>
+      <p class="muted">Choose up to 3. Options come from your defense lineup positions.</p>
+      <div class="positionPreferenceGrid">
+        <label>1st Position<select id="pmDef1">${positionSelectOptions('defense',def[0]||'')}</select></label>
+        <label>2nd Position<select id="pmDef2">${positionSelectOptions('defense',def[1]||'')}</select></label>
+        <label>3rd Position<select id="pmDef3">${positionSelectOptions('defense',def[2]||'')}</select></label>
+      </div>
+    </section>
+  </div>
+
+  <div class="notice statusHelp">These are the player's preferred/available positions. They do not automatically move the player between lines. INJURED and OUT players stay on the roster and keep their stats.</div>
   <div class="modalFoot">
     <button class="secondary" onclick="closeModal()">CANCEL</button>
     <button class="primary" onclick="savePlayer('${p?.id||''}')">SAVE</button>
@@ -958,11 +1022,17 @@ function openPlayerModal(p=null){
 }
 function editPlayer(id){ openPlayerModal(players.find(p=>p.id===id)); }
 async function savePlayer(id){
+  const offense_positions=collectPositionPrefs('offense');
+  const defense_positions=collectPositionPrefs('defense');
+  if(!validatePositionPrefs(offense_positions,defense_positions)) return;
+
   const payload={
     team_id:team.id,
     jersey_number:$('pmNum').value.trim(),
     name:$('pmName').value.trim(),
-    primary_position:$('pmPos').value.trim(),
+    offense_positions,
+    defense_positions,
+    primary_position:offense_positions[0]||defense_positions[0]||'',
     availability_status:$('pmStatus').value
   };
   if(!payload.jersey_number||!payload.name) return alert('Enter a name and jersey number.');
@@ -970,7 +1040,6 @@ async function savePlayer(id){
   if(r.error) return alert(r.error.message);
   closeModal(); await loadTeamData();
 }
-
 function openLines(){
   openModal(`<h2>Manage Lines</h2>
     <p class="muted">Add as many lines as you need. Deleting a line removes its current assignments, but does not delete roster players or old game statistics.</p>
