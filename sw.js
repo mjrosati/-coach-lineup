@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v49-tap-player-sub-fix";
+const CACHE="coach-lineup-v50-previous-player-strong-highlight";
 const CORE=[
   "./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest",
   "./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png"
