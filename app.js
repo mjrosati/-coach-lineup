@@ -874,8 +874,12 @@ function renderField(){
     if(editFieldMode && roleCanEdit()) makeDraggable(el,p,'regular');
     else if(roleCanEdit()) {
       el.classList.add('tappableSub');
-      el.title='Tap to substitute this player';
-      el.onclick=()=>openLineupEditor(p.id);
+      el.title='Tap to replace this player';
+      el.onclick=(ev)=>{
+        ev.preventDefault();
+        ev.stopPropagation();
+        openReplacePlayerModal(p.id);
+      };
     }
     f.appendChild(el);
   });
@@ -1213,6 +1217,120 @@ function rankedSubPlayers(positionId,existingPlayerId=''){
 function subReason(c){
   const match=c.rank===1?'1st position':c.rank===2?'2nd position':c.rank===3?'3rd position':'other position';
   return `${match} • ${c.plays} plays${c.rested?' • rested last line':''}`;
+}
+
+
+function currentAssignmentForPosition(positionId){
+  const line=currentLineObj();
+  if(!line) return null;
+  const side=String(currentSide||'offense').toLowerCase();
+  return (assignments||[]).find(a=>String(a.line_id)===String(line.id) &&
+    String(a.side||'').toLowerCase()===side &&
+    String(a.position_label_id||a.position_id||'')===String(positionId));
+}
+
+function openReplacePlayerModal(positionId){
+  const line=currentLineObj();
+  if(!line) return alert('No current line is selected.');
+
+  const side=String(currentSide||'offense').toLowerCase();
+  if(side==='special') return openLineupEditor(positionId);
+
+  const pos=(positionLabels||[]).find(p=>String(p.id)===String(positionId));
+  const posLabel=pos?.label||pos?.name||'Position';
+  const assignment=currentAssignmentForPosition(positionId);
+  const currentPlayerId=assignment?.player_id||'';
+
+  const usedOnSide=new Set(
+    (assignments||[])
+      .filter(a=>String(a.line_id)===String(line.id) &&
+        String(a.side||'').toLowerCase()===side &&
+        String(a.player_id||'') &&
+        String(a.position_label_id||a.position_id||'')!==String(positionId))
+      .map(a=>String(a.player_id))
+  );
+
+  const eligible=(players||[])
+    .filter(p=>String(p.availability_status||'active')==='active')
+    .filter(p=>!usedOnSide.has(String(p.id)) || String(p.id)===String(currentPlayerId))
+    .slice()
+    .sort((a,b)=>{
+      const ap=(side==='offense'?a.offense_positions:a.defense_positions)||[];
+      const bp=(side==='offense'?b.offense_positions:b.defense_positions)||[];
+      const ai=ap.findIndex(x=>String(x).toLowerCase()===String(posLabel).toLowerCase());
+      const bi=bp.findIndex(x=>String(x).toLowerCase()===String(posLabel).toLowerCase());
+      const ar=ai<0?99:ai, br=bi<0?99:bi;
+      if(ar!==br) return ar-br;
+      return String(a.last_name||a.name||'').localeCompare(String(b.last_name||b.name||''));
+    });
+
+  const modal=`
+    <div class="replacePlayerModal">
+      <div class="replacePlayerHeader">
+        <div>
+          <small>${esc(line.name||'LINE')} • ${esc(side.toUpperCase())}</small>
+          <h2>${esc(posLabel)} — Replace Player</h2>
+        </div>
+        <button class="secondary" onclick="closeModal()">✕ CLOSE</button>
+      </div>
+      <div class="replacePlayerList">
+        ${eligible.map(p=>{
+          const prefs=(side==='offense'?p.offense_positions:p.defense_positions)||[];
+          const prefIndex=prefs.findIndex(x=>String(x).toLowerCase()===String(posLabel).toLowerCase());
+          const prefText=prefIndex>=0?`Preferred #${prefIndex+1}`:'Available';
+          const current=String(p.id)===String(currentPlayerId);
+          return `<button class="replacePlayerRow ${current?'current':''}" onclick="replacePlayerAtPosition('${positionId}','${p.id}')">
+            <span class="replacePlayerJersey">${esc(p.jersey_number||p.number||'')}</span>
+            <span class="replacePlayerName">${esc(playerName(p))}</span>
+            <span class="replacePlayerPref">${current?'CURRENT':prefText}</span>
+          </button>`;
+        }).join('')}
+        <button class="replacePlayerRow clearPlayer" onclick="replacePlayerAtPosition('${positionId}','')">
+          <span></span><span>OPEN POSITION</span><span>CLEAR</span>
+        </button>
+      </div>
+    </div>`;
+  openModal(modal);
+}
+
+async function replacePlayerAtPosition(positionId,newPlayerId){
+  const line=currentLineObj();
+  if(!line) return;
+
+  const side=String(currentSide||'offense').toLowerCase();
+  const existing=currentAssignmentForPosition(positionId);
+
+  try{
+    if(existing){
+      if(newPlayerId){
+        const {error}=await sb.from('line_assignments')
+          .update({player_id:newPlayerId})
+          .eq('id',existing.id);
+        if(error) throw error;
+      }else{
+        const {error}=await sb.from('line_assignments')
+          .delete()
+          .eq('id',existing.id);
+        if(error) throw error;
+      }
+    }else if(newPlayerId){
+      const {error}=await sb.from('line_assignments').insert({
+        line_id:line.id,
+        side,
+        position_label_id:positionId,
+        player_id:newPlayerId
+      });
+      if(error) throw error;
+    }
+
+    closeModal();
+    await loadAssignments();
+    renderField();
+    renderLineChips();
+  }catch(error){
+    console.error('Replace player failed:',error);
+    alert(`Could not replace player: ${error?.message||'Unknown error'}`);
+  }
 }
 
 function openLineupEditor(positionId){

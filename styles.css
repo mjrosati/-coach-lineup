@@ -1972,3 +1972,103 @@ body:-webkit-full-screen .fullscreenPlayPanel,
 .field .slot.tappableSub:active{
   transform:translate(-50%,-50%) scale(.96)!important;
 }
+
+/* Stronger visual marker for players who were on the previous line */
+.field .slot.playedPreviousLine{
+  font-weight:1000!important;
+  border-width:4px!important;
+  border-style:solid!important;
+  box-shadow:
+    0 0 0 3px rgba(255,255,255,.95),
+    0 0 0 7px rgba(0,0,0,.72),
+    0 5px 14px rgba(0,0,0,.55)!important;
+  transform:translate(-50%,-50%) scale(1.10)!important;
+  z-index:12!important;
+}
+.field .slot.playedPreviousLine b,
+.field .slot.playedPreviousLine strong,
+.field .slot.playedPreviousLine .name{
+  font-weight:1000!important;
+  font-size:1.12em!important;
+  text-shadow:0 1px 2px #000,0 0 3px #000!important;
+}
+.field .slot.playedPreviousLine::before{
+  content:"↻";
+  position:absolute;
+  top:-12px;
+  right:-10px;
+  min-width:18px;
+  height:18px;
+  line-height:18px;
+  border-radius:50%;
+  background:#fff;
+  color:#07121e;
+  border:2px solid #07121e;
+  font-size:11px;
+  font-weight:1000;
+  text-align:center;
+  z-index:3;
+}
+
+/* Direct player replacement modal */
+.replacePlayerModal{
+  width:min(560px,94vw);
+}
+.replacePlayerHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+.replacePlayerHeader small{
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.8px;
+  opacity:.7;
+}
+.replacePlayerHeader h2{
+  margin:2px 0 0;
+}
+.replacePlayerList{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  max-height:65vh;
+  overflow:auto;
+}
+.replacePlayerRow{
+  display:grid!important;
+  grid-template-columns:58px minmax(0,1fr) 96px;
+  gap:8px;
+  align-items:center;
+  min-height:52px!important;
+  text-align:left!important;
+  padding:8px 10px!important;
+}
+.replacePlayerRow.current{
+  outline:2px solid #3c92ff;
+}
+.replacePlayerRow.clearPlayer{
+  opacity:.82;
+}
+.replacePlayerJersey{
+  font-size:16px;
+  font-weight:1000;
+  text-align:center;
+}
+.replacePlayerName{
+  font-size:13px;
+  font-weight:900;
+}
+.replacePlayerPref{
+  font-size:9px;
+  font-weight:900;
+  text-align:right;
+  opacity:.72;
+}
+@media(max-width:700px){
+  .replacePlayerRow{
+    grid-template-columns:46px minmax(0,1fr) 78px;
+  }
+}
