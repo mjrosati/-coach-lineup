@@ -428,6 +428,7 @@ function showGameScreen(){
   setActiveView(activeView);
   renderCalledPlay();
   updatePlayRecordButtons();
+  renderFullscreenSelectedPlay();
 }
 
 function loadPlayerSort(){
@@ -1576,15 +1577,58 @@ async function viewNextCallAttachment(){
   if(!pendingCalledPlay?.attachment_path) return alert('This play does not have a picture or PDF attached.');
   const {data,error}=await sb.storage.from('playbook-attachments').createSignedUrl(pendingCalledPlay.attachment_path,3600);
   if(error) return alert(error.message);
+
   const type=String(pendingCalledPlay.attachment_type||'');
   const isImage=type.startsWith('image/');
   const viewer=document.createElement('div');
   viewer.className='playFullscreenViewer';
-  viewer.innerHTML=`<div class="playViewerTop"><b>${esc(playCallLabel(pendingCalledPlay))}</b><button onclick="this.closest('.playFullscreenViewer').remove()">✕ CLOSE</button></div>
-    <div class="playViewerBody">${isImage?`<img src="${data.signedUrl}" alt="${esc(pendingCalledPlay.name)}">`:`<iframe src="${data.signedUrl}" title="${esc(pendingCalledPlay.name)}"></iframe>`}</div>`;
+  viewer.innerHTML=`
+    <div class="playViewerTop">
+      <b>${esc(playCallLabel(pendingCalledPlay))}</b>
+      <div class="playViewerActions">
+        <button onclick="togglePlayViewerFullscreen(this.closest('.playFullscreenViewer'))">⛶ FULL SCREEN</button>
+        <button onclick="closePlayViewer(this.closest('.playFullscreenViewer'))">✕ CLOSE</button>
+      </div>
+    </div>
+    <div class="playViewerBody">
+      ${isImage
+        ? `<img src="${data.signedUrl}" alt="${esc(pendingCalledPlay.name)}">`
+        : `<iframe src="${data.signedUrl}#toolbar=1&navpanes=0&view=FitH" title="${esc(pendingCalledPlay.name)}" allowfullscreen></iframe>`
+      }
+    </div>`;
   document.body.appendChild(viewer);
-  try{ await viewer.requestFullscreen?.(); }catch(e){}
+
+  // On desktop/tablet browsers that allow it, enter true browser fullscreen immediately.
+  try{
+    if(viewer.requestFullscreen) await viewer.requestFullscreen();
+    else if(viewer.webkitRequestFullscreen) viewer.webkitRequestFullscreen();
+  }catch(e){
+    // Mobile Safari may require a direct button tap; the FULL SCREEN button remains available.
+  }
 }
+
+async function togglePlayViewerFullscreen(viewer){
+  if(!viewer) return;
+  try{
+    const active=document.fullscreenElement||document.webkitFullscreenElement;
+    if(active){
+      if(document.exitFullscreen) await document.exitFullscreen();
+      else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+    }else{
+      if(viewer.requestFullscreen) await viewer.requestFullscreen();
+      else if(viewer.webkitRequestFullscreen) viewer.webkitRequestFullscreen();
+    }
+  }catch(e){}
+}
+
+function closePlayViewer(viewer){
+  try{
+    if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+    else if(document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+  }catch(e){}
+  viewer?.remove();
+}
+
 async function saveCallResult(gamePlayId,play,quality=false,touchdown=false){
   if(!gamePlayId||!play) return;
   const uid=await userId();
@@ -1629,13 +1673,35 @@ function updatePlayRecordButtons(){
   });
 }
 
+
+function renderFullscreenSelectedPlay(){
+  const panel=$('fullscreenPlayPanel');
+  if(!panel) return;
+  const hasPlay=!!pendingCalledPlay;
+  panel.classList.toggle('hidden',!hasPlay);
+  if(!hasPlay) return;
+
+  const name=$('fullscreenPlayName');
+  const formation=$('fullscreenPlayFormation');
+  if(name) name.textContent=playCallLabel(pendingCalledPlay);
+  if(formation) formation.textContent=pendingCalledPlay.formation||'';
+
+  const view=$('fullscreenViewPlayBtn');
+  if(view){
+    const hasAttachment=!!pendingCalledPlay.attachment_path;
+    view.classList.toggle('hidden',!hasAttachment);
+    view.textContent=String(pendingCalledPlay.attachment_type||'').startsWith('image/')?'🖼️ VIEW PLAY':'📄 VIEW PDF';
+  }
+}
+
 function renderCalledPlay(){
   const box=$('calledPlayBanner'); if(!box) return;
-  if(!pendingCalledPlay){ box.classList.add('hidden'); box.innerHTML=''; updatePlayRecordButtons(); return; }
+  if(!pendingCalledPlay){ box.classList.add('hidden'); box.innerHTML=''; updatePlayRecordButtons(); renderFullscreenSelectedPlay(); return; }
   box.classList.remove('hidden');
   box.innerHTML=`<span><small>NEXT CALL</small><b>${esc(playCallLabel(pendingCalledPlay))}</b>${pendingCalledPlay.formation?`<em>${esc(pendingCalledPlay.formation)}</em>`:''}</span>
     <div class="nextCallButtons">${pendingCalledPlay.attachment_path?`<button class="viewDiagramBtn" onclick="viewNextCallAttachment()">${String(pendingCalledPlay.attachment_type||'').startsWith('image/')?'🖼️ VIEW PLAY':'📄 VIEW PDF'}</button>`:''}<button class="clearCallBtn" onclick="clearCalledPlay()">×</button></div>`;
   updatePlayRecordButtons();
+  renderFullscreenSelectedPlay();
 }
 async function reloadPlaybook(){
   const {data,error}=await sb.from('playbook_plays').select('*').eq('team_id',team.id)
@@ -2414,6 +2480,12 @@ $('recommendBtn')?.addEventListener('click',recommendNextLine);
 $('historyBtn')?.addEventListener('click',openGameHistory);
 $('playSuggestBtn')?.addEventListener('click',openSmartPlaySuggestion);
 $('halftimeBtn')?.addEventListener('click',openHalftimeReport);
+
+$('fullscreenViewPlayBtn')?.addEventListener('click',viewNextCallAttachment);
+$('fullscreenRecordBtn')?.addEventListener('click',recordCurrentPlay);
+$('fullscreenQualityBtn')?.addEventListener('click',recordQualityPlay);
+$('fullscreenTdBtn')?.addEventListener('click',recordTouchdownPlay);
+
 $('lockBtn')?.addEventListener('click',toggleGameLock);
 $('sidelineBtn')?.addEventListener('click',toggleSidelineMode);
 $('sortJerseyBtn')?.addEventListener('click',()=>setPlayerSort('jersey'));

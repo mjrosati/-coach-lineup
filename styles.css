@@ -1483,3 +1483,162 @@ body.sidelineMode .smartSubPlayer{min-height:55px}
 body.sidelineMode #nextBtn{
   display:block!important;
 }
+
+/* True full-screen play PDF / image viewer */
+.playFullscreenViewer{
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100dvh;
+  z-index:20000;
+  background:#02060b;
+  display:flex;
+  flex-direction:column;
+}
+.playFullscreenViewer:fullscreen,
+.playFullscreenViewer:-webkit-full-screen{
+  width:100vw;
+  height:100vh;
+  background:#02060b;
+}
+.playViewerTop{
+  flex:0 0 auto;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  background:#08131f;
+  border-bottom:1px solid #294157;
+}
+.playViewerActions{
+  display:flex;
+  gap:7px;
+}
+.playViewerActions button{
+  min-height:42px!important;
+  padding:7px 12px!important;
+  font-size:10px!important;
+  font-weight:900!important;
+}
+.playViewerBody{
+  flex:1 1 auto;
+  min-height:0;
+  width:100%;
+  overflow:hidden;
+  display:flex;
+  align-items:stretch;
+  justify-content:stretch;
+  background:#111;
+}
+.playViewerBody iframe{
+  display:block;
+  width:100%;
+  height:100%;
+  flex:1;
+  border:0;
+  background:white;
+}
+.playViewerBody img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  background:#05080b;
+}
+@media(max-width:700px){
+  .playViewerTop{
+    padding:7px 8px;
+  }
+  .playViewerTop>b{
+    font-size:12px;
+    max-width:45vw;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .playViewerActions button{
+    min-height:44px!important;
+    padding:6px 8px!important;
+    font-size:9px!important;
+  }
+}
+
+/* Selected play controls while the Game Day field is in fullscreen */
+.fullscreenPlayPanel{
+  display:none;
+}
+body:fullscreen .fullscreenPlayPanel,
+body:-webkit-full-screen .fullscreenPlayPanel,
+.app:fullscreen .fullscreenPlayPanel,
+.app:-webkit-full-screen .fullscreenPlayPanel{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  position:fixed;
+  left:10px;
+  right:10px;
+  bottom:10px;
+  z-index:9500;
+  padding:10px;
+  border:1px solid #35506d;
+  border-radius:12px;
+  background:rgba(5,14,24,.96);
+  box-shadow:0 8px 28px rgba(0,0,0,.35);
+}
+.fullscreenPlayPanel.hidden{
+  display:none!important;
+}
+.fullscreenPlayInfo{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+.fullscreenPlayInfo small{
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.8px;
+  color:#86a0ba;
+}
+.fullscreenPlayInfo b{
+  font-size:15px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.fullscreenPlayInfo span{
+  font-size:10px;
+  color:#9cafc1;
+}
+.fullscreenPlayActions{
+  display:flex;
+  gap:6px;
+  align-items:center;
+}
+.fullscreenPlayActions button{
+  min-height:46px!important;
+  padding:7px 10px!important;
+  font-size:10px!important;
+  font-weight:900!important;
+}
+@media(max-width:700px){
+  body:fullscreen .fullscreenPlayPanel,
+  body:-webkit-full-screen .fullscreenPlayPanel,
+  .app:fullscreen .fullscreenPlayPanel,
+  .app:-webkit-full-screen .fullscreenPlayPanel{
+    grid-template-columns:1fr;
+    bottom:6px;
+    left:6px;
+    right:6px;
+    padding:7px;
+  }
+  .fullscreenPlayActions{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+  }
+  .fullscreenPlayActions button{
+    min-width:0;
+    padding:6px 3px!important;
+    font-size:9px!important;
+  }
+}
