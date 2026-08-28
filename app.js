@@ -2405,7 +2405,7 @@ $('distanceDisplay')?.addEventListener('click',openDownDistance);
 $('driveDisplay')?.addEventListener('click',openDownDistance);
 
 $('nextBtn').onclick=nextLineOnly;
-$('nextSide').onclick=nextPlay;
+$('nextSide')?.addEventListener('click',()=>nextPlay('record'));
 $('prevBtn').onclick=prevPlay;
 $('search').oninput=renderPlayers;
 $('lineSelect').onchange=e=>setLine(Number(e.target.value));
