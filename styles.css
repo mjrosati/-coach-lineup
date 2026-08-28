@@ -978,3 +978,43 @@ button:focus-visible,input:focus-visible,select:focus-visible{
   .alertJersey{min-width:38px;height:38px}
   .alertPlayerStats b{font-size:17px}
 }
+
+/* Lines + player availability + playbook */
+.statusInjured{border-color:#f59e0b!important;background:linear-gradient(180deg,#33240b,#21190b)!important}
+.statusOut{border-color:#ef4444!important;background:linear-gradient(180deg,#351217,#211014)!important;opacity:.74}
+.statusActive .miniStatus{display:none}
+.miniStatus,.rosterStatus{
+  display:inline-block;padding:2px 6px;border-radius:999px;font-size:9px;font-weight:900;letter-spacing:.45px;
+  border:1px solid currentColor;margin-left:5px
+}
+.statusInjured .miniStatus,.statusInjured .rosterStatus{color:#fbbf24}
+.statusOut .miniStatus,.statusOut .rosterStatus{color:#ff7777}
+.rosterPlayer{display:grid!important;grid-template-columns:1fr auto;gap:3px 8px;text-align:left!important}
+.rosterPlayer small{grid-column:1/-1}
+.statusHelp{margin-top:10px}
+.playerPick:disabled{cursor:not-allowed;opacity:.52}
+.manageLineList{display:grid;gap:9px;margin:10px 0}
+.manageLineRow{display:grid;grid-template-columns:minmax(0,1fr) 92px auto;gap:8px;align-items:end}
+.manageLineRow label{min-width:0}
+.lineDeleteBtn{min-height:44px}
+.addLineBox{display:grid;grid-template-columns:minmax(0,1fr) 92px auto;gap:8px;align-items:end;padding:12px;border:1px solid #2d3a4c;border-radius:12px;background:#0c1420;margin:12px 0}
+.playbookTabs,.playbookActions{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}
+.activePlayTab{border-color:#4ea1ff!important;background:#162943!important}
+.playList{display:grid;gap:10px;margin:12px 0}
+.playCard{padding:12px;border:1px solid #34445b;border-radius:12px;background:#0d1622}
+.playCardTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.playCardTop h3{margin:4px 0 6px}
+.playCardBtns{display:flex;gap:6px;align-items:center}
+.playCategory{font-size:10px;font-weight:900;letter-spacing:.55px;color:#92a7bd}
+.playMeta{font-size:12px;color:#bdc9d7;margin:4px 0}
+.playDesc{white-space:pre-wrap;line-height:1.35;margin-top:7px}
+.playLabels{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.playLabels span{font-size:10px;padding:4px 7px;border:1px solid #3c5270;border-radius:999px;background:#101e30}
+.wideLabel{grid-column:1/-1}
+.wideLabel textarea{width:100%;resize:vertical;min-height:110px}
+@media(max-width:700px){
+  .manageLineRow,.addLineBox{grid-template-columns:1fr 72px}
+  .manageLineRow .lineDeleteBtn,.addLineBox .primary{grid-column:1/-1}
+  .playCardTop{display:block}
+  .playCardBtns{margin-top:8px}
+}

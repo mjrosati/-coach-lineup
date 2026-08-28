@@ -19,7 +19,7 @@ const DEFAULT_POS = [
   ['FS','defense','FS','FS',60,88],['CBR','defense','CBR','CB (Right)',82,88]
 ];
 
-let team=null, membership=null, lines=[], players=[], positions=[], assignments=[];
+let team=null, membership=null, lines=[], players=[], positions=[], assignments=[], playbookPlays=[];
 let currentLine=0, displayMode='names', currentGame=null, playCount=0, counts={}, threshold=75, channel=null;
 let activeView='offense', editFieldMode=false, specialUnits=[], specialSlots=[], specialAssignments=[], currentSpecialUnit=0, deviceMode=localStorage.getItem('coachLineupDeviceMode')||'auto';
 let fieldFullscreen=false;
@@ -228,11 +228,25 @@ function showGameScreen(){
   renderAll();
   setActiveView(activeView);
 }
+function availabilityLabel(p){
+  return (p?.availability_status||'active').toUpperCase();
+}
+function availabilityClass(p){
+  const s=p?.availability_status||'active';
+  return s==='injured'?'statusInjured':s==='out'?'statusOut':'statusActive';
+}
+function playerCanPlay(p){ return (p?.availability_status||'active')==='active'; }
+
 function openRosterManager(){
+  const unavailable=players.filter(p=>!playerCanPlay(p)).length;
   openModal(`<h2>Roster</h2>
-    <p class="muted">${players.length} active players</p>
+    <p class="muted">${players.length} players${unavailable?` • ${unavailable} unavailable`:''}</p>
     <div class="rosterManage">
-      ${players.map(p=>`<button class="playerPick" onclick="editPlayer('${p.id}')">#${esc(p.jersey_number)} &nbsp; ${esc(p.name)} <small>${esc(p.primary_position||'')}</small></button>`).join('')}
+      ${players.map(p=>`<button class="playerPick rosterPlayer ${availabilityClass(p)}" onclick="editPlayer('${p.id}')">
+        <span>#${esc(p.jersey_number)} &nbsp; ${esc(p.name)}</span>
+        <span class="rosterStatus">${availabilityLabel(p)}</span>
+        <small>${esc(p.primary_position||'')}</small>
+      </button>`).join('')}
     </div>
     <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button><button class="primary" onclick="closeModal();openPlayerModal()">+ ADD PLAYER</button></div>`);
 }
@@ -397,14 +411,15 @@ async function ensureDefaults(){
 }
 async function loadTeamData(){
   try{
-    const [p,l,pos,g]=await Promise.all([
+    const [p,l,pos,g,pb]=await Promise.all([
       sb.from('players').select('*').eq('team_id',team.id).eq('active',true).order('jersey_number'),
       sb.from('lines').select('*').eq('team_id',team.id).order('sort_order'),
       sb.from('position_labels').select('*').eq('team_id',team.id).order('side').order('slot_key'),
-      sb.from('games').select('*').eq('team_id',team.id).eq('status','active').order('created_at',{ascending:false}).limit(1).maybeSingle()
+      sb.from('games').select('*').eq('team_id',team.id).eq('status','active').order('created_at',{ascending:false}).limit(1).maybeSingle(),
+      sb.from('playbook_plays').select('*').eq('team_id',team.id).order('category').order('sort_order').order('created_at')
     ]);
-    for(const r of [p,l,pos,g]) if(r.error) throw r.error;
-    players=p.data||[]; lines=l.data||[]; positions=pos.data||[];
+    for(const r of [p,l,pos,g,pb]) if(r.error) throw r.error;
+    players=p.data||[]; lines=l.data||[]; positions=pos.data||[]; playbookPlays=pb.data||[];
     await ensureDefaults();
     if(lines[currentLine]===undefined) currentLine=0;
     currentGame=g.data||null;
@@ -482,10 +497,10 @@ function renderSpecialUnitSelect(){
 function renderPlayers(){
   const q=($('search').value||'').toLowerCase();
   $('players').innerHTML=players
-    .filter(p=>(`${p.name} ${p.jersey_number} ${p.primary_position||''}`).toLowerCase().includes(q))
-    .map(p=>`<div class="player">
+    .filter(p=>(`${p.name} ${p.jersey_number} ${p.primary_position||''} ${availabilityLabel(p)}`).toLowerCase().includes(q))
+    .map(p=>`<div class="player ${availabilityClass(p)}">
       <span class="num">#${esc(p.jersey_number)}</span>
-      <span>${esc(p.name)}<br><small class="muted">${esc(p.primary_position||'')}</small></span>
+      <span>${esc(p.name)} <span class="miniStatus">${availabilityLabel(p)}</span><br><small class="muted">${esc(p.primary_position||'')}</small></span>
       ${roleCanEdit()?`<button class="iconBtn" onclick="editPlayer('${p.id}')">✎</button>`:''}
     </div>`).join('');
 }
@@ -532,10 +547,10 @@ function renderField(){
     slots.forEach(slot=>{
       const pl=map.get(slot.id);
       const el=document.createElement('div');
-      el.className='slot specialSlot';
+      el.className='slot specialSlot '+(pl?availabilityClass(pl):'');
       el.style.left=Number(slot.x_pct)+'%';
       el.style.top=Number(slot.y_pct)+'%';
-      el.innerHTML=`${esc(slot.label)}<small>${pl?(displayMode==='names'?esc(pl.name):'#'+esc(pl.jersey_number)):'OPEN'}</small>`;
+      el.innerHTML=`${esc(slot.label)}<small>${pl?(displayMode==='names'?esc(pl.name):'#'+esc(pl.jersey_number)):'OPEN'}${pl&&!playerCanPlay(pl)?` • ${availabilityLabel(pl)}`:''}</small>`;
       if(editFieldMode && roleCanEdit()) makeDraggable(el,slot,'special');
       else if(roleCanEdit()) el.onclick=()=>openSpecialAssignment(slot.id);
       f.appendChild(el);
@@ -548,10 +563,10 @@ function renderField(){
   positions.filter(p=>p.side===activeView).forEach(p=>{
     const pl=map[p.id];
     const el=document.createElement('div');
-    el.className='slot '+(p.side==='defense'?'def':'');
+    el.className='slot '+(p.side==='defense'?'def ':'')+(pl?availabilityClass(pl):'');
     el.style.left=Number(p.x_pct)+'%';
     el.style.top=displayYForRegular(p)+'%';
-    el.innerHTML=`${esc(p.label)}<small>${pl?(displayMode==='names'?esc(pl.name):'#'+esc(pl.jersey_number)):'OPEN'}</small>`;
+    el.innerHTML=`${esc(p.label)}<small>${pl?(displayMode==='names'?esc(pl.name):'#'+esc(pl.jersey_number)):'OPEN'}${pl&&!playerCanPlay(pl)?` • ${availabilityLabel(pl)}`:''}</small>`;
     if(editFieldMode && roleCanEdit()) makeDraggable(el,p,'regular');
     else if(roleCanEdit()) el.onclick=()=>openLineupEditor(p.id);
     f.appendChild(el);
@@ -598,12 +613,18 @@ async function openSpecialAssignment(slotId){
   const existing=specialAssignments.find(a=>a.unit_id===unit.id&&a.slot_id===slotId);
   const onField=playersCurrentlyOnField();
   openModal(`<h2>${esc(unit.name)} — ${esc(slot?.label||'Position')}</h2>
-    <p class="muted">Players shown in red are already on the field.</p>
+    <p class="muted">Red = already used in this special-teams unit. INJURED/OUT players cannot be selected.</p>
     <button class="secondary full" onclick="clearSpecialAssignment('${slotId}')">CLEAR POSITION</button>
     <div class="picker">
       ${players.map(p=>{
-        const used=onField.has(p.id);
-        return `<button class="playerPick ${existing?.player_id===p.id?'selected':''} ${used?'onFieldPlayer':''}" onclick="assignSpecialPlayer('${slotId}','${p.id}')">#${esc(p.jersey_number)} ${esc(p.name)}${used?' <span class="usedTag">ON FIELD</span>':''}</button>`;
+        const used=onField.has(p.id) && existing?.player_id!==p.id;
+        const unavailable=!playerCanPlay(p);
+        const disabled=used||unavailable;
+        return `<button class="playerPick ${existing?.player_id===p.id?'selected':''} ${used?'onFieldPlayer':''} ${availabilityClass(p)}" ${disabled?'disabled':''} onclick="assignSpecialPlayer('${slotId}','${p.id}')">
+          #${esc(p.jersey_number)} ${esc(p.name)}
+          ${used?' <span class="usedTag">ALREADY USED</span>':''}
+          ${unavailable?` <span class="usedTag">${availabilityLabel(p)}</span>`:''}
+        </button>`;
       }).join('')}
     </div>
     <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
@@ -616,6 +637,13 @@ async function clearSpecialAssignment(slotId){
 }
 async function assignSpecialPlayer(slotId,playerId){
   const unit=specialUnits[currentSpecialUnit];
+  const player=players.find(p=>p.id===playerId);
+  if(!playerCanPlay(player)) return alert(`${player?.name||'This player'} is marked ${availabilityLabel(player)} and cannot be assigned.`);
+  const duplicate=specialAssignments.find(a=>a.unit_id===unit.id&&a.player_id===playerId&&a.slot_id!==slotId);
+  if(duplicate){
+    const ds=specialSlots.find(s=>s.id===duplicate.slot_id);
+    return alert(`${player.name} is already assigned to ${ds?.label||'another position'} in ${unit.name}.`);
+  }
   const {error}=await sb.from('special_team_assignments').upsert({unit_id:unit.id,slot_id:slotId,player_id:playerId},{onConflict:'unit_id,slot_id'});
   if(error) return alert(error.message);
   closeModal(); await loadSpecialTeams(); renderField();
@@ -698,12 +726,21 @@ async function saveRosterSetup(){
 }
 
 function openPlayerModal(p=null){
+  const status=p?.availability_status||'active';
   openModal(`<h2>${p?'Edit':'Add'} Player</h2>
   <div class="formgrid">
     <label>Jersey #<input id="pmNum" value="${esc(p?.jersey_number||'')}"></label>
     <label>Name<input id="pmName" value="${esc(p?.name||'')}"></label>
     <label>Primary Position<input id="pmPos" value="${esc(p?.primary_position||'')}"></label>
+    <label>Player Status
+      <select id="pmStatus">
+        <option value="active" ${status==='active'?'selected':''}>ACTIVE — Can play</option>
+        <option value="injured" ${status==='injured'?'selected':''}>INJURED — Do not play</option>
+        <option value="out" ${status==='out'?'selected':''}>OUT — Unavailable</option>
+      </select>
+    </label>
   </div>
+  <div class="notice statusHelp">INJURED and OUT players stay on the roster and keep their stats, but Coach Lineup will block them from being used on a new play.</div>
   <div class="modalFoot">
     <button class="secondary" onclick="closeModal()">CANCEL</button>
     <button class="primary" onclick="savePlayer('${p?.id||''}')">SAVE</button>
@@ -711,7 +748,13 @@ function openPlayerModal(p=null){
 }
 function editPlayer(id){ openPlayerModal(players.find(p=>p.id===id)); }
 async function savePlayer(id){
-  const payload={team_id:team.id,jersey_number:$('pmNum').value.trim(),name:$('pmName').value.trim(),primary_position:$('pmPos').value.trim()};
+  const payload={
+    team_id:team.id,
+    jersey_number:$('pmNum').value.trim(),
+    name:$('pmName').value.trim(),
+    primary_position:$('pmPos').value.trim(),
+    availability_status:$('pmStatus').value
+  };
   if(!payload.jersey_number||!payload.name) return alert('Enter a name and jersey number.');
   const r=id?await sb.from('players').update(payload).eq('id',id):await sb.from('players').insert(payload);
   if(r.error) return alert(r.error.message);
@@ -720,15 +763,43 @@ async function savePlayer(id){
 
 function openLines(){
   openModal(`<h2>Manage Lines</h2>
-    ${lines.map((l,i)=>`<div class="formgrid">
-      <label>Line ${i+1}<input id="ln${i}" value="${esc(l.name)}"></label>
-      <label>Color<input id="lc${i}" type="color" value="${/^#[0-9a-f]{6}$/i.test(l.color)?l.color:'#2584ff'}"></label>
-    </div>`).join('')}
+    <p class="muted">Add as many lines as you need. Deleting a line removes its current assignments, but does not delete roster players or old game statistics.</p>
+    <div class="manageLineList">
+      ${lines.map((l,i)=>`<div class="manageLineRow">
+        <label>Line ${i+1}<input id="ln${i}" value="${esc(l.name)}"></label>
+        <label>Color<input id="lc${i}" type="color" value="${/^#[0-9a-f]{6}$/i.test(l.color)?l.color:'#2584ff'}"></label>
+        <button class="dangerBtn lineDeleteBtn" onclick="deleteLine('${l.id}','${esc(l.name)}')">DELETE</button>
+      </div>`).join('')}
+    </div>
+    <div class="addLineBox">
+      <label>New line name<input id="newLineName" placeholder="Example: Gold Line"></label>
+      <label>Color<input id="newLineColor" type="color" value="#f2b134"></label>
+      <button class="primary" onclick="addLine()">+ ADD LINE</button>
+    </div>
     <div class="lineTemplateActions">
       <button class="secondary" onclick="promptSaveLineup()">💾 SAVE CURRENT AS TEMPLATE</button>
       <button class="secondary" onclick="openSavedLineups()">OPEN SAVED LINEUPS</button>
     </div>
-    <div class="modalFoot"><button class="secondary" onclick="closeModal()">CANCEL</button><button class="primary" onclick="saveLines()">SAVE</button></div>`);
+    <div class="modalFoot"><button class="secondary" onclick="closeModal()">CANCEL</button><button class="primary" onclick="saveLines()">SAVE CHANGES</button></div>`);
+}
+async function addLine(){
+  const name=$('newLineName').value.trim();
+  const color=$('newLineColor').value||'#2584ff';
+  if(!name) return alert('Enter a name for the new line.');
+  const sort=Math.max(-1,...lines.map(l=>Number(l.sort_order||0)))+1;
+  const {error}=await sb.from('lines').insert({team_id:team.id,name,color,sort_order:sort});
+  if(error) return alert(error.message);
+  await loadTeamData();
+  openLines();
+}
+async function deleteLine(id,name){
+  if(lines.length<=1) return alert('Keep at least one line on the team.');
+  if(!confirm(`Delete "${name}"? Current assignments on this line will be removed.`)) return;
+  const {error}=await sb.from('lines').delete().eq('id',id);
+  if(error) return alert(error.message);
+  currentLine=0;
+  await loadTeamData();
+  openLines();
 }
 async function saveLines(){
   for(let i=0;i<lines.length;i++){
@@ -776,12 +847,18 @@ function openLineupEditor(positionId){
   const existing=currentLineAssignments().find(a=>a.position_label_id===positionId);
   const onField=playersCurrentlyOnField();
   openModal(`<h2>${esc(pos?.label||'Position')} — Assign Player</h2>
-    <p class="muted">Players shown in red are already on the field.</p>
+    <p class="muted">Red = already used in this ${activeView.toUpperCase()} line. INJURED/OUT players cannot be selected.</p>
     <div class="picker">
       <button class="secondary full" onclick="clearAssignment('${positionId}')">CLEAR POSITION</button>
       ${players.map(p=>{
-        const used=onField.has(p.id);
-        return `<button class="playerPick ${existing?.player_id===p.id?'selected':''} ${used?'onFieldPlayer':''}" onclick="assignPlayer('${positionId}','${p.id}')">#${esc(p.jersey_number)} ${esc(p.name)}${used?' <span class="usedTag">ON FIELD</span>':''}</button>`;
+        const used=onField.has(p.id) && existing?.player_id!==p.id;
+        const unavailable=!playerCanPlay(p);
+        const disabled=used||unavailable;
+        return `<button class="playerPick ${existing?.player_id===p.id?'selected':''} ${used?'onFieldPlayer':''} ${availabilityClass(p)}" ${disabled?'disabled':''} onclick="assignPlayer('${positionId}','${p.id}')">
+          #${esc(p.jersey_number)} ${esc(p.name)}
+          ${used?' <span class="usedTag">ALREADY USED</span>':''}
+          ${unavailable?` <span class="usedTag">${availabilityLabel(p)}</span>`:''}
+        </button>`;
       }).join('')}
     </div>
     <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
@@ -794,9 +871,18 @@ async function clearAssignment(positionId){
 }
 async function assignPlayer(positionId,playerId){
   const line=lines[currentLine]; if(!line) return;
+  const player=players.find(p=>p.id===playerId);
+  if(!playerCanPlay(player)) return alert(`${player?.name||'This player'} is marked ${availabilityLabel(player)} and cannot be assigned.`);
+  const side=positions.find(p=>p.id===positionId)?.side;
+  const sidePos=new Set(positions.filter(p=>p.side===side).map(p=>p.id));
+  const duplicate=currentLineAssignments().find(a=>a.player_id===playerId && a.position_label_id!==positionId && sidePos.has(a.position_label_id));
+  if(duplicate){
+    const dp=positions.find(p=>p.id===duplicate.position_label_id);
+    return alert(`${player.name} is already assigned to ${dp?.label||'another position'} on this ${side?.toUpperCase()||''} line.`);
+  }
   await sb.from('line_assignments').delete().eq('line_id',line.id).eq('position_label_id',positionId);
   const {error}=await sb.from('line_assignments').insert({line_id:line.id,player_id:playerId,position_label_id:positionId});
-  if(error) return alert(error.message);
+  if(error) return alert(error.message.includes('already assigned')?error.message:'Could not assign player: '+error.message);
   closeModal(); await loadAssignments(); renderField();
 }
 
@@ -1098,6 +1184,170 @@ async function resetCurrentField(){
   renderField();
 }
 
+
+function playCategoryLabel(c){
+  return c==='running'?'🏃 RUNNING':c==='passing'?'🏈 PASSING':'⭐ SPECIAL';
+}
+function playLabelsArray(v){
+  return String(v||'').split(',').map(x=>x.trim()).filter(Boolean).slice(0,12);
+}
+async function reloadPlaybook(){
+  const {data,error}=await sb.from('playbook_plays').select('*').eq('team_id',team.id)
+    .order('category').order('sort_order').order('created_at');
+  if(error){ alert(error.message); return; }
+  playbookPlays=data||[];
+}
+function openPlaybook(category='all'){
+  const cats=['running','passing','special'];
+  const filtered=category==='all'?playbookPlays:playbookPlays.filter(p=>p.category===category);
+  openModal(`<h2>📘 Team Playbook</h2>
+    <div class="playbookTabs">
+      <button class="secondary ${category==='all'?'activePlayTab':''}" onclick="openPlaybook('all')">ALL</button>
+      ${cats.map(c=>`<button class="secondary ${category===c?'activePlayTab':''}" onclick="openPlaybook('${c}')">${playCategoryLabel(c)}</button>`).join('')}
+    </div>
+    <div class="playbookActions">
+      ${roleCanEdit()?`<button class="primary" onclick="openPlayEditor()">+ ADD PLAY</button>`:''}
+      <button class="secondary" onclick="openPlaybookPdf()">📄 PDF PLAYBOOK</button>
+    </div>
+    <div class="playList">
+      ${filtered.length?filtered.map(p=>`
+        <div class="playCard">
+          <div class="playCardTop">
+            <div>
+              <span class="playCategory">${playCategoryLabel(p.category)}</span>
+              <h3>${esc(p.play_code?`${p.play_code} — ${p.name}`:p.name)}</h3>
+            </div>
+            ${roleCanEdit()?`<div class="playCardBtns">
+              <button class="iconBtn" onclick="openPlayEditor('${p.id}')">✎</button>
+              <button class="dangerBtn" onclick="deletePlay('${p.id}','${esc(p.name)}')">DELETE</button>
+            </div>`:''}
+          </div>
+          ${p.formation?`<div class="playMeta"><b>Formation:</b> ${esc(p.formation)}</div>`:''}
+          ${p.description?`<div class="playDesc">${esc(p.description)}</div>`:''}
+          ${(p.labels||[]).length?`<div class="playLabels">${p.labels.map(l=>`<span>${esc(l)}</span>`).join('')}</div>`:''}
+        </div>`).join(''):`<div class="notice">No ${category==='all'?'':category+' '}plays yet. Tap <b>+ Add Play</b> to build your playbook.</div>`}
+    </div>
+    <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
+}
+function openPlayEditor(id=''){
+  const p=playbookPlays.find(x=>x.id===id);
+  openModal(`<h2>${p?'Edit':'Add'} Play</h2>
+    <div class="formgrid">
+      <label>Play Name<input id="playName" value="${esc(p?.name||'')}" placeholder="24 Power"></label>
+      <label>Category
+        <select id="playCategory">
+          <option value="running" ${p?.category==='running'?'selected':''}>RUNNING</option>
+          <option value="passing" ${p?.category==='passing'?'selected':''}>PASSING</option>
+          <option value="special" ${p?.category==='special'?'selected':''}>SPECIAL PLAY</option>
+        </select>
+      </label>
+      <label>Play # / Code<input id="playCode" value="${esc(p?.play_code||'')}" placeholder="24"></label>
+      <label>Formation<input id="playFormation" value="${esc(p?.formation||'')}" placeholder="I Right"></label>
+      <label class="wideLabel">Labels — separate with commas<input id="playLabels" value="${esc((p?.labels||[]).join(', '))}" placeholder="Goal Line, Red Zone, 3rd & Short"></label>
+      <label class="wideLabel">Description / Notes<textarea id="playDescription" rows="5" placeholder="Blocking, motion, reads, coaching points...">${esc(p?.description||'')}</textarea></label>
+    </div>
+    <div class="modalFoot">
+      <button class="secondary" onclick="openPlaybook()">CANCEL</button>
+      <button class="primary" onclick="savePlay('${p?.id||''}')">SAVE PLAY</button>
+    </div>`);
+}
+async function savePlay(id=''){
+  const name=$('playName').value.trim();
+  if(!name) return alert('Enter a play name.');
+  const uid=await userId();
+  const payload={
+    team_id:team.id,
+    name,
+    category:$('playCategory').value,
+    play_code:$('playCode').value.trim()||null,
+    formation:$('playFormation').value.trim()||null,
+    description:$('playDescription').value.trim()||null,
+    labels:playLabelsArray($('playLabels').value),
+    updated_at:new Date().toISOString()
+  };
+  if(!id) payload.created_by=uid;
+  const r=id
+    ? await sb.from('playbook_plays').update(payload).eq('id',id)
+    : await sb.from('playbook_plays').insert(payload);
+  if(r.error) return alert(r.error.message);
+  await reloadPlaybook();
+  openPlaybook();
+}
+async function deletePlay(id,name){
+  if(!confirm(`Delete play "${name}"?`)) return;
+  const {error}=await sb.from('playbook_plays').delete().eq('id',id);
+  if(error) return alert(error.message);
+  await reloadPlaybook();
+  openPlaybook();
+}
+function pdfText(s){
+  return String(s??'').replace(/[^\x20-\x7E]/g,'').replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');
+}
+function wrapPdfText(text,max=78){
+  const words=String(text||'').split(/\s+/).filter(Boolean), lines=[]; let line='';
+  for(const w of words){
+    if((line+' '+w).trim().length>max){ if(line) lines.push(line); line=w; }
+    else line=(line+' '+w).trim();
+  }
+  if(line) lines.push(line);
+  return lines;
+}
+function buildSimplePlaybookPdf(){
+  const ordered=[...playbookPlays].sort((a,b)=>a.category.localeCompare(b.category)||(a.sort_order||0)-(b.sort_order||0)||a.name.localeCompare(b.name));
+  const pages=[]; let page=[], y=760;
+  const add=(text,size=11,bold=false,indent=0)=>{
+    if(y<70){ pages.push(page); page=[]; y=760; }
+    page.push({text:pdfText(text),size,bold,x:54+indent,y}); y-=size+7;
+  };
+  add(`${team?.name||'Coach Lineup'} Playbook`,20,true); add(`Generated ${new Date().toLocaleDateString()}`,10,false); y-=8;
+  let lastCat='';
+  for(const p of ordered){
+    if(p.category!==lastCat){ y-=6; add(playCategoryLabel(p.category).replace(/[^\x20-\x7E]/g,''),15,true); lastCat=p.category; }
+    add(p.play_code?`${p.play_code} - ${p.name}`:p.name,13,true,8);
+    if(p.formation) add(`Formation: ${p.formation}`,10,false,14);
+    if((p.labels||[]).length) add(`Labels: ${(p.labels||[]).join(', ')}`,9,false,14);
+    for(const line of wrapPdfText(p.description||'',80)) add(line,10,false,14);
+    y-=7;
+  }
+  if(!ordered.length) add('No plays have been added yet.',12,false);
+  pages.push(page);
+
+  const objects=[null];
+  const addObj=s=>{objects.push(s); return objects.length-1;};
+  const font=addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+  const bold=addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+  const pageObjs=[], contentObjs=[];
+  for(const pg of pages){
+    let stream='BT\\n';
+    for(const l of pg){
+      stream+=`/${l.bold?'F2':'F1'} ${l.size} Tf ${l.x} ${l.y} Td (${l.text}) Tj ${-l.x} ${-l.y} Td\\n`;
+    }
+    stream+='ET';
+    contentObjs.push(addObj(`<< /Length ${stream.length} >>\\nstream\\n${stream}\\nendstream`));
+    pageObjs.push(addObj(''));
+  }
+  const pagesObj=addObj('');
+  pageObjs.forEach((obj,i)=>{
+    objects[obj]=`<< /Type /Page /Parent ${pagesObj} 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 ${font} 0 R /F2 ${bold} 0 R >> >> /Contents ${contentObjs[i]} 0 R >>`;
+  });
+  objects[pagesObj]=`<< /Type /Pages /Kids [${pageObjs.map(x=>`${x} 0 R`).join(' ')}] /Count ${pageObjs.length} >>`;
+  const catalog=addObj(`<< /Type /Catalog /Pages ${pagesObj} 0 R >>`);
+  let pdf='%PDF-1.4\\n', offsets=[0];
+  for(let i=1;i<objects.length;i++){ offsets[i]=pdf.length; pdf+=`${i} 0 obj\\n${objects[i]}\\nendobj\\n`; }
+  const xref=pdf.length;
+  pdf+=`xref\\n0 ${objects.length}\\n0000000000 65535 f \\n`;
+  for(let i=1;i<objects.length;i++) pdf+=String(offsets[i]).padStart(10,'0')+' 00000 n \\n';
+  pdf+=`trailer\\n<< /Size ${objects.length} /Root ${catalog} 0 R >>\\nstartxref\\n${xref}\\n%%EOF`;
+  return new Blob([pdf],{type:'application/pdf'});
+}
+function openPlaybookPdf(){
+  const blob=buildSimplePlaybookPdf();
+  const url=URL.createObjectURL(blob);
+  const win=window.open(url,'_blank');
+  if(!win) alert('Your browser blocked the PDF window. Allow pop-ups for Coach Lineup and try again.');
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+
 function openGameSetup(){
   openModal(`<h2>${currentGame?'Current Game':'Game Day'}</h2>
     ${currentGame?`<div class="notice"><b>vs ${esc(currentGame.opponent||'Opponent')}</b><br>${playCount} plays recorded</div>`:`
@@ -1161,6 +1411,21 @@ async function nextPlay(){
   if(!participants.length){
     alert(`No players are assigned to the ${activeView==='special'?(specialUnits[currentSpecialUnit]?.name||'Special Teams'):activeView.toUpperCase()} view yet.`);
     return;
+  }
+
+  const seen=new Set(), duplicateIds=new Set();
+  participants.forEach(x=>{ if(seen.has(x.player_id)) duplicateIds.add(x.player_id); seen.add(x.player_id); });
+  if(duplicateIds.size){
+    const names=[...duplicateIds].map(id=>players.find(p=>p.id===id)?.name||'Unknown').join(', ');
+    return alert(`Duplicate player on this lineup: ${names}. Each player can only appear once in the active lineup.`);
+  }
+
+  const unavailable=participants
+    .map(x=>players.find(p=>p.id===x.player_id))
+    .filter(p=>p && !playerCanPlay(p));
+  if(unavailable.length){
+    const details=unavailable.map(p=>`#${p.jersey_number} ${p.name} — ${availabilityLabel(p)}`).join('\n');
+    return alert(`Cannot record this play. These players are unavailable:\n\n${details}\n\nMake a substitution or mark the player ACTIVE.`);
   }
 
   const unique=[...new Map(participants.map(x=>[x.player_id,x])).values()];
@@ -1342,6 +1607,7 @@ $('warning').onkeydown=e=>{
   }
 };
 $('gameBtn').onclick=openGameSetup;
+$('playbookBtn')?.addEventListener('click',()=>openPlaybook());
 $('nextBtn').onclick=nextPlay;
 $('nextSide').onclick=nextPlay;
 $('prevBtn').onclick=prevPlay;
@@ -1369,5 +1635,6 @@ $('linesCard')?.addEventListener('click',openLines);
 $('templatesCard')?.addEventListener('click',openSavedLineups);
 $('positionsCard')?.addEventListener('click',openPositions);
 $('settingsCard')?.addEventListener('click',openTeamSettings);
+$('playbookCard')?.addEventListener('click',()=>openPlaybook());
 
 boot();
