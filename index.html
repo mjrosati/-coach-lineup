@@ -123,7 +123,8 @@
         <button id="downDisplay" class="downDisplay">1ST DOWN</button>
         <button id="distanceDisplay" class="distanceDisplay">10 TO GO</button>
       </div>
-      <div class="fieldArea"><div id="field" class="field"><div class="mid"></div><div class="tag offense">OFFENSE</div><div class="tag defense">DEFENSE</div></div></div>
+      <div class="fieldArea"><div id="opponentLineAlert" class="opponentLineAlert" hidden></div>
+<div id="field" class="field"><div class="mid"></div><div class="tag offense">OFFENSE</div><div class="tag defense">DEFENSE</div></div></div>
       <div class="bottom">
         <button class="chip undoPlayBtn" id="prevBtn">↶ UNDO PLAY</button>
         <div id="lineChips"></div>
@@ -147,6 +148,7 @@
   
       <button id="subBtn" class="sidelineKeep">SUBSTITUTE</button>
       <button id="statsBtn" class="sidelineHide">STATS</button>
+<button id="opponentBtn" onclick="openOpponentTracker()">OPPONENT</button>
       <button id="gameBtn" class="sidelineHide">GAME</button>
       <button id="playbookBtn" class="sidelineKeep">PLAYBOOK</button>
       

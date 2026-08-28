@@ -2089,3 +2089,29 @@ body:-webkit-full-screen .fullscreenPlayPanel,
 .playerStatsRow.expanded .psDetail{display:block}
 .playerStatsHint{text-align:center;font-size:10px;opacity:.65;margin-top:9px}
 @media(max-width:600px){.playerStatsColumns,.playerStatsRow{grid-template-columns:minmax(0,1fr) 50px 52px}.psPlayer{font-size:11px}}
+
+/* Opponent line rotation tracker */
+.opponentTrackerModal{width:min(760px,96vw)}
+.opponentRosterEntry{display:grid;gap:6px;margin:10px 0}
+.opponentRosterEntry label{font-size:10px;font-weight:900;opacity:.75}
+.opponentRosterEntry textarea{min-height:62px;resize:vertical}
+.opponentTrackerSummary{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 12px;font-size:11px}
+.opponentTrackerSummary b{font-size:22px}
+.opponentTrackerSummary span{opacity:.72}
+.opponentGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:8px;max-height:48vh;overflow:auto}
+.opponentJersey{min-height:62px;display:flex!important;flex-direction:column;justify-content:center;align-items:center;gap:3px}
+.opponentJersey strong{font-size:19px}
+.opponentJersey small{font-size:9px;opacity:.72}
+.opponentJersey.selected{outline:3px solid #3c92ff}
+.opponentJersey.alert{outline:3px solid #ffb000}
+.opponentTrackerActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.opponentLineAlert{
+  margin:8px 0;
+  padding:9px 12px;
+  border-radius:8px;
+  font-weight:1000;
+  font-size:12px;
+  text-align:center;
+  background:rgba(255,176,0,.18);
+  border:2px solid rgba(255,176,0,.8);
+}

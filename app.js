@@ -2788,7 +2788,8 @@ renderLineSelect();
     });
   }
 }
-function nextLineOnly(){ if(lines.length){ currentLine=(currentLine+1)%lines.length; renderLineSelect(); renderField(); } }
+function nextLineOnly(){
+  if((opponentTracker.roster||[]).length) recordOpponentRotation(); if(lines.length){ currentLine=(currentLine+1)%lines.length; renderLineSelect(); renderField(); } }
 async function recordCurrentPlay(){ return nextPlay('record'); }
 async function recordQualityPlay(){ return nextPlay('quality'); }
 async function recordTouchdownPlay(){ return nextPlay('td'); }
@@ -2932,6 +2933,198 @@ function renderAllPlayerStats(){
     <div class="playerStatsHint">Tap any player for position and line details.</div>
   </div>`);
 }
+const OPP_TRACKER_KEY='coachLineupOpponentLineTracker';
+
+function loadOpponentTracker(){
+  try{
+    const raw=localStorage.getItem(OPP_TRACKER_KEY);
+    const state=raw?JSON.parse(raw):null;
+    return state&&typeof state==='object'?state:{
+      roster:[],
+      selected:[],
+      rotations:0,
+      appearances:{},
+      streaks:{},
+      maxStreaks:{},
+      history:[],
+      lastAlertRotation:{}
+    };
+  }catch{
+    return {roster:[],selected:[],rotations:0,appearances:{},streaks:{},maxStreaks:{},history:[],lastAlertRotation:{}};
+  }
+}
+let opponentTracker=loadOpponentTracker();
+
+function saveOpponentTracker(){
+  localStorage.setItem(OPP_TRACKER_KEY,JSON.stringify(opponentTracker));
+  renderOpponentAlertBanner();
+}
+
+function normalizeOpponentRoster(input){
+  return [...new Set(String(input||'')
+    .split(/[\s,;]+/)
+    .map(x=>x.trim().replace(/^#/,''))
+    .filter(Boolean))]
+    .sort((a,b)=>Number(a)-Number(b)||a.localeCompare(b));
+}
+
+function openOpponentTracker(){
+  const roster=opponentTracker.roster||[];
+  const selected=new Set((opponentTracker.selected||[]).map(String));
+
+  openModal(`<div class="opponentTrackerModal">
+    <div class="playerStatsHead">
+      <div><small>OPPONENT • LINE ROTATION TRACKER</small><h2>Opponent Lines</h2></div>
+      <button class="secondary" onclick="closeModal()">✕ CLOSE</button>
+    </div>
+
+    <div class="opponentRosterEntry">
+      <label>Opponent jersey numbers</label>
+      <textarea id="opponentRosterInput" placeholder="Example: 2, 7, 12, 22, 34, 55">${esc(roster.join(', '))}</textarea>
+      <button onclick="saveOpponentRoster()">SAVE ROSTER</button>
+    </div>
+
+    <div class="opponentTrackerSummary">
+      <b>${opponentTracker.rotations||0}</b> total line rotations
+      <span>Alert when player is &gt;75% of rotations AND &gt;3 rotations in a row.</span>
+    </div>
+
+    <div class="opponentGrid">
+      ${roster.map(num=>{
+        const apps=Number(opponentTracker.appearances?.[num]||0);
+        const pct=(opponentTracker.rotations||0)?Math.round(apps/opponentTracker.rotations*100):0;
+        const streak=Number(opponentTracker.streaks?.[num]||0);
+        const isSelected=selected.has(String(num));
+        const alert=pct>75&&streak>3;
+        return `<button class="opponentJersey ${isSelected?'selected':''} ${alert?'alert':''}" onclick="toggleOpponentJersey('${esc(num)}')">
+          <strong>#${esc(num)}</strong>
+          <small>${pct}% • ${streak} straight</small>
+        </button>`;
+      }).join('')||'<div class="emptyState">Enter the opponent jersey numbers above.</div>'}
+    </div>
+
+    <div class="opponentTrackerActions">
+      <button onclick="recordOpponentRotation()">RECORD THIS LINE ROTATION</button>
+      <button class="secondary" onclick="clearOpponentSelection()">CLEAR SELECTION</button>
+      <button class="danger" onclick="resetOpponentTracker()">RESET TRACKER</button>
+    </div>
+    <div class="playerStatsHint">Tap the opponent players who are currently on the field, then record the rotation. NEXT LINE can also record automatically.</div>
+  </div>`);
+}
+
+function saveOpponentRoster(){
+  const el=document.getElementById('opponentRosterInput');
+  const roster=normalizeOpponentRoster(el?.value||'');
+  opponentTracker.roster=roster;
+  opponentTracker.selected=(opponentTracker.selected||[]).filter(n=>roster.includes(String(n)));
+  roster.forEach(n=>{
+    if(opponentTracker.appearances[n]==null) opponentTracker.appearances[n]=0;
+    if(opponentTracker.streaks[n]==null) opponentTracker.streaks[n]=0;
+    if(opponentTracker.maxStreaks[n]==null) opponentTracker.maxStreaks[n]=0;
+  });
+  Object.keys(opponentTracker.appearances).forEach(n=>{
+    if(!roster.includes(String(n))){
+      delete opponentTracker.appearances[n];
+      delete opponentTracker.streaks[n];
+      delete opponentTracker.maxStreaks[n];
+      delete opponentTracker.lastAlertRotation[n];
+    }
+  });
+  saveOpponentTracker();
+  openOpponentTracker();
+}
+
+function toggleOpponentJersey(num){
+  const set=new Set((opponentTracker.selected||[]).map(String));
+  if(set.has(String(num))) set.delete(String(num)); else set.add(String(num));
+  opponentTracker.selected=[...set];
+  saveOpponentTracker();
+  openOpponentTracker();
+}
+
+function clearOpponentSelection(){
+  opponentTracker.selected=[];
+  saveOpponentTracker();
+  openOpponentTracker();
+}
+
+function recordOpponentRotation(){
+  const roster=opponentTracker.roster||[];
+  const selected=new Set((opponentTracker.selected||[]).map(String));
+  if(!roster.length) return alert('Enter the opponent jersey numbers first.');
+
+  opponentTracker.rotations=Number(opponentTracker.rotations||0)+1;
+  roster.forEach(num=>{
+    if(selected.has(String(num))){
+      opponentTracker.appearances[num]=Number(opponentTracker.appearances?.[num]||0)+1;
+      opponentTracker.streaks[num]=Number(opponentTracker.streaks?.[num]||0)+1;
+      opponentTracker.maxStreaks[num]=Math.max(Number(opponentTracker.maxStreaks?.[num]||0),opponentTracker.streaks[num]);
+    }else{
+      opponentTracker.streaks[num]=0;
+    }
+  });
+  opponentTracker.history.push({
+    rotation:opponentTracker.rotations,
+    players:[...selected]
+  });
+  if(opponentTracker.history.length>200) opponentTracker.history.shift();
+
+  saveOpponentTracker();
+  maybeShowOpponentAlerts();
+  if(document.querySelector('.opponentTrackerModal')) openOpponentTracker();
+}
+
+function opponentAlertRows(){
+  const total=Number(opponentTracker.rotations||0);
+  if(!total) return [];
+  return (opponentTracker.roster||[]).map(num=>{
+    const apps=Number(opponentTracker.appearances?.[num]||0);
+    const pct=Math.round(apps/total*100);
+    const streak=Number(opponentTracker.streaks?.[num]||0);
+    return {num,pct,streak};
+  }).filter(x=>x.pct>75&&x.streak>3);
+}
+
+function maybeShowOpponentAlerts(){
+  const rows=opponentAlertRows();
+  if(!rows.length) return;
+  const fresh=rows.filter(r=>Number(opponentTracker.lastAlertRotation?.[r.num]||0)!==Number(opponentTracker.rotations||0));
+  fresh.forEach(r=>opponentTracker.lastAlertRotation[r.num]=opponentTracker.rotations);
+  saveOpponentTracker();
+  if(fresh.length){
+    alert(fresh.map(r=>`Opponent #${r.num}: ${r.pct}% of line rotations / ${r.streak} rotations in a row`).join('\n'));
+  }
+}
+
+function renderOpponentAlertBanner(){
+  const banner=document.getElementById('opponentLineAlert');
+  if(!banner) return;
+  const rows=opponentAlertRows();
+  if(!rows.length){
+    banner.hidden=true;
+    banner.innerHTML='';
+    return;
+  }
+  banner.hidden=false;
+  banner.innerHTML='⚠️ '+rows.map(r=>`#${esc(r.num)} — ${r.pct}% / ${r.streak} STRAIGHT`).join(' • ');
+}
+
+function resetOpponentTracker(){
+  if(!confirm('Reset all opponent line-rotation tracking for this game?')) return;
+  opponentTracker={
+    roster:[],
+    selected:[],
+    rotations:0,
+    appearances:{},
+    streaks:{},
+    maxStreaks:{},
+    history:[],
+    lastAlertRotation:{}
+  };
+  saveOpponentTracker();
+  openOpponentTracker();
+}
+
 
 function subscribe(){
   if(channel) sb.removeChannel(channel);
@@ -3058,3 +3251,5 @@ $('installCard')?.addEventListener('click',openInstallApp);
 boot();
 
 loadPlayerSort();
+
+setTimeout(renderOpponentAlertBanner,500);
