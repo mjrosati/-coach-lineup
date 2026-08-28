@@ -1663,3 +1663,19 @@ body:-webkit-full-screen .fullscreenPlayPanel,
   opacity:.65;
   cursor:wait;
 }
+
+/* Selected attachment status only — no pre-upload PDF preview */
+.attachmentFileName{
+  display:block;
+  margin-top:6px;
+  padding:8px 10px;
+  border:1px solid #304860;
+  border-radius:8px;
+  background:#091522;
+  font-size:11px;
+  color:#c7d4e0;
+}
+.attachmentFileError{
+  border-color:#b54b4b!important;
+  color:#ffb4b4!important;
+}

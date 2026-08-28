@@ -1076,6 +1076,8 @@ function openPlayerModal(p=null){
 }
 function editPlayer(id){ openPlayerModal(players.find(p=>p.id===id)); }
 async function savePlayer(id){
+  const selectedAttachment=$('playAttachmentFile')?.files?.[0]||null;
+
   const offense_positions=collectPositionPrefs('offense');
   const defense_positions=collectPositionPrefs('defense');
   if(!validatePositionPrefs(offense_positions,defense_positions)) return;
@@ -1773,7 +1775,30 @@ function showAttachmentFileName(){
   const label=$('playAttachmentFileName');
   if(!label) return;
   const file=input?.files?.[0];
-  label.textContent=file?`${file.name} • ${(file.size/1024/1024).toFixed(1)} MB`:'No file selected';
+
+  if(!file){
+    label.textContent='No file selected';
+    label.classList.remove('attachmentFileError');
+    return;
+  }
+
+  const contentType=normalizedAttachmentType(file);
+  const allowed=['application/pdf','image/jpeg','image/png','image/webp','image/heic','image/heif'];
+
+  if(!allowed.includes(contentType)){
+    label.textContent=`Unsupported file: ${file.name}`;
+    label.classList.add('attachmentFileError');
+    return;
+  }
+
+  if(file.size>15*1024*1024){
+    label.textContent=`Too large: ${file.name} • ${(file.size/1024/1024).toFixed(1)} MB`;
+    label.classList.add('attachmentFileError');
+    return;
+  }
+
+  label.classList.remove('attachmentFileError');
+  label.textContent=`${file.name} selected • ${(file.size/1024/1024).toFixed(1)} MB`;
 }
 
 async function uploadPlayAttachment(playId,file,oldPath=''){
