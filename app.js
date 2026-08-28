@@ -1784,11 +1784,33 @@ function renderFullscreenSelectedPlay(){
 }
 
 function renderCalledPlay(){
-  const box=$('calledPlayBanner'); if(!box) return;
-  if(!pendingCalledPlay){ box.classList.add('hidden'); box.innerHTML=''; updatePlayRecordButtons(); renderFullscreenSelectedPlay(); return; }
+  const box=$('calledPlayBanner');
+  const text=$('calledPlayText');
+  const view=$('calledPlayViewBtn');
+  if(!box) return;
+
+  if(!pendingCalledPlay){
+    box.classList.add('hidden');
+    if(text) text.textContent='No play selected';
+    if(view) view.classList.add('hidden');
+    updatePlayRecordButtons();
+    renderFullscreenSelectedPlay();
+    return;
+  }
+
   box.classList.remove('hidden');
-  box.innerHTML=`<span><small>NEXT CALL</small><b>${esc(playCallLabel(pendingCalledPlay))}</b>${pendingCalledPlay.formation?`<em>${esc(pendingCalledPlay.formation)}</em>`:''}</span>
-    <div class="nextCallButtons">${pendingCalledPlay.attachment_path?`<button class="viewDiagramBtn" onclick="viewNextCallAttachment()">${String(pendingCalledPlay.attachment_type||'').startsWith('image/')?'🖼️ VIEW PLAY':'📄 VIEW PDF'}</button>`:''}<button class="clearCallBtn" onclick="clearCalledPlay()">×</button></div>`;
+  if(text) text.textContent=playCallLabel(pendingCalledPlay);
+
+  if(view){
+    const hasAttachment=!!pendingCalledPlay.attachment_path;
+    view.classList.toggle('hidden',!hasAttachment);
+    if(hasAttachment){
+      view.textContent=String(pendingCalledPlay.attachment_type||'').startsWith('image/')
+        ? '🖼️ VIEW PLAY'
+        : '📄 VIEW PDF';
+    }
+  }
+
   updatePlayRecordButtons();
   renderFullscreenSelectedPlay();
 }

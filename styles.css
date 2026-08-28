@@ -1807,3 +1807,55 @@ body:-webkit-full-screen .fullscreenPlayPanel,
     font-size:12px;
   }
 }
+
+/* Selected play line: VIEW / RECORD / QUALITY / TD all on one row */
+#calledPlayBanner{
+  padding:6px 8px!important;
+}
+.calledPlayMain{
+  display:grid;
+  grid-template-columns:minmax(180px,1fr) auto;
+  gap:8px;
+  align-items:center;
+}
+.calledPlayText{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+}
+.calledPlayText small{
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.8px;
+  opacity:.72;
+}
+.calledPlayText b{
+  font-size:13px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.calledPlayInlineActions{
+  display:flex;
+  align-items:center;
+  gap:5px;
+}
+.calledPlayInlineActions button{
+  min-height:38px!important;
+  padding:5px 9px!important;
+  font-size:9px!important;
+  font-weight:900!important;
+}
+@media(max-width:700px){
+  .calledPlayMain{
+    grid-template-columns:1fr;
+  }
+  .calledPlayInlineActions{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+  }
+  .calledPlayInlineActions button{
+    min-width:0;
+    padding:5px 3px!important;
+  }
+}

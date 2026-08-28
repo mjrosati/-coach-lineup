@@ -102,7 +102,18 @@
         <button class="editFieldBtn" id="editFieldBtn">EDIT FIELD</button>
         <span class="spacer"></span><span id="warning"></span>
       </div>
-      <div id="calledPlayBanner" class="calledPlayBanner hidden"></div>
+      <div id="calledPlayBanner" class="calledPlayBanner hidden"><div class="calledPlayMain">
+    <div class="calledPlayText">
+      <small>NEXT CALL</small>
+      <b id="calledPlayText">No play selected</b>
+    </div>
+    <div class="calledPlayInlineActions">
+      <button id="calledPlayViewBtn" class="secondary hidden" onclick="viewNextCallAttachment()">VIEW PLAY</button>
+      <button id="recordBtn" class="recordPlayBtn playRecordHidden" onclick="nextPlay('record')">RECORD</button>
+      <button id="qualityBtn" class="qualityPlayBtn playRecordHidden" onclick="nextPlay('quality')">✓ QUALITY</button>
+      <button id="tdBtn" class="tdPlayBtn playRecordHidden" onclick="nextPlay('td')">🏈 TD</button>
+    </div>
+  </div></div>
       <div class="gameStrip" id="gameStrip">
         <button id="quarterDisplay" class="quarterDisplay" title="Set quarter">Q1</button>
         <button id="clockDisplay" class="clockDisplay" title="Set game clock">8:00</button>
@@ -131,9 +142,9 @@
   <button onclick="openGameHistory()">HISTORY</button>
 </div>
 <aside class="actions">
-      <button class="recordPlayBtn" id="recordBtn" onclick="recordCurrentPlay()">RECORD</button>
-  <button class="qualityPlayBtn" id="qualityBtn" onclick="recordQualityPlay()">✓ QUALITY</button>
-  <button class="tdPlayBtn" id="tdBtn" onclick="recordTouchdownPlay()">🏈 TD</button>
+      
+  
+  
       <button id="subBtn" class="sidelineKeep">SUBSTITUTE</button>
       <button id="statsBtn" class="sidelineHide">STATS</button>
       <button id="gameBtn" class="sidelineHide">GAME</button>
