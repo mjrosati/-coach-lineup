@@ -1125,3 +1125,109 @@ body:not(.fieldFullscreen) .field .tag{
   .calledPlayReport small{grid-column:1}
   .calledPlayReport b{grid-column:2;grid-row:1/3}
 }
+
+/* Phase 4 — true Sideline Mode */
+body.sidelineMode{
+  overflow:hidden;
+}
+body.sidelineMode .sidelineSidebar,
+body.sidelineMode .sidelineToolbar{
+  display:none!important;
+}
+body.sidelineMode .gameTop .sidelineHide,
+body.sidelineMode .actions .sidelineHide,
+body.sidelineMode .bottom .sidelineHide{
+  display:none!important;
+}
+body.sidelineMode .gameTop,
+body.sidelineMode .actions,
+body.sidelineMode .bottom{
+  gap:8px!important;
+}
+body.sidelineMode .gameTop{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+}
+body.sidelineMode .gameTop button,
+body.sidelineMode .actions .sidelineKeep,
+body.sidelineMode .bottom .sidelineKeep{
+  min-height:58px!important;
+  font-size:15px!important;
+  font-weight:900!important;
+}
+body.sidelineMode .sidelineExitBtn{
+  border-color:#708196!important;
+}
+body.sidelineMode .gameStrip{
+  margin-bottom:8px!important;
+  padding:8px!important;
+}
+body.sidelineMode .gameStrip button{
+  min-height:52px!important;
+}
+body.sidelineMode .clockDisplay{
+  font-size:30px!important;
+}
+body.sidelineMode .calledPlayBanner{
+  min-height:58px!important;
+  padding:10px 12px!important;
+}
+body.sidelineMode .calledPlayBanner b{
+  font-size:18px!important;
+}
+body.sidelineMode .fieldArea{
+  min-height:0!important;
+}
+body.sidelineMode .field{
+  min-height:58vh!important;
+  height:calc(100vh - 330px)!important;
+  max-height:none!important;
+}
+body.sidelineMode .slot{
+  transform:translate(-50%,-50%) scale(1.13)!important;
+}
+body.sidelineMode .lineSelectWrap,
+body.sidelineMode .viewTabs{
+  position:sticky;
+  top:0;
+  z-index:15;
+}
+body.sidelineMode .bottom{
+  position:sticky;
+  bottom:0;
+  z-index:20;
+  background:#07101a;
+  padding-top:8px;
+}
+body.sidelineMode .bottom #nextPlayBtn{
+  flex:2 1 180px!important;
+  min-height:68px!important;
+  font-size:18px!important;
+}
+body.sidelineMode .actions{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+}
+body.sidelineMode .actions #playbookBtn,
+body.sidelineMode .actions #recommendBtn,
+body.sidelineMode .actions #subBtn{
+  display:block!important;
+}
+@media(max-width:700px){
+  body.sidelineMode .field{
+    min-height:54vh!important;
+    height:calc(100vh - 350px)!important;
+  }
+  body.sidelineMode .gameTop{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  body.sidelineMode .actions{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  body.sidelineMode .bottom{
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+  }
+  body.sidelineMode .bottom #nextPlayBtn{
+    grid-column:1/-1!important;
+  }
+}

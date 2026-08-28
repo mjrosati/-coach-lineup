@@ -1648,7 +1648,19 @@ function toggleGameLock(){
 function toggleSidelineMode(){
   sidelineMode=!sidelineMode;
   document.body.classList.toggle('sidelineMode',sidelineMode);
-  const b=$('sidelineBtn'); if(b) b.textContent=sidelineMode?'SIDELINE ✓':'SIDELINE MODE';
+  const b=$('sidelineBtn');
+  if(b) b.textContent=sidelineMode?'EXIT SIDELINE':'SIDELINE MODE';
+
+  // Keep only true game-day tools visible while coaching.
+  const appShell=document.querySelector('.app');
+  if(appShell) appShell.classList.toggle('sidelineActive',sidelineMode);
+
+  if(sidelineMode){
+    // Close setup panels/modals so the field becomes the focus.
+    try{ closeModal(); }catch(e){}
+    // Ensure the game screen is the active view.
+    if(typeof showGameScreen==='function' && currentGame) showGameScreen();
+  }
 }
 async function openGameHistory(){
   if(!currentGame) return alert('Start a game first.');

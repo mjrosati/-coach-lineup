@@ -80,7 +80,7 @@
     <button class="primary" onclick="nextPlay()">NEXT PLAY</button>
   </div>
   <main class="layout">
-    <aside class="sidebar">
+    <aside class="sidebar sidelineSidebar">
       <div class="teamHead"><div><b id="teamName">No Team</b><small id="teamRole"></small></div><button class="iconBtn" id="logoutBtn">↪</button></div>
       <button class="primary full" id="addPlayerBtn">+ ADD PLAYER</button>
       <input id="search" class="search" placeholder="Search players...">
@@ -118,15 +118,15 @@
     </section>
     <aside class="actions">
       <button class="next" id="nextSide">NEXT PLAY</button>
-      <button id="subBtn">SUBSTITUTE</button>
-      <button id="statsBtn">STATS</button>
-      <button id="gameBtn">GAME</button>
-      <button id="playbookBtn">PLAYBOOK</button>
-      <button id="recommendBtn">★ RECOMMEND LINE</button>
-      <button id="historyBtn">HISTORY</button>
-      <button id="lockBtn">🔓 LOCK GAME</button>
-      <button id="sidelineBtn">SIDELINE MODE</button>
-      <button id="resetFieldBtn">RESET FIELD</button>
+      <button id="subBtn" class="sidelineKeep">SUBSTITUTE</button>
+      <button id="statsBtn" class="sidelineHide">STATS</button>
+      <button id="gameBtn" class="sidelineHide">GAME</button>
+      <button id="playbookBtn" class="sidelineKeep">PLAYBOOK</button>
+      <button id="recommendBtn" class="sidelineKeep">★ RECOMMEND LINE</button>
+      <button id="historyBtn" class="sidelineHide">HISTORY</button>
+      <button id="lockBtn" class="sidelineHide">🔓 LOCK GAME</button>
+      <button id="sidelineBtn" class="sidelineKeep sidelineExitBtn">SIDELINE MODE</button>
+      <button id="resetFieldBtn" class="sidelineHide">RESET FIELD</button>
       <button id="fullscreenBtn">FULL SCREEN</button>
     </aside>
   </main>
