@@ -1231,3 +1231,22 @@ body.sidelineMode .actions #subBtn{
     grid-column:1/-1!important;
   }
 }
+
+/* Playbook picture/PDF attachments */
+.playAttachmentBtn{
+  width:100%;margin-top:9px;padding:9px 10px;text-align:left;border:1px solid #3b6087;
+  border-radius:9px;background:#0d2034;color:inherit;font-weight:800;font-size:11px
+}
+.playAttachmentPicker input[type=file]{
+  display:block;width:100%;margin-top:6px;padding:8px;border:1px dashed #4a6079;border-radius:9px;background:#0a1420
+}
+.playAttachmentPicker small{display:block;margin-top:5px;color:#93a7bc;font-size:10px}
+.currentAttachment{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px;border:1px solid #36506a;border-radius:10px;background:#0c1825
+}
+.currentAttachment>div:first-child{display:flex;flex-direction:column;gap:3px;min-width:0}
+.currentAttachment span{font-size:11px;color:#9fb0c2;overflow-wrap:anywhere}
+.currentAttachment>div:last-child{display:flex;gap:6px}
+@media(max-width:600px){
+  .currentAttachment{align-items:flex-start;flex-direction:column}
+}

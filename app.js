@@ -1462,10 +1462,66 @@ function openPlaybook(category='all'){
           ${p.formation?`<div class="playMeta"><b>Formation:</b> ${esc(p.formation)}</div>`:''}
           ${p.description?`<div class="playDesc">${esc(p.description)}</div>`:''}
           ${(p.labels||[]).length?`<div class="playLabels">${p.labels.map(l=>`<span>${esc(l)}</span>`).join('')}</div>`:''}
+          ${playHasAttachment(p)?`<button class="playAttachmentBtn" onclick="openPlayAttachment('${p.id}')">${attachmentKindLabel(p)==='PICTURE'?'🖼️':'📄'} ${attachmentKindLabel(p)} — ${esc(p.attachment_name||'View attachment')}</button>`:''}
         </div>`).join(''):`<div class="notice">No ${category==='all'?'':category+' '}plays yet. Tap <b>+ Add Play</b> to build your playbook.</div>`}
     </div>
     <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
 }
+
+function playHasAttachment(p){ return !!(p?.attachment_path); }
+function attachmentKindLabel(p){
+  if(!p?.attachment_path) return '';
+  return String(p.attachment_type||'').startsWith('image/')?'PICTURE':'PDF';
+}
+async function openPlayAttachment(id){
+  const p=playbookPlays.find(x=>x.id===id);
+  if(!p?.attachment_path) return alert('This play does not have an attachment.');
+  const {data,error}=await sb.storage.from('playbook-attachments').createSignedUrl(p.attachment_path,3600);
+  if(error) return alert(error.message);
+  const w=window.open(data.signedUrl,'_blank');
+  if(!w) alert('Your browser blocked the attachment window. Allow pop-ups for Coach Lineup and try again.');
+}
+async function uploadPlayAttachment(playId,file,oldPath=''){
+  if(!file) return true;
+  const allowed=['application/pdf','image/jpeg','image/png','image/webp','image/heic','image/heif'];
+  if(!allowed.includes(file.type)) { alert('Please choose a PDF, JPG, PNG, WEBP, HEIC, or HEIF file.'); return false; }
+  if(file.size>15*1024*1024) { alert('Attachment must be 15 MB or smaller.'); return false; }
+
+  const cleanName=String(file.name||'attachment').replace(/[^a-zA-Z0-9._-]+/g,'-');
+  const path=`${team.id}/${playId}/${Date.now()}-${cleanName}`;
+  const {error:uploadError}=await sb.storage.from('playbook-attachments').upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type});
+  if(uploadError){ alert(uploadError.message); return false; }
+
+  const {error:updateError}=await sb.from('playbook_plays').update({
+    attachment_path:path,
+    attachment_name:file.name,
+    attachment_type:file.type,
+    updated_at:new Date().toISOString()
+  }).eq('id',playId);
+  if(updateError){
+    await sb.storage.from('playbook-attachments').remove([path]);
+    alert(updateError.message); return false;
+  }
+
+  if(oldPath && oldPath!==path){
+    await sb.storage.from('playbook-attachments').remove([oldPath]);
+  }
+  return true;
+}
+async function removePlayAttachment(id,returnToEditor=true){
+  const p=playbookPlays.find(x=>x.id===id);
+  if(!p?.attachment_path) return;
+  if(!confirm(`Remove "${p.attachment_name||'attachment'}" from this play?`)) return;
+  const oldPath=p.attachment_path;
+  const {error}=await sb.from('playbook_plays').update({
+    attachment_path:null,attachment_name:null,attachment_type:null,updated_at:new Date().toISOString()
+  }).eq('id',id);
+  if(error) return alert(error.message);
+  await sb.storage.from('playbook-attachments').remove([oldPath]);
+  await reloadPlaybook();
+  returnToEditor?openPlayEditor(id):openPlaybook();
+}
+
 function openPlayEditor(id=''){
   const p=playbookPlays.find(x=>x.id===id);
   openModal(`<h2>${p?'Edit':'Add'} Play</h2>
@@ -1482,6 +1538,14 @@ function openPlayEditor(id=''){
       <label>Formation<input id="playFormation" value="${esc(p?.formation||'')}" placeholder="I Right"></label>
       <label class="wideLabel">Labels — separate with commas<input id="playLabels" value="${esc((p?.labels||[]).join(', '))}" placeholder="Goal Line, Red Zone, 3rd & Short"></label>
       <label class="wideLabel">Description / Notes<textarea id="playDescription" rows="5" placeholder="Blocking, motion, reads, coaching points...">${esc(p?.description||'')}</textarea></label>
+      <label class="wideLabel playAttachmentPicker">Picture or PDF
+        <input id="playAttachmentFile" type="file" accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif">
+        <small>PDF or image • maximum 15 MB${p?.attachment_path?' • choosing a new file replaces the current attachment':''}</small>
+      </label>
+      ${p?.attachment_path?`<div class="wideLabel currentAttachment">
+        <div><b>Current attachment</b><span>${attachmentKindLabel(p)} • ${esc(p.attachment_name||'Attachment')}</span></div>
+        <div><button class="secondary" onclick="openPlayAttachment('${p.id}')">VIEW</button><button class="dangerBtn" onclick="removePlayAttachment('${p.id}')">REMOVE</button></div>
+      </div>`:''}
     </div>
     <div class="modalFoot">
       <button class="secondary" onclick="openPlaybook()">CANCEL</button>
@@ -1491,6 +1555,8 @@ function openPlayEditor(id=''){
 async function savePlay(id=''){
   const name=$('playName').value.trim();
   if(!name) return alert('Enter a play name.');
+  const file=$('playAttachmentFile')?.files?.[0]||null;
+  const existing=playbookPlays.find(x=>x.id===id);
   const uid=await userId();
   const payload={
     team_id:team.id,
@@ -1503,17 +1569,32 @@ async function savePlay(id=''){
     updated_at:new Date().toISOString()
   };
   if(!id) payload.created_by=uid;
-  const r=id
-    ? await sb.from('playbook_plays').update(payload).eq('id',id)
-    : await sb.from('playbook_plays').insert(payload);
-  if(r.error) return alert(r.error.message);
+
+  let savedId=id;
+  if(id){
+    const r=await sb.from('playbook_plays').update(payload).eq('id',id).select('id').single();
+    if(r.error) return alert(r.error.message);
+    savedId=r.data.id;
+  }else{
+    const r=await sb.from('playbook_plays').insert(payload).select('id').single();
+    if(r.error) return alert(r.error.message);
+    savedId=r.data.id;
+  }
+
+  if(file){
+    const ok=await uploadPlayAttachment(savedId,file,existing?.attachment_path||'');
+    if(!ok){ await reloadPlaybook(); return openPlayEditor(savedId); }
+  }
+
   await reloadPlaybook();
   openPlaybook();
 }
 async function deletePlay(id,name){
   if(!confirm(`Delete play "${name}"?`)) return;
+  const p=playbookPlays.find(x=>x.id===id);
   const {error}=await sb.from('playbook_plays').delete().eq('id',id);
   if(error) return alert(error.message);
+  if(p?.attachment_path) await sb.storage.from('playbook-attachments').remove([p.attachment_path]);
   await reloadPlaybook();
   openPlaybook();
 }
