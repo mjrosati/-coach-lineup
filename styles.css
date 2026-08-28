@@ -1679,3 +1679,18 @@ body:-webkit-full-screen .fullscreenPlayPanel,
   border-color:#b54b4b!important;
   color:#ffb4b4!important;
 }
+
+/* Whole-team PDF playbook upload */
+.wholePlaybookStatus{
+  margin:8px 0 12px;
+  padding:8px 10px;
+  border:1px solid #2d4862;
+  border-radius:9px;
+  background:#091522;
+  font-size:11px;
+  color:#b9c9d8;
+}
+#uploadWholePlaybookBtn:disabled{
+  opacity:.65;
+  cursor:wait;
+}

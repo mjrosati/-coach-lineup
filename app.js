@@ -1721,8 +1721,12 @@ function openPlaybook(category='all'){
     </div>
     <div class="playbookActions">
       ${roleCanEdit()?`<button class="primary" onclick="openPlayEditor()">+ ADD PLAY</button>`:''}
-      <button class="secondary" onclick="openPlaybookPdf()">📄 PDF PLAYBOOK</button>
+      ${roleCanEdit()?`<button class="secondary" id="uploadWholePlaybookBtn" onclick="chooseWholePlaybookPdf()">⬆️ UPLOAD PLAYBOOK</button>`:''}
+      ${team?.playbook_pdf_path?`<button class="secondary" onclick="viewWholePlaybookPdf()">📖 VIEW PLAYBOOK</button>`:''}
+      <button class="secondary" onclick="openPlaybookPdf()">🖨️ EXPORT PLAY LIST</button>
+      <input id="wholePlaybookPdfInput" type="file" accept=".pdf,application/pdf" class="hidden" onchange="uploadWholePlaybookPdf(this)">
     </div>
+    ${team?.playbook_pdf_name?`<div class="wholePlaybookStatus">Current playbook: <b>${esc(team.playbook_pdf_name)}</b></div>`:''}
     <div class="playList">
       ${filtered.length?filtered.map(p=>`
         <div class="playCard">
@@ -1962,6 +1966,128 @@ async function deletePlay(id,name){
   await reloadPlaybook();
   openPlaybook();
 }
+
+function chooseWholePlaybookPdf(){
+  const input=$('wholePlaybookPdfInput');
+  if(!input) return;
+  input.value='';
+  input.click();
+}
+
+async function uploadWholePlaybookPdf(input){
+  const file=input?.files?.[0];
+  if(!file) return;
+
+  const isPdf=String(file.type||'').toLowerCase()==='application/pdf' ||
+    String(file.name||'').toLowerCase().endsWith('.pdf');
+
+  if(!isPdf){
+    alert('Please choose a PDF playbook.');
+    input.value='';
+    return;
+  }
+  if(file.size>15*1024*1024){
+    alert(`"${file.name}" is ${(file.size/1024/1024).toFixed(1)} MB. The playbook PDF must be 15 MB or smaller.`);
+    input.value='';
+    return;
+  }
+
+  const btn=$('uploadWholePlaybookBtn');
+  const oldLabel=btn?.textContent||'UPLOAD PLAYBOOK';
+  if(btn){
+    btn.disabled=true;
+    btn.textContent='UPLOADING…';
+  }
+
+  try{
+    const cleanName=String(file.name||'playbook.pdf').replace(/[^a-zA-Z0-9._-]+/g,'-');
+    const path=`${team.id}/team-playbook/${Date.now()}-${cleanName}`;
+
+    let body=file;
+    if(String(file.type||'').toLowerCase()!=='application/pdf'){
+      body=new File([file],file.name,{type:'application/pdf',lastModified:file.lastModified||Date.now()});
+    }
+
+    const {error:uploadError}=await sb.storage
+      .from('playbook-attachments')
+      .upload(path,body,{
+        cacheControl:'3600',
+        upsert:false,
+        contentType:'application/pdf'
+      });
+
+    if(uploadError) throw uploadError;
+
+    const oldPath=team.playbook_pdf_path||'';
+    const {data:updated,error:updateError}=await sb.from('teams')
+      .update({
+        playbook_pdf_path:path,
+        playbook_pdf_name:file.name,
+        playbook_pdf_updated_at:new Date().toISOString()
+      })
+      .eq('id',team.id)
+      .select('*')
+      .single();
+
+    if(updateError){
+      await sb.storage.from('playbook-attachments').remove([path]);
+      throw updateError;
+    }
+
+    if(oldPath && oldPath!==path){
+      await sb.storage.from('playbook-attachments').remove([oldPath]);
+    }
+
+    team=updated;
+    alert(`Playbook uploaded: ${file.name}`);
+    openPlaybook();
+  }catch(error){
+    console.error('Whole playbook upload failed:',error);
+    alert(`Playbook upload failed: ${error?.message||'Unknown error'}`);
+    if(btn){
+      btn.disabled=false;
+      btn.textContent=oldLabel;
+    }
+  }finally{
+    if(input) input.value='';
+  }
+}
+
+async function viewWholePlaybookPdf(){
+  if(!team?.playbook_pdf_path) return alert('No team playbook PDF has been uploaded yet.');
+
+  const {data:blob,error}=await sb.storage
+    .from('playbook-attachments')
+    .download(team.playbook_pdf_path);
+
+  if(error || !blob){
+    console.error('Whole playbook download failed:',error);
+    return alert(`Could not load the playbook: ${error?.message||'Download failed'}`);
+  }
+
+  const pdfBlob=blob.type==='application/pdf'
+    ? blob
+    : new Blob([await blob.arrayBuffer()],{type:'application/pdf'});
+  const url=URL.createObjectURL(pdfBlob);
+
+  const viewer=document.createElement('div');
+  viewer.className='playFullscreenViewer';
+  viewer.dataset.objectUrl=url;
+  viewer.innerHTML=`
+    <div class="playViewerTop">
+      <b>${esc(team.playbook_pdf_name||'Team Playbook')}</b>
+      <div class="playViewerActions">
+        <button onclick="openPlayPdfTab(this.closest('.playFullscreenViewer'))">↗ OPEN PDF</button>
+        <button onclick="togglePlayViewerFullscreen(this.closest('.playFullscreenViewer'))">⛶ FULL SCREEN</button>
+        <button onclick="closePlayViewer(this.closest('.playFullscreenViewer'))">✕ CLOSE</button>
+      </div>
+    </div>
+    <div class="playViewerBody">
+      <iframe src="${url}" title="${esc(team.playbook_pdf_name||'Team Playbook')}" allowfullscreen></iframe>
+    </div>`;
+  document.body.appendChild(viewer);
+}
+
 function pdfText(s){
   return String(s??'').replace(/[^\x20-\x7E]/g,'').replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');
 }

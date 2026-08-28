@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v44-pdf-selection-no-preview";
+const CACHE="coach-lineup-v45-whole-playbook-upload";
 const CORE=[
   "./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest",
   "./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png"
