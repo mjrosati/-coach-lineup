@@ -20,6 +20,7 @@ const DEFAULT_POS = [
 ];
 
 let team=null, membership=null, lines=[], players=[], positions=[], assignments=[], playbookPlays=[];
+let gameModeLocked=false, sidelineMode=false;
 let currentLine=0, displayMode='names', currentGame=null, playCount=0, counts={}, threshold=75, channel=null;
 let activeView='offense', editFieldMode=false, specialUnits=[], specialSlots=[], specialAssignments=[], currentSpecialUnit=0, deviceMode=localStorage.getItem('coachLineupDeviceMode')||'auto';
 let fieldFullscreen=false;
@@ -552,7 +553,7 @@ function renderField(){
       el.style.top=Number(slot.y_pct)+'%';
       el.innerHTML=`${esc(slot.label)}<small>${pl?(displayMode==='names'?esc(pl.name):'#'+esc(pl.jersey_number)):'OPEN'}${pl&&!playerCanPlay(pl)?` • ${availabilityLabel(pl)}`:''}</small>`;
       if(editFieldMode && roleCanEdit()) makeDraggable(el,slot,'special');
-      else if(roleCanEdit()) el.onclick=()=>openSpecialAssignment(slot.id);
+      else if(roleCanEdit() && !gameModeLocked) el.onclick=()=>openSpecialAssignment(slot.id);
       f.appendChild(el);
     });
     return;
@@ -568,7 +569,7 @@ function renderField(){
     el.style.top=displayYForRegular(p)+'%';
     el.innerHTML=`${esc(p.label)}<small>${pl?(displayMode==='names'?esc(pl.name):'#'+esc(pl.jersey_number)):'OPEN'}${pl&&!playerCanPlay(pl)?` • ${availabilityLabel(pl)}`:''}</small>`;
     if(editFieldMode && roleCanEdit()) makeDraggable(el,p,'regular');
-    else if(roleCanEdit()) el.onclick=()=>openLineupEditor(p.id);
+    else if(roleCanEdit() && !gameModeLocked) el.onclick=()=>openLineupEditor(p.id);
     f.appendChild(el);
   });
 }
@@ -1348,6 +1349,109 @@ function openPlaybookPdf(){
   setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 
+
+function linePlayersForView(line){
+  if(activeView==='special'){
+    const unit=specialUnits[currentSpecialUnit];
+    return unit ? specialAssignments.filter(a=>a.unit_id===unit.id).map(a=>a.player_id) : [];
+  }
+  const posIds=new Set(positions.filter(p=>p.side===activeView).map(p=>p.id));
+  return assignments.filter(a=>a.line_id===line.id&&posIds.has(a.position_label_id)).map(a=>a.player_id);
+}
+function recommendedLineIndex(){
+  if(!lines.length) return -1;
+  const scored=lines.map((line,i)=>{
+    const ids=[...new Set(linePlayersForView(line))].filter(id=>playerCanPlay(players.find(p=>p.id===id)));
+    if(!ids.length) return {i,score:999999,count:0};
+    const score=ids.reduce((sum,id)=>sum+(counts[id]||0),0)/ids.length;
+    return {i,score,count:ids.length};
+  }).filter(x=>x.count>0);
+  if(!scored.length) return -1;
+  scored.sort((a,b)=>a.score-b.score||a.i-b.i);
+  return scored[0].i;
+}
+function recommendNextLine(){
+  const idx=recommendedLineIndex();
+  if(idx<0) return alert('Add players to your lines before using recommendations.');
+  currentLine=idx;
+  renderLineSelect(); renderField();
+  const line=lines[idx];
+  const ids=[...new Set(linePlayersForView(line))];
+  const avg=ids.length?(ids.reduce((s,id)=>s+(counts[id]||0),0)/ids.length).toFixed(1):'0';
+  closeModal();
+  alert(`Recommended next line: ${line.name}\nAverage plays for this group: ${avg}\n\nCoach Lineup switched to this line.`);
+}
+function openQuickSub(){
+  if(gameModeLocked) return alert('Game Mode is locked. Unlock editing before making substitutions.');
+  if(activeView==='special'){
+    const unit=specialUnits[currentSpecialUnit];
+    if(!unit) return;
+    const assigned=new Map(specialAssignments.filter(a=>a.unit_id===unit.id).map(a=>[a.slot_id,players.find(p=>p.id===a.player_id)]));
+    openModal(`<h2>Quick Sub — ${esc(unit.name)}</h2>
+      <div class="quickSubList">${specialSlots.filter(s=>s.unit_id===unit.id).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(s=>{
+        const p=assigned.get(s.id);
+        return `<button class="playerPick quickSubRow" onclick="openSpecialAssignment('${s.id}')"><b>${esc(s.label)}</b><span>${p?`#${esc(p.jersey_number)} ${esc(p.name)}`:'OPEN'}</span></button>`;
+      }).join('')}</div>
+      <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
+    return;
+  }
+  const amap=new Map(currentLineAssignments().map(a=>[a.position_label_id,players.find(p=>p.id===a.player_id)]));
+  openModal(`<h2>Quick Sub — ${esc(lines[currentLine]?.name||'Line')}</h2>
+    <div class="quickSubList">${positions.filter(p=>p.side===activeView).map(pos=>{
+      const p=amap.get(pos.id);
+      return `<button class="playerPick quickSubRow" onclick="openLineupEditor('${pos.id}')"><b>${esc(pos.label)}</b><span>${p?`#${esc(p.jersey_number)} ${esc(p.name)}`:'OPEN'}</span></button>`;
+    }).join('')}</div>
+    <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
+}
+function toggleGameLock(){
+  gameModeLocked=!gameModeLocked;
+  document.body.classList.toggle('gameLocked',gameModeLocked);
+  const b=$('lockBtn'); if(b) b.textContent=gameModeLocked?'🔒 GAME LOCKED':'🔓 LOCK GAME';
+  renderField();
+}
+function toggleSidelineMode(){
+  sidelineMode=!sidelineMode;
+  document.body.classList.toggle('sidelineMode',sidelineMode);
+  const b=$('sidelineBtn'); if(b) b.textContent=sidelineMode?'SIDELINE ✓':'SIDELINE MODE';
+}
+async function openGameHistory(){
+  if(!currentGame) return alert('Start a game first.');
+  const {data,error}=await sb.from('game_plays').select('id,play_number,line_id,note,created_at').eq('game_id',currentGame.id).order('play_number',{ascending:false});
+  if(error) return alert(error.message);
+  const rows=data||[];
+  openModal(`<h2>Game History</h2>
+    <div class="notice"><b>vs ${esc(currentGame.opponent||'Opponent')}</b> • ${rows.length} recorded plays</div>
+    <div class="historyList">${rows.length?rows.map(r=>{
+      const line=lines.find(l=>l.id===r.line_id);
+      const view=String(r.note||'').startsWith('special:')?String(r.note).replace('special:','Special — '):String(r.note||'').toUpperCase();
+      return `<div class="historyRow"><b>Play ${r.play_number}</b><span>${esc(line?.name||'Line')}</span><span>${esc(view)}</span></div>`;
+    }).join(''):`<div class="notice">No plays recorded yet.</div>`}</div>
+    <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
+}
+function endGameReportHtml(){
+  const rows=players.map(p=>{
+    const c=counts[p.id]||0, pct=playCount?Math.round(c/playCount*100):0;
+    return {p,c,pct};
+  }).sort((a,b)=>b.c-a.c||a.p.name.localeCompare(b.p.name));
+  return `<div class="notice"><b>vs ${esc(currentGame?.opponent||'Opponent')}</b><br>Total plays: <b>${playCount}</b></div>
+    <div class="endReport">${rows.map(r=>`<div class="statRow"><span>#${esc(r.p.jersey_number)}</span><span>${esc(r.p.name)}</span><span>${r.c} plays</span><b>${r.pct}%</b></div>`).join('')}</div>`;
+}
+async function finishGame(){
+  if(!currentGame) return;
+  openModal(`<h2>End-of-Game Report</h2>
+    ${endGameReportHtml()}
+    <div class="modalFoot">
+      <button class="secondary" onclick="closeModal()">KEEP GAME OPEN</button>
+      <button class="primary" onclick="confirmFinishGame()">END GAME</button>
+    </div>`);
+}
+async function confirmFinishGame(){
+  if(!currentGame) return;
+  const {error}=await sb.from('games').update({status:'finished',finished_at:new Date().toISOString()}).eq('id',currentGame.id);
+  if(error) return alert(error.message);
+  currentGame=null; playCount=0; counts={}; pendingLineupLabel='Current lineup'; closeModal(); renderSummary(); showDashboard();
+}
+
 function openGameSetup(){
   openModal(`<h2>${currentGame?'Current Game':'Game Day'}</h2>
     ${currentGame?`<div class="notice"><b>vs ${esc(currentGame.opponent||'Opponent')}</b><br>${playCount} plays recorded</div>`:`
@@ -1380,13 +1484,6 @@ async function startGame(){
   pendingLineupLabel='Current lineup';
   closeModal(); renderSummary(); showGameScreen();
 }
-async function finishGame(){
-  if(!currentGame) return;
-  const {error}=await sb.from('games').update({status:'finished',finished_at:new Date().toISOString()}).eq('id',currentGame.id);
-  if(error) return alert(error.message);
-  currentGame=null; playCount=0; counts={}; pendingLineupLabel='Current lineup'; closeModal(); renderSummary(); showDashboard();
-}
-
 async function nextPlay(){
   if(nextPlay.busy) return;
   if(!currentGame){ openGameSetup(); return; }
@@ -1475,6 +1572,7 @@ async function nextPlay(){
 }
 async function prevPlay(){
   if(!currentGame||playCount<=0) return;
+  if(!confirm(`Undo Play ${playCount}? Playing-time counts will be corrected.`)) return;
   const {data:gp,error}=await sb.from('game_plays').select('id').eq('game_id',currentGame.id).eq('play_number',playCount).maybeSingle();
   if(error||!gp) return;
   const {data:pps}=await sb.from('play_participants').select('player_id').eq('play_id',gp.id);
@@ -1488,48 +1586,39 @@ async function prevPlay(){
 
 
 function openPlayingTimeAlert(){
-  const rows=players.map(p=>{
-    const c=counts[p.id]||0;
-    const pct=playCount?Math.round(c/playCount*100):0;
-    return {p,c,pct};
-  }).filter(r=>r.pct>=threshold)
-    .sort((a,b)=>b.pct-a.pct || b.c-a.c);
-
   if(!playCount){
     openModal(`<h2>Playing-Time Alert</h2>
       <div class="notice">No plays have been recorded yet.</div>
       <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
     return;
   }
-
-  if(!rows.length){
-    openModal(`<h2>Playing-Time Alert</h2>
-      <div class="notice">✓ No players are currently at or above the ${threshold}% warning threshold.</div>
-      <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
-    return;
-  }
-
-  openModal(`<h2>⚠️ Playing-Time Alert</h2>
-    <div class="notice">Warning threshold: <b>${threshold}%</b> • Team plays: <b>${playCount}</b></div>
-    <div class="alertPlayerList">
-      ${rows.map(r=>`
-        <div class="alertPlayerRow">
-          <div class="alertPlayerIdentity">
-            <span class="alertJersey">#${esc(r.p.jersey_number)}</span>
-            <span><b>${esc(r.p.name)}</b>${r.p.primary_position?`<small>${esc(r.p.primary_position)}</small>`:''}</span>
-          </div>
-          <div class="alertPlayerStats">
-            <span>${r.c} / ${playCount} plays</span>
-            <b>${r.pct}%</b>
-          </div>
-        </div>`).join('')}
-    </div>
+  const rows=players.filter(playerCanPlay).map(p=>{
+    const c=counts[p.id]||0;
+    const pct=Math.round(c/playCount*100);
+    return {p,c,pct};
+  });
+  const high=rows.filter(r=>r.pct>=threshold).sort((a,b)=>b.pct-a.pct||b.c-a.c);
+  const lowCut=Math.max(0,100-threshold);
+  const low=rows.filter(r=>r.pct<=lowCut).sort((a,b)=>a.pct-b.pct||a.c-b.c);
+  openModal(`<h2>⚠️ Smart Playing-Time Alert</h2>
+    <div class="notice">Team plays: <b>${playCount}</b> • High-use warning: <b>${threshold}%+</b> • Low-use watch: <b>${lowCut}% or less</b></div>
+    <h3>High Use</h3>
+    ${high.length?`<div class="alertPlayerList">${high.map(r=>`
+      <div class="alertPlayerRow">
+        <div class="alertPlayerIdentity"><span class="alertJersey">#${esc(r.p.jersey_number)}</span><span><b>${esc(r.p.name)}</b></span></div>
+        <div class="alertPlayerStats"><span>${r.c} / ${playCount}</span><b>${r.pct}%</b></div>
+      </div>`).join('')}</div>`:`<div class="notice">✓ Nobody is over the high-use threshold.</div>`}
+    <h3>Needs More Plays</h3>
+    ${low.length?`<div class="alertPlayerList">${low.map(r=>`
+      <div class="alertPlayerRow lowUseRow">
+        <div class="alertPlayerIdentity"><span class="alertJersey">#${esc(r.p.jersey_number)}</span><span><b>${esc(r.p.name)}</b></span></div>
+        <div class="alertPlayerStats"><span>${r.c} / ${playCount}</span><b>${r.pct}%</b></div>
+      </div>`).join('')}</div>`:`<div class="notice">✓ No active players are currently in the low-use range.</div>`}
     <div class="modalFoot">
       <button class="secondary" onclick="closeModal()">CLOSE</button>
-      <button class="primary" onclick="closeModal();openStats()">VIEW ALL STATS</button>
+      <button class="primary" onclick="closeModal();recommendNextLine()">RECOMMEND NEXT LINE</button>
     </div>`);
 }
-
 function openStats(){
   const rows=players.map(p=>{
     const c=counts[p.id]||0, pct=playCount?Math.round(c/playCount*100):0;
@@ -1597,7 +1686,7 @@ $('toggleAuth').onclick=()=>{
 $('addPlayerBtn').onclick=()=>openPlayerModal();
 $('linesBtn').onclick=openLines;
 $('positionsBtn').onclick=openPositions;
-$('subBtn').onclick=()=>{ const p=positions[0]; if(p) openLineupEditor(p.id); };
+$('subBtn').onclick=openQuickSub;
 $('statsBtn').onclick=openStats;
 $('warning').onclick=openPlayingTimeAlert;
 $('warning').onkeydown=e=>{
@@ -1608,6 +1697,10 @@ $('warning').onkeydown=e=>{
 };
 $('gameBtn').onclick=openGameSetup;
 $('playbookBtn')?.addEventListener('click',()=>openPlaybook());
+$('recommendBtn')?.addEventListener('click',recommendNextLine);
+$('historyBtn')?.addEventListener('click',openGameHistory);
+$('lockBtn')?.addEventListener('click',toggleGameLock);
+$('sidelineBtn')?.addEventListener('click',toggleSidelineMode);
 $('nextBtn').onclick=nextPlay;
 $('nextSide').onclick=nextPlay;
 $('prevBtn').onclick=prevPlay;
