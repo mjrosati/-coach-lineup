@@ -2966,3 +2966,139 @@ body:-webkit-full-screen .fullscreenPlayPanel,
     font-size:7px!important;
   }
 }
+
+/* v72 — Balanced 3-column Game Day cleanup
+   Keep the exact permanent LEFT / CENTER / RIGHT layout from v71,
+   but make the field the visual priority and remove the large empty space. */
+@media (min-width:340px) and (max-width:900px){
+
+  /* Better proportions: enough room to read the roster/menu without crushing the field. */
+  body #app > main.layout{
+    grid-template-columns:112px minmax(0,1fr) 92px!important;
+  }
+
+  /* LEFT roster: cleaner and more readable, still independently scrollable. */
+  body #app > main.layout > aside.sidebar{
+    padding:7px 5px!important;
+  }
+  body #app > main.layout > aside.sidebar .teamHead{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:3px!important;
+    margin-bottom:6px!important;
+  }
+  body #app > main.layout > aside.sidebar .teamHead b{
+    display:block!important;
+    font-size:8px!important;
+    line-height:1.1!important;
+  }
+  body #app > main.layout > aside.sidebar #addPlayerBtn,
+  body #app > main.layout > aside.sidebar #linesBtn,
+  body #app > main.layout > aside.sidebar #positionsBtn{
+    min-height:34px!important;
+    padding:5px 3px!important;
+    font-size:7px!important;
+  }
+  body #app > main.layout > aside.sidebar .search{
+    padding:7px 5px!important;
+    font-size:8px!important;
+    margin:5px 0!important;
+  }
+  body #app > main.layout > aside.sidebar .player{
+    grid-template-columns:24px minmax(0,1fr)!important;
+    gap:4px!important;
+    padding:6px 1px!important;
+    font-size:8px!important;
+    line-height:1.08!important;
+  }
+  body #app > main.layout > aside.sidebar .player .num{
+    font-size:8px!important;
+  }
+  body #app > main.layout > aside.sidebar .player small{
+    display:none!important;
+  }
+
+  /* CENTER: remove the giant dead space and let the field fill the available middle. */
+  body #app > main.layout > section.main .fieldArea{
+    flex:1 1 auto!important;
+    display:flex!important;
+    align-items:stretch!important;
+    justify-content:stretch!important;
+    padding:3px!important;
+    min-height:0!important;
+    overflow:hidden!important;
+    background:#041007!important;
+  }
+
+  body #app > main.layout > section.main .field{
+    flex:1 1 auto!important;
+    width:100%!important;
+    height:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    max-width:none!important;
+    max-height:none!important;
+    aspect-ratio:auto!important;
+  }
+
+  /* Keep player boxes readable on the wider center field. */
+  body #app > main.layout > section.main .field .slot{
+    min-width:40px!important;
+    max-width:54px!important;
+    padding:4px 2px!important;
+    font-size:8px!important;
+  }
+  body #app > main.layout > section.main .field .slot small{
+    font-size:6px!important;
+  }
+
+  /* Compact the top controls slightly so more height goes to the field. */
+  body #app > main.layout > section.main .gameToolbar{
+    padding:3px 4px!important;
+    gap:3px!important;
+  }
+  body #app > main.layout > section.main .gameToolbar .viewTab{
+    min-height:31px!important;
+    font-size:7px!important;
+  }
+  body #app > main.layout > section.main .gameStrip{
+    padding:3px!important;
+    gap:2px!important;
+  }
+  body #app > main.layout > section.main .gameStrip button,
+  body #app > main.layout > section.main .gameStrip .clockDisplay{
+    min-height:27px!important;
+    font-size:6px!important;
+  }
+
+  /* Bottom line bar stays compact and attached to the field. */
+  body #app > main.layout > section.main .bottom{
+    min-height:40px!important;
+    padding:3px 4px!important;
+  }
+  body #app > main.layout > section.main .bottom .chip{
+    min-height:31px!important;
+    padding:4px 5px!important;
+    font-size:7px!important;
+  }
+
+  /* RIGHT menu: readable buttons; scrolling handles the extra controls. */
+  body #app > main.layout > aside.actions{
+    padding:7px 5px!important;
+    gap:7px!important;
+  }
+  body #app > main.layout > aside.actions button{
+    min-height:44px!important;
+    padding:6px 3px!important;
+    font-size:7px!important;
+    line-height:1.05!important;
+  }
+}
+
+/* Larger portrait tablets get slightly wider rails while keeping the center dominant. */
+@media (min-width:700px) and (max-width:900px){
+  body #app > main.layout{
+    grid-template-columns:126px minmax(0,1fr) 98px!important;
+  }
+}
