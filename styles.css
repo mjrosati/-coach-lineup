@@ -2405,3 +2405,284 @@ body:-webkit-full-screen .fullscreenPlayPanel,
     width:118px!important;
   }
 }
+
+/* v70 — LOCKED 3-COLUMN PORTRAIT TABLET LAYOUT
+   Goal: at the user's ~700px portrait width:
+   LEFT = players (scrolls), CENTER = fixed field, RIGHT = game menu (scrolls).
+   This block is intentionally last and uses stronger selectors to beat all older
+   mobile/tablet rules. */
+@media (min-width:600px) and (max-width:900px){
+  html,body{
+    overflow:hidden!important;
+  }
+
+  body #app{
+    height:100dvh!important;
+    max-height:100dvh!important;
+    overflow:hidden!important;
+  }
+
+  body #app > .top{
+    height:62px!important;
+    min-height:62px!important;
+    flex:0 0 62px!important;
+  }
+
+  body #app > main.layout{
+    display:grid!important;
+    grid-template-columns:132px minmax(0,1fr) 96px!important;
+    grid-template-rows:minmax(0,1fr)!important;
+    width:100%!important;
+    height:calc(100dvh - 62px)!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+
+  /* LEFT: always visible + independently scrollable */
+  body #app > main.layout > aside.sidebar{
+    display:block!important;
+    grid-column:1!important;
+    grid-row:1!important;
+    order:0!important;
+    width:auto!important;
+    min-width:0!important;
+    max-width:none!important;
+    height:100%!important;
+    min-height:0!important;
+    padding:8px 6px!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    overscroll-behavior:contain!important;
+    -webkit-overflow-scrolling:touch!important;
+    border-right:1px solid #202a38!important;
+    border-left:0!important;
+  }
+
+  body #app > main.layout > aside.sidebar .teamHead{
+    gap:4px!important;
+  }
+  body #app > main.layout > aside.sidebar .teamHead b{
+    font-size:10px!important;
+  }
+  body #app > main.layout > aside.sidebar .teamHead small{
+    font-size:7px!important;
+  }
+  body #app > main.layout > aside.sidebar #addPlayerBtn,
+  body #app > main.layout > aside.sidebar #linesBtn,
+  body #app > main.layout > aside.sidebar #positionsBtn{
+    min-height:36px!important;
+    padding:5px 3px!important;
+    font-size:8px!important;
+  }
+  body #app > main.layout > aside.sidebar .search{
+    padding:7px 5px!important;
+    font-size:10px!important;
+  }
+  body #app > main.layout > aside.sidebar .playerSortControls{
+    gap:3px!important;
+    font-size:7px!important;
+  }
+  body #app > main.layout > aside.sidebar .playerSortControls button{
+    min-height:28px!important;
+    padding:3px!important;
+    font-size:8px!important;
+  }
+  body #app > main.layout > aside.sidebar .player{
+    grid-template-columns:26px minmax(0,1fr) 22px!important;
+    gap:3px!important;
+    padding:6px 1px!important;
+    font-size:9px!important;
+  }
+  body #app > main.layout > aside.sidebar .player .num{
+    font-size:9px!important;
+  }
+  body #app > main.layout > aside.sidebar .player small{
+    font-size:7px!important;
+    line-height:1.1!important;
+  }
+  body #app > main.layout > aside.sidebar .iconBtn{
+    min-width:22px!important;
+    width:22px!important;
+    min-height:28px!important;
+    padding:2px!important;
+    font-size:9px!important;
+  }
+
+  /* CENTER: never scrolls as a page; field shrinks to available width. */
+  body #app > main.layout > section.main{
+    display:flex!important;
+    flex-direction:column!important;
+    grid-column:2!important;
+    grid-row:1!important;
+    order:0!important;
+    width:auto!important;
+    min-width:0!important;
+    max-width:none!important;
+    height:100%!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+
+  body #app > main.layout > section.main .gameToolbar{
+    flex:0 0 auto!important;
+    display:grid!important;
+    grid-template-columns:auto minmax(0,1fr) auto!important;
+    gap:4px!important;
+    padding:4px 5px!important;
+  }
+  body #app > main.layout > section.main .gameToolbar .viewTabs{
+    grid-column:1 / -1!important;
+    width:100%!important;
+    display:grid!important;
+    grid-template-columns:1fr 1fr 1.25fr!important;
+    gap:4px!important;
+  }
+  body #app > main.layout > section.main .gameToolbar .viewTab{
+    min-height:34px!important;
+    padding:4px 2px!important;
+    font-size:8px!important;
+  }
+  body #app > main.layout > section.main .gameToolbar>b{
+    font-size:9px!important;
+  }
+  body #app > main.layout > section.main #editFieldBtn{
+    min-height:30px!important;
+    padding:4px 6px!important;
+    font-size:8px!important;
+  }
+  body #app > main.layout > section.main #warning{
+    font-size:7px!important;
+    white-space:normal!important;
+    text-align:right!important;
+  }
+
+  body #app > main.layout > section.main .gameStrip{
+    flex:0 0 auto!important;
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:3px!important;
+    padding:4px!important;
+    margin:0!important;
+  }
+  body #app > main.layout > section.main .gameStrip button,
+  body #app > main.layout > section.main .gameStrip .clockDisplay{
+    min-height:30px!important;
+    padding:3px 2px!important;
+    font-size:7px!important;
+  }
+  body #app > main.layout > section.main .opponentUnderPossession{
+    margin:0!important;
+  }
+
+  body #app > main.layout > section.main .fieldArea{
+    flex:1 1 auto!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    padding:3px!important;
+    overflow:hidden!important;
+    align-items:center!important;
+    justify-content:center!important;
+  }
+  body #app > main.layout > section.main .field{
+    width:100%!important;
+    height:auto!important;
+    max-width:100%!important;
+    max-height:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    aspect-ratio:1.05!important;
+  }
+  body #app > main.layout > section.main .field .slot{
+    min-width:42px!important;
+    max-width:58px!important;
+    padding:4px 2px!important;
+    font-size:9px!important;
+    line-height:1!important;
+  }
+  body #app > main.layout > section.main .field .slot small{
+    font-size:7px!important;
+  }
+  body #app > main.layout > section.main .field .tag{
+    font-size:9px!important;
+    padding:4px 8px!important;
+  }
+
+  body #app > main.layout > section.main .bottom{
+    flex:0 0 auto!important;
+    display:grid!important;
+    grid-template-columns:auto minmax(0,1fr) auto!important;
+    gap:4px!important;
+    min-height:44px!important;
+    padding:4px 5px!important;
+    overflow:hidden!important;
+  }
+  body #app > main.layout > section.main .bottom #lineChips{
+    display:flex!important;
+    gap:4px!important;
+    min-width:0!important;
+    overflow-x:auto!important;
+    scrollbar-width:none!important;
+  }
+  body #app > main.layout > section.main .bottom #lineChips::-webkit-scrollbar{display:none!important}
+  body #app > main.layout > section.main .bottom .chip{
+    min-height:34px!important;
+    padding:4px 6px!important;
+    font-size:8px!important;
+    white-space:nowrap!important;
+  }
+  body #app > main.layout > section.main .statsSummary{
+    display:none!important;
+  }
+
+  /* RIGHT: always visible + independently scrollable */
+  body #app > main.layout > aside.actions{
+    display:flex!important;
+    flex-direction:column!important;
+    grid-column:3!important;
+    grid-row:1!important;
+    order:0!important;
+    width:auto!important;
+    min-width:0!important;
+    max-width:none!important;
+    height:100%!important;
+    min-height:0!important;
+    max-height:none!important;
+    gap:6px!important;
+    padding:7px 5px!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    overscroll-behavior:contain!important;
+    -webkit-overflow-scrolling:touch!important;
+    border-left:1px solid #202a38!important;
+    border-top:0!important;
+  }
+  body #app > main.layout > aside.actions button{
+    flex:0 0 auto!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:42px!important;
+    padding:5px 2px!important;
+    margin:0!important;
+    font-size:8px!important;
+    line-height:1.05!important;
+  }
+
+  /* Never use the old mobile action/nav dock at this width. */
+  body #app > main.layout > .mobileSidelineNav{
+    display:none!important;
+  }
+
+  /* Slim native scrollbars, but keep them usable. */
+  body #app > main.layout > aside.sidebar::-webkit-scrollbar,
+  body #app > main.layout > aside.actions::-webkit-scrollbar{
+    width:5px!important;
+  }
+}
+
+/* Slightly wider portrait tablets can devote more room to both rails. */
+@media (min-width:760px) and (max-width:900px){
+  body #app > main.layout{
+    grid-template-columns:150px minmax(0,1fr) 108px!important;
+  }
+}

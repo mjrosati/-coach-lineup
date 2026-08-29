@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v69-original-layout-tablet-scroll";
+const CACHE="coach-lineup-v70-locked-three-column-tablet";
 const CORE=[
   "./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest",
   "./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png"
