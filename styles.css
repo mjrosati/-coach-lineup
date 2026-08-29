@@ -2199,3 +2199,28 @@ body:-webkit-full-screen .fullscreenPlayPanel,
   .oppStatsColumns,.oppStatsRow{grid-template-columns:62px 68px 52px minmax(100px,1fr)}
   .opponent11Grid{grid-template-columns:repeat(4,minmax(70px,1fr))}
 }
+
+/* Larger position labels on the football field */
+.field .slot{
+  font-size:15px !important;
+  font-weight:1000 !important;
+  line-height:1.05;
+}
+.field .slot small{
+  font-size:10px;
+  line-height:1.15;
+}
+.field-fullscreen .field .slot,
+:fullscreen .field .slot{
+  font-size:18px !important;
+}
+.field-fullscreen .field .slot small,
+:fullscreen .field .slot small{
+  font-size:11px;
+}
+@media(max-width:700px){
+  .field .slot{font-size:14px !important}
+  .field .slot small{font-size:9px}
+  :fullscreen .field .slot{font-size:17px !important}
+  :fullscreen .field .slot small{font-size:10px}
+}
