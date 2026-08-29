@@ -402,15 +402,6 @@ async function loadAppSafe(){
   }
 }
 
-
-function closeSideRails(){
-  document.body.classList.remove('showPlayersRail','showMenuRail');
-}
-function openSideRail(which){
-  closeSideRails();
-  document.body.classList.add(which==='players'?'showPlayersRail':'showMenuRail');
-}
-
 async function boot(){
   applyDeviceMode();
 
@@ -717,7 +708,6 @@ window.addEventListener('beforeinstallprompt',e=>{
 });
 
 function showDashboard(){
-  closeSideRails();
   if(currentGame) loadGameState();
   $('auth').classList.add('hidden');
   $('app').classList.add('hidden');

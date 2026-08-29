@@ -2325,123 +2325,83 @@ body:-webkit-full-screen .fullscreenPlayPanel,
   box-shadow:0 0 0 2px rgba(255,176,0,.28),0 0 14px rgba(255,176,0,.18);
 }
 
-/* v68 — fixed field with true independently-scrollable side drawers.
-   This intentionally does NOT depend on AUTO/TABLET/MOBILE classes. */
-.sideRailTab,.sideRailShade{display:none}
+/* v69 — restore original phone layout; tablet/desktop only gets independent side scrolling.
+   IMPORTANT: Nothing below applies to phone-width screens. */
+@media (min-width:768px){
+  body{
+    overflow:hidden;
+  }
 
-@media(max-width:900px){
-  /* Prevent the sidebar/actions from taking space in the document flow. */
   .layout{
-    display:block!important;
-  }
-  .main{
-    width:100%!important;
-    min-width:0!important;
+    height:calc(100dvh - 62px);
+    min-height:0!important;
+    overflow:hidden;
+    display:flex!important;
+    flex-direction:row!important;
   }
 
-  .sidebar,
-  .actions{
+  .sidebar{
     display:block!important;
-    position:fixed!important;
-    top:92px!important;
-    bottom:12px!important;
-    z-index:1000!important;
-    height:auto!important;
+    flex:0 0 200px!important;
+    width:200px!important;
+    min-height:0!important;
+    height:100%!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+  }
+
+  .main{
+    flex:1 1 auto!important;
+    min-width:0!important;
+    min-height:0!important;
+    height:100%!important;
+    overflow:hidden!important;
+  }
+
+  .actions{
+    display:flex!important;
+    flex-direction:column!important;
+    flex:0 0 105px!important;
+    width:105px!important;
+    min-height:0!important;
+    height:100%!important;
     max-height:none!important;
     overflow-y:auto!important;
     overflow-x:hidden!important;
     -webkit-overflow-scrolling:touch;
     overscroll-behavior:contain;
-    background:#0d121a!important;
-    box-shadow:0 12px 38px rgba(0,0,0,.5)!important;
-  }
-
-  .sidebar{
-    left:0!important;
-    right:auto!important;
-    width:min(82vw,300px)!important;
-    padding:12px!important;
-    border-right:1px solid #334155!important;
-    transform:translateX(-103%)!important;
-    transition:transform .18s ease!important;
-  }
-
-  .actions{
-    right:0!important;
-    left:auto!important;
-    width:min(72vw,260px)!important;
-    padding:10px!important;
-    border-left:1px solid #334155!important;
-    border-top:0!important;
-    transform:translateX(103%)!important;
-    transition:transform .18s ease!important;
-    gap:8px!important;
   }
 
   .actions button{
-    width:100%!important;
-    min-height:46px!important;
-    margin:0 0 7px!important;
+    flex:0 0 auto!important;
   }
 
-  body.showPlayersRail .sidebar{transform:translateX(0)!important}
-  body.showMenuRail .actions{transform:translateX(0)!important}
-
-  .sideRailTab{
-    display:block!important;
-    position:fixed!important;
-    top:50%!important;
-    z-index:1002!important;
-    min-height:64px!important;
-    width:30px!important;
-    padding:7px 3px!important;
-    font-size:9px!important;
-    font-weight:1000!important;
-    letter-spacing:.5px!important;
-    writing-mode:vertical-rl!important;
-    text-orientation:mixed!important;
-    color:#fff!important;
-    background:#101722!important;
-    border:1px solid #3c4a60!important;
-  }
-  .sideRailPlayers{
-    left:0!important;
-    border-radius:0 8px 8px 0!important;
-  }
-  .sideRailMenu{
-    right:0!important;
-    border-radius:8px 0 0 8px!important;
-  }
-
-  .sideRailShade{
-    display:none!important;
-    position:fixed!important;
-    inset:0!important;
-    z-index:999!important;
-    background:rgba(0,0,0,.42)!important;
-  }
-  body.showPlayersRail .sideRailShade,
-  body.showMenuRail .sideRailShade{
-    display:block!important;
-  }
-
-  /* Center field never shifts when either rail opens. */
   .fieldArea{
-    width:100%!important;
-    min-width:0!important;
+    flex:1 1 auto!important;
+    min-height:0!important;
     overflow:hidden!important;
   }
-  .field{
-    width:100%!important;
-    max-width:100%!important;
-    min-width:0!important;
+
+  .bottom{
+    flex:0 0 auto!important;
   }
 
-  /* The bottom line selector remains visible; the large menu is now in the MENU drawer. */
-  .mobileSidelineNav{display:none!important}
+  .sidebar::-webkit-scrollbar,
+  .actions::-webkit-scrollbar{
+    width:6px;
+  }
 }
 
-/* On wide screens, keep the original permanent 3-column desktop layout. */
-@media(min-width:901px){
-  .sideRailTab,.sideRailShade{display:none!important}
+/* Give larger tablets a little more roster room. */
+@media (min-width:1000px){
+  .sidebar{
+    flex-basis:240px!important;
+    width:240px!important;
+  }
+  .actions{
+    flex-basis:118px!important;
+    width:118px!important;
+  }
 }
