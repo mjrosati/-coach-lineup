@@ -337,6 +337,9 @@ function storedYFromDisplay(side,displayY){
   return side==='offense' ? ((d-8)/84)*50 : 50+((d-8)/84)*50;
 }
 function setActiveView(view){
+  unifiedFieldView=false;
+  document.body.classList.remove('unifiedFieldMode');
+  $('bothTab')?.classList.remove('active');
   activeView=view;
   ['offense','defense','special'].forEach(v=>{
     const id=v==='special'?'specialTab':v+'Tab';
@@ -401,6 +404,65 @@ async function loadAppSafe(){
   }finally{
     appLoadInProgress=false;
   }
+}
+
+
+let unifiedFieldView=true;
+
+function setUnifiedFieldView(){
+  unifiedFieldView=true;
+  document.body.classList.add('unifiedFieldMode');
+  ['bothTab','offenseTab','defenseTab','specialTab'].forEach(id=>$(id)?.classList.remove('active'));
+  $('bothTab')?.classList.add('active');
+  renderUnifiedField();
+  renderPlayers();
+}
+
+function setIndividualFieldView(side){
+  unifiedFieldView=false;
+  document.body.classList.remove('unifiedFieldMode');
+  setActiveView(side);
+}
+
+function unifiedAssignmentMap(side){
+  const map={};
+  currentLineAssignments().filter(a=>a.side===side).forEach(a=>map[a.position_label]=a);
+  return map;
+}
+
+function unifiedPlayerCard(pos, assignment, side){
+  const p=assignment ? players.find(x=>x.id===assignment.player_id) : null;
+  const shown = p ? (showNumbers ? '#'+esc(p.jersey_number) : esc(p.name)) : '';
+  const num = p && !showNumbers ? '#'+esc(p.jersey_number) : '';
+  const prior = p && previousPlayPlayerIds.has(p.id) ? ' previousPlayPlayer' : '';
+  const click = p ? `onclick="openLineupEditor('${p.id}')"` : '';
+  return `<button class="unifiedPlayerCard ${side}${prior}" ${click}>
+    <b>${esc(pos)}</b>
+    <span>${shown||'—'}</span>
+    ${num?`<small>${num}</small>`:''}
+  </button>`;
+}
+
+function renderUnifiedField(){
+  if(!unifiedFieldView || activeView==='special') return;
+  const field=$('field');
+  if(!field) return;
+  const off=unifiedAssignmentMap('offense');
+  const def=unifiedAssignmentMap('defense');
+  const op=(positions.offense||[]).map(x=>x.label);
+  const dp=(positions.defense||[]).map(x=>x.label);
+  const offCards=op.map(pos=>unifiedPlayerCard(pos,off[pos],'offense')).join('');
+  const defCards=dp.map(pos=>unifiedPlayerCard(pos,def[pos],'defense')).join('');
+  field.innerHTML=`<div class="unifiedField">
+    <section class="unifiedHalf offenseHalf">
+      <div class="unifiedSideLabel offenseLabel">OFFENSE</div>
+      <div class="unifiedCards offenseCards">${offCards}</div>
+    </section>
+    <section class="unifiedHalf defenseHalf">
+      <div class="unifiedSideLabel defenseLabel">DEFENSE</div>
+      <div class="unifiedCards defenseCards">${defCards}</div>
+    </section>
+  </div>`;
 }
 
 async function boot(){
@@ -1202,6 +1264,7 @@ function renderField(){
     }
     f.appendChild(el);
   });
+  if(unifiedFieldView && activeView!=='special') setTimeout(renderUnifiedField,0);
 }
 
 function makeDraggable(el,item,type){

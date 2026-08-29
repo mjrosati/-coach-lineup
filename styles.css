@@ -3335,3 +3335,198 @@ body:-webkit-full-screen .fullscreenPlayPanel,
     grid-template-columns:138px minmax(0,1fr) 106px!important;
   }
 }
+
+/* v74 — unified Game Day visual system */
+.unifiedViewTabs{grid-template-columns:1.35fr .8fr .8fr 1.1fr!important}
+#bothTab{border-color:#1d8cf8!important}
+#bothTab.active{background:#126fca!important;color:#fff!important}
+
+.unifiedField{
+  position:absolute;
+  inset:0;
+  display:grid;
+  grid-template-rows:1fr 1fr;
+  overflow:hidden;
+  background:
+    linear-gradient(rgba(0,0,0,.06),rgba(0,0,0,.06)),
+    repeating-linear-gradient(to bottom,transparent 0 9.7%,rgba(255,255,255,.42) 9.8% 10%);
+}
+.unifiedHalf{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:0;
+}
+.unifiedHalf:first-child{border-bottom:2px solid rgba(255,255,255,.65)}
+.unifiedSideLabel{
+  position:absolute;
+  top:7px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:2;
+  padding:4px 13px;
+  border-radius:4px;
+  color:#fff;
+  font-size:10px;
+  font-weight:1000;
+  box-shadow:0 2px 6px rgba(0,0,0,.35);
+}
+.offenseLabel{background:#c52222}
+.defenseLabel{background:#176fc1}
+.unifiedCards{
+  width:92%;
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:6px;
+  align-items:center;
+  justify-items:center;
+  padding:30px 3px 5px;
+}
+.unifiedPlayerCard{
+  width:100%;
+  max-width:66px;
+  min-height:47px;
+  padding:4px 2px;
+  border-radius:5px;
+  background:#080b0f;
+  color:#fff;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  line-height:1.05;
+  overflow:hidden;
+}
+.unifiedPlayerCard.offense{border:1.5px solid #e32626}
+.unifiedPlayerCard.defense{border:1.5px solid #1687ee}
+.unifiedPlayerCard b{font-size:9px}
+.unifiedPlayerCard span{
+  width:100%;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  font-size:7px;
+  font-weight:800;
+}
+.unifiedPlayerCard small{font-size:6px;color:#dbe6f1;margin-top:2px}
+.unifiedPlayerCard.previousPlayPlayer{
+  outline:2px solid #fff;
+  outline-offset:2px;
+}
+
+/* Reference-like playing time table presentation on desktop/tablet */
+.actions:before{
+  content:"GAME DAY";
+  display:block;
+  flex:0 0 auto;
+  padding:5px 3px 7px;
+  text-align:center;
+  color:#cbd7e4;
+  font-size:8px;
+  font-weight:1000;
+  letter-spacing:.8px;
+  border-bottom:1px solid #273342;
+}
+
+/* Desktop: visual proportions close to the approved mockup. */
+@media(min-width:901px){
+  #app>.layout{
+    grid-template-columns:250px minmax(520px,1fr) 250px!important;
+  }
+  .sidebar{width:auto!important;flex-basis:auto!important}
+  .actions{
+    width:auto!important;
+    flex-basis:auto!important;
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    align-content:start!important;
+    gap:8px!important;
+    padding:10px!important;
+  }
+  .actions:before{grid-column:1/-1}
+  .actions button{min-height:58px!important}
+  .field .unifiedPlayerCard{max-width:78px;min-height:54px}
+}
+
+/* Tablet: same three-pane concept, scaled rather than redesigned. */
+@media(min-width:600px) and (max-width:900px){
+  body #app>main.layout{
+    grid-template-columns:150px minmax(0,1fr) 112px!important;
+  }
+  .unifiedCards{gap:3px;width:96%}
+  .unifiedPlayerCard{max-width:52px;min-height:43px}
+}
+
+/* Mobile: same visual language. Roster and analytics become horizontal sections,
+   while the combined O/D field remains the primary surface. */
+@media(max-width:599px){
+  html,body{overflow:auto!important}
+  body #app{height:auto!important;max-height:none!important;overflow:visible!important}
+  body #app>main.layout{
+    display:flex!important;
+    flex-direction:column!important;
+    height:auto!important;
+    overflow:visible!important;
+  }
+  body #app>main.layout>section.main{
+    order:1!important;
+    width:100%!important;
+    height:auto!important;
+    overflow:visible!important;
+  }
+  body #app>main.layout>aside.sidebar{
+    order:2!important;
+    display:block!important;
+    position:static!important;
+    width:100%!important;
+    height:auto!important;
+    max-height:330px!important;
+    overflow-y:auto!important;
+    border-top:1px solid #273342!important;
+  }
+  body #app>main.layout>aside.actions{
+    order:3!important;
+    display:grid!important;
+    position:static!important;
+    width:100%!important;
+    height:auto!important;
+    max-height:none!important;
+    overflow:visible!important;
+    grid-template-columns:repeat(2,1fr)!important;
+    gap:8px!important;
+    padding:10px!important;
+  }
+  body #app>main.layout>aside.actions:before{grid-column:1/-1}
+  body #app>main.layout>aside.actions button{
+    min-height:54px!important;
+    font-size:9px!important;
+  }
+  .fieldArea{
+    height:66dvh!important;
+    min-height:520px!important;
+  }
+  .field{height:100%!important;aspect-ratio:auto!important}
+  .unifiedViewTabs{
+    grid-template-columns:1.4fr 1fr!important;
+  }
+  .unifiedViewTabs #offenseTab,
+  .unifiedViewTabs #defenseTab{
+    display:none!important;
+  }
+  .unifiedCards{
+    width:98%;
+    grid-template-columns:repeat(6,minmax(0,1fr));
+    gap:2px;
+    padding-left:2px;
+    padding-right:2px;
+  }
+  .unifiedPlayerCard{
+    max-width:none;
+    min-height:40px;
+    padding:3px 1px;
+  }
+  .unifiedPlayerCard b{font-size:7px}
+  .unifiedPlayerCard span{font-size:5.5px}
+  .unifiedPlayerCard small{font-size:5px}
+}
