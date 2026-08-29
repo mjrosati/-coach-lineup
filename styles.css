@@ -2324,3 +2324,51 @@ body:-webkit-full-screen .fullscreenPlayPanel,
 .oppStatsRow.warning{
   box-shadow:0 0 0 2px rgba(255,176,0,.28),0 0 14px rgba(255,176,0,.18);
 }
+
+/* v62: fixed center field with independently scrollable Game Day side menus */
+@media (min-width:701px){
+  #gameScreen:not(.hidden){
+    height:100vh;
+    max-height:100vh;
+    overflow:hidden;
+  }
+
+  #gameScreen:not(.hidden) .sidebar,
+  #gameScreen:not(.hidden) .leftPanel,
+  #gameScreen:not(.hidden) .playersPanel,
+  #gameScreen:not(.hidden) .rosterPanel,
+  #gameScreen:not(.hidden) #players{
+    max-height:calc(100vh - 105px);
+    min-height:0;
+    overflow-y:auto !important;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-gutter:stable;
+  }
+
+  #gameScreen:not(.hidden) .actions,
+  #gameScreen:not(.hidden) .rightPanel,
+  #gameScreen:not(.hidden) .gameActions,
+  #gameScreen:not(.hidden) .controlsPanel{
+    max-height:calc(100vh - 105px);
+    min-height:0;
+    overflow-y:auto !important;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-gutter:stable;
+  }
+
+  #gameScreen:not(.hidden) .fieldWrap,
+  #gameScreen:not(.hidden) .fieldArea,
+  #gameScreen:not(.hidden) .centerPanel{
+    min-height:0;
+    overflow:hidden;
+  }
+
+  #gameScreen:not(.hidden) .sidebar::-webkit-scrollbar,
+  #gameScreen:not(.hidden) #players::-webkit-scrollbar,
+  #gameScreen:not(.hidden) .actions::-webkit-scrollbar,
+  #gameScreen:not(.hidden) .rightPanel::-webkit-scrollbar{
+    width:7px;
+  }
+}
