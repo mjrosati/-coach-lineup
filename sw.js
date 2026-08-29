@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v56-opponent-line-tracker";
+const CACHE="coach-lineup-v58-stats-menu-opponent-11-slots";
 const CORE=[
   "./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest",
   "./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png"

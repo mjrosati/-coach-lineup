@@ -2844,59 +2844,88 @@ function openPlayingTimeAlert(){
       <button class="primary" onclick="closeModal();recommendNextLine()">RECOMMEND NEXT LINE</button>
     </div>`);
 }
-async function openStats(){
-  if(!currentGame?.id) return alert('Start or resume a game to view player stats.');
 
-  try{
-    const {data:gamePlays,error:gpErr}=await sb.from('game_plays')
-      .select('id,play_number')
-      .eq('game_id',currentGame.id)
-      .order('play_number',{ascending:true});
-    if(gpErr) throw gpErr;
+function openStats(){
+  openModal(`<div class="statsMenuModal">
+    <div class="playerStatsHead">
+      <div><small>GAME DAY</small><h2>Stats</h2></div>
+      <button class="secondary" onclick="closeModal()">✕ CLOSE</button>
+    </div>
+    <div class="statsOptionGrid">
+      <button class="statsOptionCard" onclick="openPlayerPlayStats()">
+        <strong>1. PLAYER PARTICIPATION</strong>
+        <span>Players • Plays • Percentage Played</span>
+      </button>
+      <button class="statsOptionCard" onclick="openPlayerLineStats()">
+        <strong>2. PLAYER LINES</strong>
+        <span>Players • Number of Lines • Which Lines</span>
+      </button>
+      <button class="statsOptionCard" onclick="openOpponentStats()">
+        <strong>3. OPPONENT STATS</strong>
+        <span>Jersey • Rotations • Percentage • Current Slot</span>
+      </button>
+    </div>
+  </div>`);
+}
 
-    const ids=(gamePlays||[]).map(p=>p.id);
-    let participants=[];
-    if(ids.length){
-      const {data,error}=await sb.from('play_participants')
-        .select('play_id,player_id,position_label')
-        .in('play_id',ids);
-      if(error) throw error;
-      participants=data||[];
-    }
+async function loadCurrentGamePlayerStatsData(){
+  if(!currentGame?.id) throw new Error('Start or resume a game to view player stats.');
 
-    const total=(gamePlays||[]).length;
-    const rows=players.map(p=>{
-      const mine=participants.filter(x=>String(x.player_id)===String(p.id));
-      const pos={};
-      mine.forEach(x=>{
-        const label=x.position_label||'Unknown';
-        pos[label]=(pos[label]||0)+1;
-      });
-      const currentLines=lines.filter(line=>
-        assignments.some(a=>String(a.line_id)===String(line.id)&&String(a.player_id)===String(p.id))
-      ).map(line=>line.name);
-      return {
-        id:p.id,
-        jersey:p.jersey_number||'',
-        name:p.name||'Player',
-        plays:mine.length,
-        pct:total?Math.round(mine.length/total*100):0,
-        positions:pos,
-        currentLines
-      };
+  const {data:gamePlays,error:gpErr}=await sb.from('game_plays')
+    .select('id,play_number')
+    .eq('game_id',currentGame.id)
+    .order('play_number',{ascending:true});
+  if(gpErr) throw gpErr;
+
+  const ids=(gamePlays||[]).map(p=>p.id);
+  let participants=[];
+  if(ids.length){
+    const {data,error}=await sb.from('play_participants')
+      .select('play_id,player_id,position_label')
+      .in('play_id',ids);
+    if(error) throw error;
+    participants=data||[];
+  }
+
+  const total=(gamePlays||[]).length;
+  const rows=players.map(p=>{
+    const mine=participants.filter(x=>String(x.player_id)===String(p.id));
+    const pos={};
+    mine.forEach(x=>{
+      const label=x.position_label||'Unknown';
+      pos[label]=(pos[label]||0)+1;
     });
+    const currentLines=lines.filter(line=>
+      assignments.some(a=>String(a.line_id)===String(line.id)&&String(a.player_id)===String(p.id))
+    ).map(line=>line.name);
 
+    return {
+      id:p.id,
+      jersey:p.jersey_number||'',
+      name:p.name||'Player',
+      plays:mine.length,
+      pct:total?Math.round(mine.length/total*100):0,
+      positions:pos,
+      currentLines
+    };
+  });
+  return {total,rows};
+}
+
+async function openPlayerPlayStats(){
+  try{
+    const {total,rows}=await loadCurrentGamePlayerStatsData();
     window.playerStatsRows=rows;
     window.playerStatsTotal=total;
     window.playerStatsSort='low';
-    renderAllPlayerStats();
+    renderPlayerPlayStats();
   }catch(e){
-    console.error('Player stats failed',e);
+    console.error('Player play stats failed',e);
     alert(e?.message||'Unable to load player stats.');
   }
 }
 
-function renderAllPlayerStats(){
+function renderPlayerPlayStats(){
   const rows=(window.playerStatsRows||[]).slice();
   const sort=window.playerStatsSort||'low';
   if(sort==='low') rows.sort((a,b)=>a.pct-b.pct||a.name.localeCompare(b.name));
@@ -2907,39 +2936,99 @@ function renderAllPlayerStats(){
   const total=window.playerStatsTotal||0;
   openModal(`<div class="allPlayerStats">
     <div class="playerStatsHead">
-      <div><small>CURRENT GAME • ${total} RECORDED PLAYS</small><h2>All Player Stats</h2></div>
-      <button class="secondary" onclick="closeModal()">✕ CLOSE</button>
+      <div><small>CURRENT GAME • ${total} RECORDED PLAYS</small><h2>Player Participation</h2></div>
+      <button class="secondary" onclick="openStats()">‹ BACK</button>
     </div>
     <div class="playerStatsSort">
-      <button onclick="playerStatsSort='low';renderAllPlayerStats()">LOWEST %</button>
-      <button onclick="playerStatsSort='high';renderAllPlayerStats()">HIGHEST %</button>
-      <button onclick="playerStatsSort='plays';renderAllPlayerStats()">MOST PLAYS</button>
-      <button onclick="playerStatsSort='name';renderAllPlayerStats()">NAME</button>
+      <button onclick="playerStatsSort='low';renderPlayerPlayStats()">LOWEST %</button>
+      <button onclick="playerStatsSort='high';renderPlayerPlayStats()">HIGHEST %</button>
+      <button onclick="playerStatsSort='plays';renderPlayerPlayStats()">MOST PLAYS</button>
+      <button onclick="playerStatsSort='name';renderPlayerPlayStats()">NAME</button>
     </div>
     <div class="playerStatsColumns"><span>PLAYER</span><span>PLAYS</span><span>%</span></div>
     <div class="playerStatsRows">
-      ${rows.map(r=>{
-        const positions=Object.entries(r.positions).sort((a,b)=>b[1]-a[1])
-          .map(([label,n])=>`${esc(label)} ${n}`).join(' · ')||'No recorded positions';
-        const lineText=r.currentLines.length?r.currentLines.map(esc).join(' · '):'No current line';
-        return `<div class="playerStatsRow" onclick="this.classList.toggle('expanded')">
-          <div class="psPlayer"><b>#${esc(r.jersey)} ${esc(r.name)}</b></div>
-          <div class="psPlays">${r.plays}</div>
-          <div class="psPct"><b>${r.pct}%</b></div>
-          <div class="psDetail"><div><b>Positions played:</b> ${positions}</div><div><b>Current lines:</b> ${lineText}</div></div>
-        </div>`;
-      }).join('')}
+      ${rows.map(r=>`<div class="playerStatsRow">
+        <div class="psPlayer"><b>#${esc(r.jersey)} ${esc(r.name)}</b></div>
+        <div class="psPlays">${r.plays}</div>
+        <div class="psPct"><b>${r.pct}%</b></div>
+      </div>`).join('')}
     </div>
-    <div class="playerStatsHint">Tap any player for position and line details.</div>
   </div>`);
 }
+
+async function openPlayerLineStats(){
+  try{
+    const {rows}=await loadCurrentGamePlayerStatsData();
+    const sorted=rows.slice().sort((a,b)=>b.currentLines.length-a.currentLines.length||a.name.localeCompare(b.name));
+    openModal(`<div class="allPlayerStats">
+      <div class="playerStatsHead">
+        <div><small>CURRENT TEAM SETUP</small><h2>Player Lines</h2></div>
+        <button class="secondary" onclick="openStats()">‹ BACK</button>
+      </div>
+      <div class="lineStatsColumns"><span>PLAYER</span><span># LINES</span><span>LINES</span></div>
+      <div class="playerStatsRows">
+        ${sorted.map(r=>`<div class="lineStatsRow">
+          <div><b>#${esc(r.jersey)} ${esc(r.name)}</b></div>
+          <div class="lineCount">${r.currentLines.length}</div>
+          <div class="lineNames">${r.currentLines.length?r.currentLines.map(esc).join(' • '):'—'}</div>
+        </div>`).join('')}
+      </div>
+    </div>`);
+  }catch(e){
+    console.error('Player line stats failed',e);
+    alert(e?.message||'Unable to load player line stats.');
+  }
+}
+
+function openOpponentStats(){
+  const total=Number(opponentTracker.rotations||0);
+  const currentSlots=(opponentTracker.slots||Array(11).fill(''));
+  const slotMap={};
+  currentSlots.forEach((num,i)=>{
+    if(num){
+      if(!slotMap[num]) slotMap[num]=[];
+      slotMap[num].push(i+1);
+    }
+  });
+
+  const roster=[...new Set([
+    ...(opponentTracker.roster||[]).map(String),
+    ...Object.keys(opponentTracker.appearances||{}),
+    ...currentSlots.filter(Boolean).map(String)
+  ])].sort((a,b)=>Number(a)-Number(b)||a.localeCompare(b));
+
+  const rows=roster.map(num=>{
+    const apps=Number(opponentTracker.appearances?.[num]||0);
+    const pct=total?Math.round(apps/total*100):0;
+    const streak=Number(opponentTracker.streaks?.[num]||0);
+    const slots=slotMap[num]||[];
+    return {num,apps,pct,streak,slots};
+  }).sort((a,b)=>b.pct-a.pct||Number(a.num)-Number(b.num));
+
+  openModal(`<div class="allPlayerStats">
+    <div class="playerStatsHead">
+      <div><small>OPPONENT • ${total} LINE ROTATIONS</small><h2>Opponent Stats</h2></div>
+      <button class="secondary" onclick="openStats()">‹ BACK</button>
+    </div>
+    <div class="oppStatsColumns"><span>JERSEY</span><span>ROTATIONS</span><span>%</span><span>CURRENT SLOT</span></div>
+    <div class="playerStatsRows">
+      ${rows.map(r=>`<div class="oppStatsRow ${r.pct>75&&r.streak>3?'warning':''}">
+        <div><b>#${esc(r.num)}</b></div>
+        <div>${r.apps}</div>
+        <div><b>${r.pct}%</b></div>
+        <div>${r.slots.length?r.slots.join(', '):'—'}${r.streak?` • ${r.streak} straight`:''}</div>
+      </div>`).join('')||'<div class="emptyState">No opponent rotations recorded yet.</div>'}
+    </div>
+  </div>`);
+}
+
 const OPP_TRACKER_KEY='coachLineupOpponentLineTracker';
 
 function loadOpponentTracker(){
   try{
     const raw=localStorage.getItem(OPP_TRACKER_KEY);
     const state=raw?JSON.parse(raw):null;
-    return state&&typeof state==='object'?state:{
+    const base=state&&typeof state==='object'?state:{
       roster:[],
       selected:[],
       rotations:0,
@@ -2949,8 +3038,11 @@ function loadOpponentTracker(){
       history:[],
       lastAlertRotation:{}
     };
+    if(!Array.isArray(base.slots)) base.slots=Array(11).fill('');
+    base.slots=[...base.slots.slice(0,11),...Array(11).fill('')].slice(0,11);
+    return base;
   }catch{
-    return {roster:[],selected:[],rotations:0,appearances:{},streaks:{},maxStreaks:{},history:[],lastAlertRotation:{}};
+    return {roster:[],selected:[],slots:Array(11).fill(''),rotations:0,appearances:{},streaks:{},maxStreaks:{},history:[],lastAlertRotation:{}};
   }
 }
 let opponentTracker=loadOpponentTracker();
@@ -2969,93 +3061,67 @@ function normalizeOpponentRoster(input){
 }
 
 function openOpponentTracker(){
-  const roster=opponentTracker.roster||[];
-  const selected=new Set((opponentTracker.selected||[]).map(String));
+  if(!Array.isArray(opponentTracker.slots)) opponentTracker.slots=Array(11).fill('');
+  const slots=[...opponentTracker.slots.slice(0,11),...Array(11).fill('')].slice(0,11);
 
   openModal(`<div class="opponentTrackerModal">
     <div class="playerStatsHead">
-      <div><small>OPPONENT • LINE ROTATION TRACKER</small><h2>Opponent Lines</h2></div>
+      <div><small>OPPONENT • 11 ON-FIELD SLOTS</small><h2>Opponent Line</h2></div>
       <button class="secondary" onclick="closeModal()">✕ CLOSE</button>
-    </div>
-
-    <div class="opponentRosterEntry">
-      <label>Opponent jersey numbers</label>
-      <textarea id="opponentRosterInput" placeholder="Example: 2, 7, 12, 22, 34, 55">${esc(roster.join(', '))}</textarea>
-      <button onclick="saveOpponentRoster()">SAVE ROSTER</button>
     </div>
 
     <div class="opponentTrackerSummary">
       <b>${opponentTracker.rotations||0}</b> total line rotations
-      <span>Alert when player is &gt;75% of rotations AND &gt;3 rotations in a row.</span>
+      <span>Enter the 11 jerseys currently on the field. Alert = &gt;75% AND more than 3 rotations in a row.</span>
     </div>
 
-    <div class="opponentGrid">
-      ${roster.map(num=>{
-        const apps=Number(opponentTracker.appearances?.[num]||0);
-        const pct=(opponentTracker.rotations||0)?Math.round(apps/opponentTracker.rotations*100):0;
-        const streak=Number(opponentTracker.streaks?.[num]||0);
-        const isSelected=selected.has(String(num));
-        const alert=pct>75&&streak>3;
-        return `<button class="opponentJersey ${isSelected?'selected':''} ${alert?'alert':''}" onclick="toggleOpponentJersey('${esc(num)}')">
-          <strong>#${esc(num)}</strong>
-          <small>${pct}% • ${streak} straight</small>
-        </button>`;
-      }).join('')||'<div class="emptyState">Enter the opponent jersey numbers above.</div>'}
+    <div class="opponent11Grid">
+      ${slots.map((num,i)=>{
+        const apps=num?Number(opponentTracker.appearances?.[num]||0):0;
+        const pct=num&&(opponentTracker.rotations||0)?Math.round(apps/opponentTracker.rotations*100):0;
+        const streak=num?Number(opponentTracker.streaks?.[num]||0):0;
+        const warn=num&&pct>75&&streak>3;
+        return `<div class="opponentSlot ${warn?'alert':''}">
+          <label>SLOT ${i+1}</label>
+          <input inputmode="numeric" pattern="[0-9]*" maxlength="3" value="${esc(num||'')}" placeholder="#" oninput="setOpponentSlot(${i},this.value)">
+          <small>${num?`${pct}% • ${streak} straight`:'Enter jersey'}</small>
+        </div>`;
+      }).join('')}
     </div>
 
     <div class="opponentTrackerActions">
       <button onclick="recordOpponentRotation()">RECORD THIS LINE ROTATION</button>
-      <button class="secondary" onclick="clearOpponentSelection()">CLEAR SELECTION</button>
+      <button class="secondary" onclick="clearOpponentSlots()">CLEAR 11 SLOTS</button>
       <button class="danger" onclick="resetOpponentTracker()">RESET TRACKER</button>
     </div>
-    <div class="playerStatsHint">Tap the opponent players who are currently on the field, then record the rotation. NEXT LINE can also record automatically.</div>
+    <div class="playerStatsHint">NEXT LINE records these 11 opponent slots automatically before your line changes.</div>
   </div>`);
 }
 
-function saveOpponentRoster(){
-  const el=document.getElementById('opponentRosterInput');
-  const roster=normalizeOpponentRoster(el?.value||'');
-  opponentTracker.roster=roster;
-  opponentTracker.selected=(opponentTracker.selected||[]).filter(n=>roster.includes(String(n)));
-  roster.forEach(n=>{
-    if(opponentTracker.appearances[n]==null) opponentTracker.appearances[n]=0;
-    if(opponentTracker.streaks[n]==null) opponentTracker.streaks[n]=0;
-    if(opponentTracker.maxStreaks[n]==null) opponentTracker.maxStreaks[n]=0;
-  });
-  Object.keys(opponentTracker.appearances).forEach(n=>{
-    if(!roster.includes(String(n))){
-      delete opponentTracker.appearances[n];
-      delete opponentTracker.streaks[n];
-      delete opponentTracker.maxStreaks[n];
-      delete opponentTracker.lastAlertRotation[n];
-    }
-  });
+function setOpponentSlot(index,value){
+  if(!Array.isArray(opponentTracker.slots)) opponentTracker.slots=Array(11).fill('');
+  const clean=String(value||'').replace(/\D/g,'').slice(0,3);
+  opponentTracker.slots[index]=clean;
+  opponentTracker.roster=[...new Set([...(opponentTracker.roster||[]).map(String),...opponentTracker.slots.filter(Boolean).map(String)])];
+  saveOpponentTracker();
+}
+
+function clearOpponentSlots(){
+  opponentTracker.slots=Array(11).fill('');
   saveOpponentTracker();
   openOpponentTracker();
 }
-
-function toggleOpponentJersey(num){
-  const set=new Set((opponentTracker.selected||[]).map(String));
-  if(set.has(String(num))) set.delete(String(num)); else set.add(String(num));
-  opponentTracker.selected=[...set];
-  saveOpponentTracker();
-  openOpponentTracker();
-}
-
-function clearOpponentSelection(){
-  opponentTracker.selected=[];
-  saveOpponentTracker();
-  openOpponentTracker();
-}
-
 function recordOpponentRotation(){
-  const roster=opponentTracker.roster||[];
-  const selected=new Set((opponentTracker.selected||[]).map(String));
-  if(!roster.length) return alert('Enter the opponent jersey numbers first.');
+  if(!Array.isArray(opponentTracker.slots)) opponentTracker.slots=Array(11).fill('');
+  const active=[...new Set(opponentTracker.slots.map(x=>String(x||'').trim()).filter(Boolean))];
+  if(!active.length) return alert('Enter the opponent jersey numbers in the 11 slots first.');
 
+  opponentTracker.roster=[...new Set([...(opponentTracker.roster||[]).map(String),...active])];
+  const activeSet=new Set(active);
   opponentTracker.rotations=Number(opponentTracker.rotations||0)+1;
-  roster.forEach(num=>{
-    if(selected.has(String(num))){
+
+  (opponentTracker.roster||[]).forEach(num=>{
+    if(activeSet.has(String(num))){
       opponentTracker.appearances[num]=Number(opponentTracker.appearances?.[num]||0)+1;
       opponentTracker.streaks[num]=Number(opponentTracker.streaks?.[num]||0)+1;
       opponentTracker.maxStreaks[num]=Math.max(Number(opponentTracker.maxStreaks?.[num]||0),opponentTracker.streaks[num]);
@@ -3063,9 +3129,11 @@ function recordOpponentRotation(){
       opponentTracker.streaks[num]=0;
     }
   });
+
   opponentTracker.history.push({
     rotation:opponentTracker.rotations,
-    players:[...selected]
+    players:[...active],
+    slots:[...opponentTracker.slots]
   });
   if(opponentTracker.history.length>200) opponentTracker.history.shift();
 
@@ -3073,7 +3141,6 @@ function recordOpponentRotation(){
   maybeShowOpponentAlerts();
   if(document.querySelector('.opponentTrackerModal')) openOpponentTracker();
 }
-
 function opponentAlertRows(){
   const total=Number(opponentTracker.rotations||0);
   if(!total) return [];
@@ -3114,6 +3181,7 @@ function resetOpponentTracker(){
   opponentTracker={
     roster:[],
     selected:[],
+    slots:Array(11).fill(''),
     rotations:0,
     appearances:{},
     streaks:{},
