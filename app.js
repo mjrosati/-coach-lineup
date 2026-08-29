@@ -1819,29 +1819,152 @@ async function replacePlayerAtPosition(positionId,newPlayerId){
   }
 }
 
-function openLineupEditor(positionId){
-  const pos=positions.find(p=>p.id===positionId);
-  const existing=currentLineAssignments().find(a=>a.position_label_id===positionId);
-  const ranked=rankedSubPlayers(positionId,existing?.player_id||'');
-  const candidates=ranked.filter(c=>c.pl.id!==existing?.player_id);
-  const recommended=candidates[0]||null;
-  openModal(`<h2>${esc(pos?.label||'Position')} — Substitute</h2>
-    <p class="muted">Recommendations use position preference, playing time, and whether the player rested on the previous line.</p>
-    ${recommended?`<button class="recommendedSub" onclick="assignPlayer('${positionId}','${recommended.pl.id}')">
-      <strong>★ RECOMMENDED</strong>
-      <b>#${esc(recommended.pl.jersey_number)} ${esc(recommended.pl.name)}</b>
-      <small>${esc(subReason(recommended))}</small>
-    </button>`:`<div class="notice">No active substitute is currently available.</div>`}
-    <div class="picker smartSubPicker">
-      <button class="secondary full" onclick="clearAssignment('${positionId}')">CLEAR POSITION</button>
-      ${ranked.map(c=>`<button class="playerPick smartSubPlayer ${existing?.player_id===c.pl.id?'selected':''} ${recommended?.pl.id===c.pl.id?'smartRecommended':''}" onclick="assignPlayer('${positionId}','${c.pl.id}')">
-        <span>#${esc(c.pl.jersey_number)} ${esc(c.pl.name)}</span>
-        <small>${existing?.player_id===c.pl.id?'CURRENT • ':''}${esc(subReason(c))}</small>
-      </button>`).join('')}
-    </div>
-    <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
+function oppositeSide(side){ return side==='offense'?'defense':'offense'; }
+
+function playerCurrentPositionOnSide(playerId, side, lineId){
+  const posIds=new Set(positions.filter(p=>p.side===side).map(p=>String(p.id)));
+  const a=assignments.find(x=>String(x.line_id)===String(lineId) &&
+    String(x.player_id)===String(playerId) && posIds.has(String(x.position_label_id)));
+  return a ? positions.find(p=>String(p.id)===String(a.position_label_id)) : null;
 }
-async function clearAssignment(positionId){
+
+function bestOppositePositionForPlayer(player, side){
+  const prefs=side==='offense'?(player.offense_positions||[]):side==='defense'?(player.defense_positions||[]):[];
+  for(const label of prefs||[]){
+    const pos=positions.find(p=>p.side===side && String(p.label).toUpperCase()===String(label).toUpperCase());
+    if(pos) return pos;
+  }
+  return null;
+}
+
+async function assignPlayerDirect(lineId, positionId, playerId){
+  if(!navigator.onLine){
+    offlineAssignmentSet(lineId,positionId,playerId);
+    queueOfflineAction({type:'assignment',line_id:lineId,position_label_id:positionId,player_id:playerId});
+    return;
+  }
+  const del=await sb.from('line_assignments').delete().eq('line_id',lineId).eq('position_label_id',positionId);
+  if(del.error) throw del.error;
+  if(playerId){
+    const ins=await sb.from('line_assignments').insert({
+      line_id:lineId,player_id:playerId,position_label_id:positionId
+    });
+    if(ins.error) throw ins.error;
+  }
+}
+
+async function replacePlayerLinked(positionId, newPlayerId){
+  const line=lines[currentLine];
+  const pos=positions.find(p=>String(p.id)===String(positionId));
+  const replacement=newPlayerId?players.find(p=>String(p.id)===String(newPlayerId)):null;
+  if(!line||!pos) return;
+  if(!replacement){
+    try{
+      await assignPlayerDirect(line.id,pos.id,'');
+      if(navigator.onLine) await loadAssignments();
+      saveOfflineSnapshot(); closeModal(); renderField(); renderPlayers();
+    }catch(e){ alert(e?.message||'Unable to clear position.'); }
+    return;
+  }
+
+  const current=currentLineAssignments().find(a=>String(a.position_label_id)===String(positionId));
+  const oldPlayerId=current?.player_id||null;
+
+  if(!playerCanPlay(replacement)) return alert(`${replacement.name} is ${availabilityLabel(replacement)} and cannot be assigned.`);
+
+  try{
+    // Change the tapped offense/defense position.
+    await assignPlayerDirect(line.id,pos.id,replacement.id);
+
+    // Linked substitution: if the outgoing player is also assigned on the other
+    // side of THIS SAME LINE, replace them there too.
+    const other=oppositeSide(pos.side);
+    let linkedMessage='';
+    if(oldPlayerId){
+      const oldOtherPos=playerCurrentPositionOnSide(oldPlayerId,other,line.id);
+      if(oldOtherPos){
+        // Prefer the incoming player's saved position on the opposite side.
+        // If that spot is occupied by the outgoing player, use it. Otherwise
+        // retain the outgoing player's opposite-side spot so the substitution
+        // remains one-for-one across the line.
+        const preferred=bestOppositePositionForPlayer(replacement,other);
+        let target=oldOtherPos;
+        if(preferred){
+          const occupant=currentLineAssignments().find(a=>
+            String(a.position_label_id)===String(preferred.id) &&
+            String(a.line_id)===String(line.id)
+          );
+          if(!occupant || String(occupant.player_id)===String(oldPlayerId)) target=preferred;
+        }
+        await assignPlayerDirect(line.id,target.id,replacement.id);
+        // If preferred was used and differs from old player's position, clear old spot.
+        if(String(target.id)!==String(oldOtherPos.id)){
+          await assignPlayerDirect(line.id,oldOtherPos.id,'');
+        }
+        linkedMessage=` Also replaced ${players.find(p=>String(p.id)===String(oldPlayerId))?.name||'the player'} at ${other.toUpperCase()} ${target.label}.`;
+      }
+    }
+
+    if(navigator.onLine) await loadAssignments();
+    saveOfflineSnapshot();
+    closeModal();
+    renderField();
+    renderPlayers();
+    if(linkedMessage) {
+      const el=$('warning');
+      if(el){
+        const prev=el.textContent;
+        el.textContent='LINKED SUBSTITUTION SAVED';
+        setTimeout(()=>{ if(el.textContent==='LINKED SUBSTITUTION SAVED') el.textContent=prev; },1800);
+      }
+    }
+  }catch(e){
+    console.error('Linked substitution failed',e);
+    alert(e?.message||'Unable to change player.');
+  }
+}
+
+function openLineupEditor(positionId){
+  const line=lines[currentLine];
+  const pos=positions.find(p=>String(p.id)===String(positionId));
+  if(!line||!pos) return;
+
+  const current=currentLineAssignments().find(a=>String(a.position_label_id)===String(positionId));
+  const currentPlayer=current ? players.find(p=>String(p.id)===String(current.player_id)) : null;
+  const otherSide=oppositeSide(pos.side);
+  const linkedPos=currentPlayer ? playerCurrentPositionOnSide(currentPlayer.id,otherSide,line.id) : null;
+
+  const eligible=players
+    .filter(p=>playerCanPlay(p))
+    .slice()
+    .sort((a,b)=>{
+      const ap=(pos.side==='offense'?(a.offense_positions||[]):a.defense_positions||[]).includes(pos.label)?0:1;
+      const bp=(pos.side==='offense'?(b.offense_positions||[]):b.defense_positions||[]).includes(pos.label)?0:1;
+      return ap-bp || Number(a.jersey_number||999)-Number(b.jersey_number||999) || a.name.localeCompare(b.name);
+    });
+
+  openModal(`<div class="directReplaceModal">
+    <div class="playerStatsHead">
+      <div>
+        <small>${esc(line.name)} • ${pos.side.toUpperCase()}</small>
+        <h2>${esc(pos.label)}${currentPlayer?` — ${esc(currentPlayer.name)}`:''}</h2>
+      </div>
+      <button class="secondary" onclick="closeModal()">✕ CLOSE</button>
+    </div>
+    ${linkedPos?`<div class="linkedSubNotice">LINKED SUB: ${esc(currentPlayer.name)} is also at ${otherSide.toUpperCase()} ${esc(linkedPos.label)}. Choosing a replacement will update both sides of this line.</div>`:''}
+    <div class="replacePlayerList">
+      ${eligible.map(p=>{
+        const prefs=pos.side==='offense'?(p.offense_positions||[]):p.defense_positions||[];
+        const otherPrefs=otherSide==='offense'?(p.offense_positions||[]):p.defense_positions||[];
+        return `<button class="replacePlayerRow ${String(p.id)===String(currentPlayer?.id)?'current':''}" onclick="replacePlayerLinked('${pos.id}','${p.id}')">
+          <b>#${esc(p.jersey_number)} ${esc(p.name)}</b>
+          <span>${prefs.length?esc(prefs.join(' / ')):'—'}${linkedPos&&otherPrefs.length?` • ${otherSide[0].toUpperCase()}: ${esc(otherPrefs.join('/'))}`:''}</span>
+        </button>`;
+      }).join('')}
+    </div>
+    ${currentPlayer?`<button class="danger full" onclick="replacePlayerLinked('${pos.id}','')">CLEAR POSITION</button>`:''}
+  </div>`);
+}async function clearAssignment(positionId){
   const line=lines[currentLine]; if(!line) return;
   if(!navigator.onLine){
     offlineAssignmentSet(line.id,positionId,'');

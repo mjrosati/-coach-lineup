@@ -4516,3 +4516,39 @@ body.fullscreen #app .field .slot small{
     transform:scale(1.35)!important;
   }
 }
+
+/* v82 — Direct tap substitution + linked offense/defense substitution */
+.directReplaceModal{width:min(620px,95vw)}
+.linkedSubNotice{
+  margin:9px 0;
+  padding:10px 11px;
+  border:1px solid #2b78b9;
+  border-radius:8px;
+  background:#0c2032;
+  color:#bfe3ff;
+  font-size:9px;
+  font-weight:900;
+}
+.replacePlayerList{
+  display:grid;
+  gap:6px;
+  max-height:60vh;
+  overflow-y:auto;
+  margin:8px 0;
+}
+.replacePlayerRow{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:8px;
+  align-items:center!important;
+  min-height:46px!important;
+  padding:8px 10px!important;
+  text-align:left!important;
+}
+.replacePlayerRow b{font-size:11px}
+.replacePlayerRow span{font-size:8px;opacity:.72}
+.replacePlayerRow.current{
+  outline:2px solid #1d8cf8;
+  background:#0c2134!important;
+}
+.field .slot.tappableSub{cursor:pointer}

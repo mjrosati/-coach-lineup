@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v81-xxl-tablet-players";
+const CACHE="coach-lineup-v82-linked-tap-subs";
 const CORE=[
   "./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest",
   "./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png"
