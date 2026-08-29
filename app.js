@@ -344,6 +344,7 @@ function setActiveView(view){
   });
   $('specialUnitSelect').classList.toggle('hidden',view!=='special');
   renderField();
+  renderPlayers();
 }
 function toggleEditField(){
   editFieldMode=!editFieldMode;
@@ -1086,6 +1087,17 @@ function renderSpecialUnitSelect(){
   $('specialUnitSelect').innerHTML=specialUnits.map((u,i)=>`<option value="${i}" ${i===currentSpecialUnit?'selected':''}>${esc(u.name)}</option>`).join('');
 }
 
+function rosterPositionBadge(p){
+  const list=activeView==='defense'?(p.defense_positions||[]):activeView==='offense'?(p.offense_positions||[]):[];
+  const first=(Array.isArray(list)&&list.length?list[0]:'') || p.primary_position || '';
+  return first||'—';
+}
+function compactAvailability(p){
+  const s=(p?.availability_status||'active').toLowerCase();
+  if(s==='injured') return 'INJ';
+  if(s==='out') return 'OUT';
+  return '';
+}
 function renderPlayers(){
   const q=($('search').value||'').toLowerCase();
   [['sortJerseyBtn','jersey'],['sortNameBtn','name'],['sortPositionBtn','position']].forEach(([id,m])=>$(id)?.classList.toggle('activeSort',playerSortMode===m));
@@ -1093,8 +1105,9 @@ function renderPlayers(){
     .filter(p=>(`${p.name} ${p.jersey_number} ${p.primary_position||''} ${availabilityLabel(p)}`).toLowerCase().includes(q))
     .map(p=>`<div class="player ${availabilityClass(p)}">
       <span class="num">#${esc(p.jersey_number)}</span>
-      <span>${esc(p.name)} <span class="miniStatus">${availabilityLabel(p)}</span><br><small class="muted">O: ${esc(playerPositionsText(p,'offense'))} • D: ${esc(playerPositionsText(p,'defense'))}</small></span>
-      ${roleCanEdit()?`<button class="iconBtn" onclick="editPlayer('${p.id}')">✎</button>`:''}
+      <span class="playerRosterName">${esc(p.name)} ${compactAvailability(p)?`<span class="miniStatus compact">${compactAvailability(p)}</span>`:''}</span>
+      <span class="rosterPosBadge">${esc(rosterPositionBadge(p))}</span>
+      ${roleCanEdit()?`<button class="iconBtn rosterEditBtn" onclick="editPlayer('${p.id}')">✎</button>`:''}
     </div>`).join('');
 }
 

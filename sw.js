@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v72-balanced-three-column";
+const CACHE="coach-lineup-v73-reference-style";
 const CORE=[
   "./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest",
   "./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png"

@@ -3102,3 +3102,236 @@ body:-webkit-full-screen .fullscreenPlayPanel,
     grid-template-columns:126px minmax(0,1fr) 98px!important;
   }
 }
+
+/* v73 — Reference-inspired sideline UI
+   Dark, compact three-column layout with position badges and smaller statuses. */
+
+:root{
+  --panel:#0a0f15;
+  --panel2:#0f151d;
+  --border:#293443;
+  --muted:#8fa0b4;
+  --accent:#1d8cf8;
+}
+
+.top{
+  background:#070b10!important;
+  border-bottom:1px solid #202a36!important;
+}
+.top button,.top select{
+  border-radius:8px!important;
+}
+.top #lineSelect{
+  font-weight:900!important;
+}
+
+.sidebar,.actions{
+  background:#090e14!important;
+}
+.sidebar{
+  border-right:1px solid #202a36!important;
+}
+.actions{
+  border-left:1px solid #202a36!important;
+}
+.teamHead{
+  padding:2px 0 6px!important;
+}
+.teamHead b{
+  font-size:11px!important;
+  letter-spacing:.15px;
+}
+.search{
+  border-radius:8px!important;
+  background:#0d141d!important;
+  border-color:#2a3747!important;
+}
+
+.player{
+  grid-template-columns:30px minmax(0,1fr) 30px 22px!important;
+  align-items:center!important;
+  min-height:36px!important;
+  padding:6px 1px!important;
+  border-bottom:1px solid #202a36!important;
+}
+.player .num{
+  font-weight:800!important;
+  color:#42a8ff!important;
+}
+.playerRosterName{
+  min-width:0;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  font-weight:700;
+}
+.rosterPosBadge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:26px;
+  min-height:23px;
+  padding:2px 4px;
+  border:1px solid #3b495b;
+  border-radius:5px;
+  background:#111a24;
+  color:#e7eef6;
+  font-size:8px;
+  font-weight:1000;
+  line-height:1;
+}
+.rosterEditBtn{
+  opacity:.45;
+  border:0!important;
+  background:transparent!important;
+}
+.player:hover .rosterEditBtn{opacity:1}
+
+.miniStatus.compact{
+  display:inline-block!important;
+  margin-left:4px!important;
+  padding:1px 4px!important;
+  border-radius:999px!important;
+  font-size:6px!important;
+  line-height:1.35!important;
+  letter-spacing:.4px!important;
+  vertical-align:1px;
+}
+.player.playerInjured .miniStatus.compact,
+.player.injured .miniStatus.compact{
+  color:#ffbd35!important;
+  background:rgba(255,176,0,.10)!important;
+  border:1px solid rgba(255,176,0,.65)!important;
+}
+.player.playerOut .miniStatus.compact,
+.player.out .miniStatus.compact{
+  color:#ff7d7d!important;
+  background:rgba(255,80,80,.10)!important;
+  border:1px solid rgba(255,80,80,.55)!important;
+}
+
+/* Cleaner center controls */
+.gameToolbar{
+  background:#090e14!important;
+  border-bottom:1px solid #202a36!important;
+}
+.viewTabs{
+  gap:4px!important;
+}
+.viewTab{
+  border-radius:6px!important;
+  border:1px solid #344052!important;
+  background:#101720!important;
+  font-weight:900!important;
+}
+.viewTab.active{
+  background:#147fdf!important;
+  border-color:#1d95ff!important;
+}
+.gameStrip{
+  background:#0b1118!important;
+  border:1px solid #263444!important;
+  border-radius:10px!important;
+  box-shadow:none!important;
+}
+.gameStrip button{
+  border-radius:7px!important;
+  font-weight:900!important;
+}
+
+/* Field closer to reference: flatter, cleaner cards, center emphasized */
+.fieldArea{
+  background:#050a07!important;
+}
+.field{
+  box-shadow:none!important;
+  border-color:#dfe9df!important;
+}
+.field .slot{
+  background:#0a0d11f2!important;
+  border-radius:4px!important;
+  box-shadow:0 2px 5px rgba(0,0,0,.42)!important;
+}
+.field .slot small{
+  font-weight:700!important;
+}
+.field .tag{
+  border-radius:4px!important;
+  box-shadow:none!important;
+}
+
+/* Line selector styled like the numbered tabs in the reference */
+.bottom{
+  background:#080d13!important;
+  border-top:1px solid #202a36!important;
+}
+.bottom .chip{
+  border-radius:5px!important;
+  font-weight:900!important;
+}
+.bottom #lineChips{
+  align-items:center;
+}
+
+/* Right menu: compact stacked control rail */
+.actions button{
+  background:#0f161f!important;
+  border:1px solid #304052!important;
+  border-radius:7px!important;
+  font-weight:800!important;
+  letter-spacing:.15px;
+}
+.actions button:active{
+  background:#172231!important;
+}
+
+/* Three-column proportions tuned to resemble the supplied reference */
+@media (min-width:340px) and (max-width:900px){
+  body #app > main.layout{
+    grid-template-columns:126px minmax(0,1fr) 100px!important;
+  }
+
+  body #app > main.layout > aside.sidebar{
+    padding:7px 6px!important;
+  }
+
+  body #app > main.layout > aside.sidebar .player{
+    grid-template-columns:24px minmax(0,1fr) 28px 18px!important;
+    min-height:34px!important;
+    font-size:8px!important;
+  }
+  body #app > main.layout > aside.sidebar .rosterPosBadge{
+    min-width:24px!important;
+    min-height:21px!important;
+    font-size:7px!important;
+  }
+  body #app > main.layout > aside.sidebar .rosterEditBtn{
+    width:18px!important;
+    min-width:18px!important;
+    padding:0!important;
+    font-size:7px!important;
+  }
+
+  body #app > main.layout > section.main .fieldArea{
+    padding:3px!important;
+  }
+  body #app > main.layout > section.main .field{
+    height:100%!important;
+    aspect-ratio:auto!important;
+  }
+
+  body #app > main.layout > aside.actions{
+    gap:6px!important;
+    padding:7px 5px!important;
+  }
+  body #app > main.layout > aside.actions button{
+    min-height:45px!important;
+    font-size:7px!important;
+  }
+}
+
+@media (min-width:700px) and (max-width:900px){
+  body #app > main.layout{
+    grid-template-columns:138px minmax(0,1fr) 106px!important;
+  }
+}
