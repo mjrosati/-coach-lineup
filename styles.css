@@ -4085,3 +4085,247 @@ body:-webkit-full-screen .fullscreenPlayPanel,
     grid-template-columns:minmax(68px,1fr) 92px 62px 62px 76px!important;
   }
 }
+
+/* v78 — Tablet landscape cleanup
+   Target: iPad/tablet landscape where desktop analytics is too cramped.
+   Keep the same visual language but prioritize field + roster + core controls. */
+
+@media (min-width:768px) and (max-width:1180px) and (orientation:landscape){
+
+  /* Three primary columns only: roster / field / controls */
+  body #app > main.layout{
+    display:grid!important;
+    grid-template-columns:150px minmax(0,1fr) 104px!important;
+    width:100vw!important;
+    height:calc(100dvh - 62px)!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+
+  body #app > main.layout > .sidebar{
+    width:auto!important;
+    min-width:0!important;
+    height:100%!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    padding:7px 6px!important;
+  }
+
+  body #app > main.layout > .main{
+    width:auto!important;
+    min-width:0!important;
+    height:100%!important;
+    overflow:hidden!important;
+  }
+
+  body #app > main.layout > .rightRail{
+    width:auto!important;
+    min-width:0!important;
+    height:100%!important;
+    display:block!important;
+    overflow:hidden!important;
+  }
+
+  /* Hide desktop analytics on tablet landscape; use STATS for full analytics. */
+  body #app > main.layout > .rightRail > .desktopAnalytics{
+    display:none!important;
+  }
+
+  body #app > main.layout > .rightRail > .actions{
+    width:100%!important;
+    height:100%!important;
+    display:flex!important;
+    flex-direction:column!important;
+    gap:5px!important;
+    padding:6px 5px!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    border-left:1px solid #202a36!important;
+    border-right:0!important;
+  }
+
+  body #app > main.layout > .rightRail > .actions button{
+    width:100%!important;
+    min-width:0!important;
+    min-height:38px!important;
+    padding:4px 2px!important;
+    font-size:7px!important;
+    line-height:1!important;
+    flex:0 0 auto!important;
+  }
+
+  /* Roster tighter without becoming unreadable */
+  body #app > main.layout > .sidebar .teamHead b{
+    font-size:9px!important;
+  }
+  body #app > main.layout > .sidebar .teamHead small{
+    font-size:6px!important;
+  }
+  body #app > main.layout > .sidebar #addPlayerBtn,
+  body #app > main.layout > .sidebar #linesBtn,
+  body #app > main.layout > .sidebar #positionsBtn{
+    min-height:32px!important;
+    font-size:7px!important;
+    padding:4px 2px!important;
+  }
+  body #app > main.layout > .sidebar .search{
+    padding:6px 4px!important;
+    font-size:8px!important;
+  }
+  body #app > main.layout > .sidebar .playerSortControls{
+    gap:3px!important;
+  }
+  body #app > main.layout > .sidebar .playerSortControls button{
+    min-height:26px!important;
+    padding:2px!important;
+    font-size:7px!important;
+  }
+  body #app > main.layout > .sidebar .rosterColumnHead{
+    grid-template-columns:24px minmax(0,1fr) 30px 26px 16px!important;
+    gap:3px!important;
+    font-size:6px!important;
+  }
+  body #app > main.layout > .sidebar .player{
+    grid-template-columns:24px minmax(0,1fr) 30px 26px 16px!important;
+    gap:3px!important;
+    min-height:31px!important;
+    padding:5px 0!important;
+    font-size:7px!important;
+  }
+  body #app > main.layout > .sidebar .rosterPosBadge{
+    width:28px!important;
+    min-width:28px!important;
+    min-height:18px!important;
+    font-size:6px!important;
+  }
+  body #app > main.layout > .sidebar .rosterStatusBadge{
+    width:24px!important;
+    min-height:17px!important;
+    font-size:6px!important;
+  }
+  body #app > main.layout > .sidebar .rosterEditBtn{
+    width:16px!important;
+    min-width:16px!important;
+    font-size:6px!important;
+  }
+
+  /* Center top controls consume less height */
+  body #app > main.layout > .main .gameToolbar{
+    flex:0 0 auto!important;
+    min-height:42px!important;
+    display:grid!important;
+    grid-template-columns:auto minmax(0,1fr) auto!important;
+    gap:4px!important;
+    padding:4px!important;
+  }
+
+  body #app > main.layout > .main .combinedViewTabs{
+    grid-template-columns:1.35fr 1fr!important;
+    width:100%!important;
+    min-width:0!important;
+  }
+  body #app > main.layout > .main .combinedViewTabs .viewTab{
+    min-height:32px!important;
+    padding:3px 2px!important;
+    font-size:7px!important;
+  }
+  body #app > main.layout > .main #editFieldBtn{
+    min-height:32px!important;
+    padding:3px 5px!important;
+    font-size:7px!important;
+  }
+  body #app > main.layout > .main #warning{
+    font-size:6px!important;
+    white-space:normal!important;
+    line-height:1.05!important;
+  }
+
+  body #app > main.layout > .main .gameStrip{
+    flex:0 0 auto!important;
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:3px!important;
+    padding:3px!important;
+    margin:0!important;
+  }
+  body #app > main.layout > .main .gameStrip button,
+  body #app > main.layout > .main .gameStrip .clockDisplay{
+    width:100%!important;
+    min-width:0!important;
+    min-height:29px!important;
+    padding:2px!important;
+    font-size:6px!important;
+  }
+
+  /* Field becomes the dominant area */
+  body #app > main.layout > .main .fieldArea{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    padding:3px!important;
+    overflow:hidden!important;
+    align-items:stretch!important;
+    justify-content:stretch!important;
+  }
+
+  body #app > main.layout > .main .field{
+    width:100%!important;
+    height:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    max-width:none!important;
+    max-height:none!important;
+    aspect-ratio:auto!important;
+  }
+
+  body #app > main.layout > .main .field .slot{
+    min-width:46px!important;
+    max-width:66px!important;
+    padding:4px 2px!important;
+    font-size:8px!important;
+  }
+  body #app > main.layout > .main .field .slot small{
+    font-size:6px!important;
+  }
+  body #app > main.layout > .main .field .tag{
+    font-size:8px!important;
+    padding:3px 8px!important;
+  }
+
+  /* Bottom line strip: one horizontal row, no vertical stacking */
+  body #app > main.layout > .main .bottom{
+    flex:0 0 auto!important;
+    display:grid!important;
+    grid-template-columns:auto minmax(0,1fr) auto!important;
+    gap:4px!important;
+    min-height:42px!important;
+    padding:4px!important;
+    overflow:hidden!important;
+  }
+  body #app > main.layout > .main .bottom #lineChips{
+    display:flex!important;
+    flex-direction:row!important;
+    gap:4px!important;
+    overflow-x:auto!important;
+    min-width:0!important;
+    scrollbar-width:none!important;
+  }
+  body #app > main.layout > .main .bottom #lineChips::-webkit-scrollbar{
+    display:none!important;
+  }
+  body #app > main.layout > .main .bottom .chip{
+    min-height:32px!important;
+    padding:4px 6px!important;
+    font-size:7px!important;
+    white-space:nowrap!important;
+  }
+  body #app > main.layout > .main .statsSummary{
+    display:none!important;
+  }
+}
+
+/* Larger tablet landscape gets a bit more roster width without bringing analytics back. */
+@media (min-width:1024px) and (max-width:1180px) and (orientation:landscape){
+  body #app > main.layout{
+    grid-template-columns:165px minmax(0,1fr) 112px!important;
+  }
+}
