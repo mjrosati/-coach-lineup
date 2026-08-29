@@ -4469,3 +4469,50 @@ body.fullscreen #app .field .slot small{
     transform:scale(1.22)!important;
   }
 }
+
+/* v81 — XXL TABLET PLAYERS
+   The field has enough open space vertically, so prioritize sideline readability. */
+@media (min-width:768px) and (max-width:1180px) and (orientation:landscape){
+  body:not(.field-fullscreen) #app .field .slot{
+    min-width:82px!important;
+    max-width:108px!important;
+    min-height:54px!important;
+    padding:8px 6px!important;
+    font-size:15px!important;
+    line-height:1!important;
+    border-width:4px!important;
+    border-radius:9px!important;
+  }
+  body:not(.field-fullscreen) #app .field .slot small{
+    font-size:11px!important;
+    line-height:1!important;
+    margin-top:4px!important;
+    font-weight:900!important;
+  }
+
+  body.field-fullscreen .field .slot,
+  :fullscreen .field .slot,
+  :-webkit-full-screen .field .slot{
+    min-width:96px!important;
+    max-width:124px!important;
+    min-height:62px!important;
+    padding:10px 7px!important;
+    font-size:17px!important;
+    line-height:1!important;
+    border-width:4px!important;
+    border-radius:10px!important;
+  }
+  body.field-fullscreen .field .slot small,
+  :fullscreen .field .slot small,
+  :-webkit-full-screen .field .slot small{
+    font-size:13px!important;
+    line-height:1!important;
+    margin-top:5px!important;
+    font-weight:900!important;
+  }
+
+  body.field-fullscreen .field .slot .playedLastBadge,
+  body.field-fullscreen .field .slot .repeatBadge{
+    transform:scale(1.35)!important;
+  }
+}
