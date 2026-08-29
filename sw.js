@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v67-clean-layout-reset";
+const CACHE="coach-lineup-v68-fixed-field-rails";
 const CORE=[
   "./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest",
   "./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png"
