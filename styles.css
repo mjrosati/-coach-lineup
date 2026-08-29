@@ -2235,3 +2235,92 @@ body:-webkit-full-screen .fullscreenPlayPanel,
   font-size:10px;
   font-weight:900;
 }
+
+/* v61 Game Day cleanup */
+.gameDaySettingsModal,.offlineReadyModal{width:min(620px,95vw)}
+.settingToggleRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:12px 4px;
+  border-bottom:1px solid rgba(255,255,255,.10);
+  font-weight:900;
+  font-size:12px;
+}
+.settingToggleRow input{width:22px;height:22px}
+
+.offlineReadyHero{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  padding:14px;
+  border-radius:10px;
+  margin:10px 0;
+  border:1px solid rgba(255,255,255,.14);
+}
+.offlineReadyHero.ready{background:rgba(56,180,108,.10)}
+.offlineReadyHero.notReady{background:rgba(255,176,0,.10)}
+.offlineReadyHero span{font-size:10px;opacity:.72}
+.offlineReadyList{display:grid;gap:6px;margin:10px 0 4px}
+.offlineReadyRow{
+  display:grid;
+  grid-template-columns:24px 1fr;
+  gap:8px;
+  align-items:center;
+  padding:9px 10px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:8px;
+  font-size:11px;
+}
+
+.buildBadge{
+  position:fixed;
+  right:8px;
+  bottom:6px;
+  z-index:40;
+  font-size:8px;
+  opacity:.42;
+  pointer-events:none;
+  padding:3px 5px;
+  border-radius:5px;
+  background:rgba(0,0,0,.28);
+}
+
+.gameCompactMode .gameStrip button,
+.gameCompactMode .actions button{
+  min-height:30px!important;
+  padding:5px 7px!important;
+  font-size:9px!important;
+}
+.gameCompactMode .field{margin-top:5px!important}
+
+@media(max-width:900px){
+  .actions{gap:6px}
+  .actions button{min-height:38px}
+  .gameStrip{gap:5px}
+  .gameStrip button{min-height:36px}
+}
+@media(max-width:700px){
+  .actions{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:6px!important;
+  }
+  .actions button{width:100%;min-height:40px}
+  .gameStrip{
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    align-items:stretch;
+  }
+  .gameStrip>*{min-width:0!important}
+  .gameStrip button{width:100%;font-size:9px}
+  .opponentUnderPossession{margin-top:3px}
+  .buildBadge{font-size:7px;right:5px;bottom:4px}
+}
+
+/* clearer opponent warnings */
+.opponentSlot.alert,
+.oppStatsRow.warning{
+  box-shadow:0 0 0 2px rgba(255,176,0,.28),0 0 14px rgba(255,176,0,.18);
+}

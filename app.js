@@ -51,6 +51,8 @@ function updateConnectionStatus(){
 }
 window.addEventListener('online',()=>{ updateConnectionStatus(); syncOfflineQueue(); });
 window.addEventListener('offline',()=>{ saveOfflineSnapshot(); updateConnectionStatus(); });
+const COACH_LINEUP_BUILD='v61 • Cleanup + Offline';
+
 async function userId(){
   try{
     if(navigator.onLine){
@@ -136,6 +138,40 @@ function loadOfflineSnapshot(){
     console.error('Offline snapshot load failed',e);
     return false;
   }
+}
+
+function offlineReadinessItems(){
+  return [
+    {label:'Roster cached',ok:Array.isArray(players)&&players.length>0},
+    {label:'Lines cached',ok:Array.isArray(lines)&&lines.length>0},
+    {label:'Positions cached',ok:Array.isArray(positions)&&positions.length>0},
+    {label:'Assignments cached',ok:Array.isArray(assignments)},
+    {label:'Current game cached',ok:!!currentGame},
+    {label:'Playbook cached',ok:Array.isArray(playbookPlays)}
+  ];
+}
+function openOfflineReadiness(){
+  const items=offlineReadinessItems();
+  const ready=items.every(x=>x.ok);
+  const queued=getOfflineQueue().length;
+  openModal(`<div class="offlineReadyModal">
+    <div class="playerStatsHead">
+      <div><small>GAME DAY</small><h2>Offline Readiness</h2></div>
+      <button class="secondary" onclick="closeModal()">✕ CLOSE</button>
+    </div>
+    <div class="offlineReadyHero ${ready?'ready':'notReady'}">
+      <b>${ready?'✓ READY FOR OFFLINE':'⚠ NOT FULLY READY'}</b>
+      <span>${navigator.onLine?'You are online now.':'You are currently offline.'} ${queued?`${queued} change${queued===1?'':'s'} waiting to sync.`:'No changes waiting to sync.'}</span>
+    </div>
+    <div class="offlineReadyList">
+      ${items.map(x=>`<div class="offlineReadyRow"><span>${x.ok?'✓':'○'}</span><b>${esc(x.label)}</b></div>`).join('')}
+    </div>
+    <div class="playerStatsHint">Best practice: open Coach Lineup while online before the game, load the current team and game, then leave the app open or installed.</div>
+    <div class="modalFoot">
+      <button onclick="saveOfflineSnapshot();updateConnectionStatus();openOfflineReadiness()">REFRESH CACHE</button>
+      ${navigator.onLine?'<button class="secondary" onclick="syncOfflineQueue()">SYNC NOW</button>':''}
+    </div>
+  </div>`);
 }
 function offlineAssignmentSet(lineId,positionId,playerId){
   assignments=assignments.filter(a=>!(String(a.line_id)===String(lineId)&&String(a.position_label_id)===String(positionId)));
@@ -423,6 +459,63 @@ async function loadApp(){
 
 
 
+
+const GAME_DAY_SETTINGS_KEY='coachLineupGameDaySettings:v1';
+function loadGameDaySettings(){
+  try{
+    return Object.assign({
+      showPlaybook:true,
+      showStats:true,
+      showOpponent:true,
+      showAlerts:true,
+      compact:false
+    },JSON.parse(localStorage.getItem(GAME_DAY_SETTINGS_KEY)||'{}'));
+  }catch{
+    return {showPlaybook:true,showStats:true,showOpponent:true,showAlerts:true,compact:false};
+  }
+}
+let gameDaySettings=loadGameDaySettings();
+function saveGameDaySettings(){
+  try{localStorage.setItem(GAME_DAY_SETTINGS_KEY,JSON.stringify(gameDaySettings));}catch{}
+}
+function applyGameDaySettings(){
+  const root=document.body;
+  root.classList.toggle('gameCompactMode',!!gameDaySettings.compact);
+  const ids={
+    statsBtn:gameDaySettings.showStats,
+    opponentBtn:gameDaySettings.showOpponent,
+    playbookBtn:gameDaySettings.showPlaybook
+  };
+  Object.entries(ids).forEach(([id,show])=>{
+    const el=$(id); if(el) el.style.display=show?'':'none';
+  });
+  document.querySelectorAll('.playingTimeAlertControl,.usageAlertControl').forEach(el=>{
+    el.style.display=gameDaySettings.showAlerts?'':'none';
+  });
+}
+function openGameDaySettings(){
+  const s=gameDaySettings;
+  openModal(`<div class="gameDaySettingsModal">
+    <div class="playerStatsHead">
+      <div><small>SIDELINE</small><h2>Game Day Settings</h2></div>
+      <button class="secondary" onclick="closeModal()">✕ CLOSE</button>
+    </div>
+    ${[
+      ['showPlaybook','Show Playbook controls',s.showPlaybook],
+      ['showStats','Show Stats button',s.showStats],
+      ['showOpponent','Show Opponent button',s.showOpponent],
+      ['showAlerts','Show playing-time alerts',s.showAlerts],
+      ['compact','Compact sideline spacing',s.compact]
+    ].map(([k,label,val])=>`
+      <label class="settingToggleRow">
+        <span>${esc(label)}</span>
+        <input type="checkbox" ${val?'checked':''} onchange="gameDaySettings.${k}=this.checked;saveGameDaySettings();applyGameDaySettings()">
+      </label>`).join('')}
+    <div class="modalFoot">
+      <button onclick="saveGameDaySettings();applyGameDaySettings();closeModal()">DONE</button>
+    </div>
+  </div>`);
+}
 function gameStateKey(id=currentGame?.id){ return id?`coachLineupGameState:${id}`:null; }
 function persistGameState(){
   const key=gameStateKey(); if(!key) return;
@@ -968,7 +1061,7 @@ async function loadCounts(){
 }
 
 function renderAll(){
-  renderLineSelect(); renderPlayers(); renderSpecialUnitSelect(); renderField(); renderSummary();
+  renderLineSelect(); renderPlayers(); renderSpecialUnitSelect(); renderField(); renderSummary(); applyGameDaySettings();
 }
 
 function renderLineSelect(){
@@ -3251,7 +3344,7 @@ function openOpponentStats(){
 
   openModal(`<div class="allPlayerStats">
     <div class="playerStatsHead">
-      <div><small>OPPONENT • ${total} LINE ROTATIONS</small><h2>Opponent Stats</h2></div>
+      <div><small>OPPONENT • ${total} ROTATIONS</small><h2>Opponent Participation</h2></div>
       <button class="secondary" onclick="openStats()">‹ BACK</button>
     </div>
     <div class="oppStatsColumns"><span>JERSEY</span><span>ROTATIONS</span><span>%</span><span>CURRENT SLOT</span></div>
@@ -3310,12 +3403,12 @@ function openOpponentTracker(){
 
   openModal(`<div class="opponentTrackerModal">
     <div class="playerStatsHead">
-      <div><small>OPPONENT • 11 ON-FIELD SLOTS</small><h2>Opponent Line</h2></div>
+      <div><small>OPPONENT • 11 ON-FIELD SLOTS</small><h2>Opponent Rotation</h2></div>
       <button class="secondary" onclick="closeModal()">✕ CLOSE</button>
     </div>
 
     <div class="opponentTrackerSummary">
-      <b>${opponentTracker.rotations||0}</b> total line rotations
+      <b>${opponentTracker.rotations||0}</b> total rotations
       <span>Enter the 11 jerseys currently on the field. Alert = &gt;75% AND more than 3 rotations in a row.</span>
     </div>
 
@@ -3334,7 +3427,8 @@ function openOpponentTracker(){
     </div>
 
     <div class="opponentTrackerActions">
-      <button onclick="recordOpponentRotation()">RECORD THIS LINE ROTATION</button>
+      <button onclick="recordOpponentRotation()">RECORD ROTATION</button>
+      <button class="secondary" onclick="undoOpponentRotation()" ${opponentTracker.rotations?'' :'disabled'}>UNDO LAST ROTATION</button>
       <button class="secondary" onclick="clearOpponentSlots()">CLEAR 11 SLOTS</button>
       <button class="danger" onclick="resetOpponentTracker()">RESET TRACKER</button>
     </div>
@@ -3356,6 +3450,13 @@ function clearOpponentSlots(){
   openOpponentTracker();
 }
 function recordOpponentRotation(){
+  const now=Date.now();
+  const sig=(opponentTracker.slots||[]).map(x=>String(x||'').trim()).join('|');
+  if(opponentTracker._lastRecordAt && now-opponentTracker._lastRecordAt<2000 && opponentTracker._lastRecordSig===sig){
+    return;
+  }
+  opponentTracker._lastRecordAt=now;
+  opponentTracker._lastRecordSig=sig;
   if(!Array.isArray(opponentTracker.slots)) opponentTracker.slots=Array(11).fill('');
   const active=[...new Set(opponentTracker.slots.map(x=>String(x||'').trim()).filter(Boolean))];
   if(!active.length) return alert('Enter the opponent jersey numbers in the 11 slots first.');
@@ -3385,6 +3486,43 @@ function recordOpponentRotation(){
   maybeShowOpponentAlerts();
   if(document.querySelector('.opponentTrackerModal')) openOpponentTracker();
 }
+function undoOpponentRotation(){
+  if(!opponentTracker.rotations || !opponentTracker.history?.length) return;
+  if(!confirm('Undo the last opponent line rotation?')) return;
+
+  opponentTracker.history.pop();
+  opponentTracker.rotations=Math.max(0,Number(opponentTracker.rotations||0)-1);
+
+  const roster=(opponentTracker.roster||[]).map(String);
+  opponentTracker.appearances={};
+  opponentTracker.streaks={};
+  opponentTracker.maxStreaks={};
+  roster.forEach(n=>{
+    opponentTracker.appearances[n]=0;
+    opponentTracker.streaks[n]=0;
+    opponentTracker.maxStreaks[n]=0;
+  });
+
+  for(const h of opponentTracker.history||[]){
+    const active=new Set((h.players||[]).map(String));
+    roster.forEach(n=>{
+      if(active.has(n)){
+        opponentTracker.appearances[n]=Number(opponentTracker.appearances[n]||0)+1;
+        opponentTracker.streaks[n]=Number(opponentTracker.streaks[n]||0)+1;
+        opponentTracker.maxStreaks[n]=Math.max(
+          Number(opponentTracker.maxStreaks[n]||0),
+          Number(opponentTracker.streaks[n]||0)
+        );
+      }else{
+        opponentTracker.streaks[n]=0;
+      }
+    });
+  }
+
+  saveOpponentTracker();
+  openOpponentTracker();
+}
+
 function opponentAlertRows(){
   const total=Number(opponentTracker.rotations||0);
   if(!total) return [];

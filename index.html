@@ -30,7 +30,7 @@
 
 <div id="dashboard" class="hidden dashScreen">
   <div class="dashTop">
-    <div class="dashBrand">🏈 <b>COACH <span>LINEUP</span></b><span id="syncStatus" title="Offline mode automatically saves game-day changes on this device and syncs when internet returns." onclick="syncOfflineQueue()" class="syncStatus">● LIVE</span></div>
+    <div class="dashBrand">🏈 <b>COACH <span>LINEUP</span></b><span id="syncStatus" title="Offline mode saves game-day changes locally and syncs them when internet returns. Tap to sync." onclick="syncOfflineQueue()" class="syncStatus">● LIVE</span></div>
     <button class="secondary" id="dashLogout">SIGN OUT</button>
   </div>
   <div class="dashWrap">
@@ -149,6 +149,8 @@
   
       <button id="subBtn" class="sidelineKeep">SUBSTITUTE</button>
       <button id="statsBtn" class="sidelineHide">STATS</button>
+<button id="gameDaySettingsBtn" class="sidelineHide" onclick="openGameDaySettings()">GAME DAY SETTINGS</button>
+<button id="offlineReadyBtn" class="sidelineHide" onclick="openOfflineReadiness()">OFFLINE READY</button>
 
       <button id="gameBtn" class="sidelineHide">GAME</button>
       <button id="playbookBtn" class="sidelineKeep">PLAYBOOK</button>
@@ -181,4 +183,5 @@
     <button id="fullscreenTdBtn" class="tdPlayBtn">🏈 TD</button>
   </div>
 </div>
+<div id="buildBadge" class="buildBadge">v61 • Cleanup + Offline</div>
 </body></html>
