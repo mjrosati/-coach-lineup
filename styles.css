@@ -2686,3 +2686,283 @@ body:-webkit-full-screen .fullscreenPlayPanel,
     grid-template-columns:150px minmax(0,1fr) 108px!important;
   }
 }
+
+/* v71 — FORCE the requested 3-column layout on the CURRENT portrait screen.
+   Previous v70 started at 600 CSS px. This device's CSS viewport is narrower,
+   so the rule never activated. These rules intentionally cover phone-width
+   portrait screens too. */
+@media (min-width:340px) and (max-width:900px){
+  html,body{
+    overflow:hidden!important;
+  }
+
+  body #app{
+    height:100dvh!important;
+    max-height:100dvh!important;
+    overflow:hidden!important;
+  }
+
+  body #app > main.layout{
+    display:grid!important;
+    grid-template-columns:86px minmax(0,1fr) 70px!important;
+    grid-template-rows:minmax(0,1fr)!important;
+    width:100%!important;
+    height:calc(100dvh - 62px)!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+
+  /* LEFT player list — permanently visible and independently scrollable */
+  body #app > main.layout > aside.sidebar{
+    display:block!important;
+    grid-column:1!important;
+    grid-row:1!important;
+    width:auto!important;
+    min-width:0!important;
+    max-width:none!important;
+    height:100%!important;
+    min-height:0!important;
+    padding:5px 3px!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    -webkit-overflow-scrolling:touch!important;
+    overscroll-behavior:contain!important;
+    border-right:1px solid #202a38!important;
+  }
+
+  body #app > main.layout > aside.sidebar .teamHead{
+    display:block!important;
+    margin-bottom:4px!important;
+  }
+  body #app > main.layout > aside.sidebar .teamHead b{
+    display:block!important;
+    font-size:7px!important;
+    line-height:1.05!important;
+  }
+  body #app > main.layout > aside.sidebar .teamHead small{
+    display:none!important;
+  }
+  body #app > main.layout > aside.sidebar .teamHead .iconBtn{
+    display:none!important;
+  }
+  body #app > main.layout > aside.sidebar #addPlayerBtn,
+  body #app > main.layout > aside.sidebar #linesBtn,
+  body #app > main.layout > aside.sidebar #positionsBtn{
+    min-height:30px!important;
+    padding:3px 1px!important;
+    font-size:6px!important;
+    line-height:1!important;
+  }
+  body #app > main.layout > aside.sidebar .search{
+    padding:5px 3px!important;
+    font-size:7px!important;
+    margin:4px 0!important;
+  }
+  body #app > main.layout > aside.sidebar .playerSortControls{
+    display:none!important;
+  }
+  body #app > main.layout > aside.sidebar .player{
+    display:grid!important;
+    grid-template-columns:20px minmax(0,1fr)!important;
+    gap:2px!important;
+    padding:5px 0!important;
+    font-size:7px!important;
+    line-height:1.05!important;
+  }
+  body #app > main.layout > aside.sidebar .player .num{
+    font-size:7px!important;
+  }
+  body #app > main.layout > aside.sidebar .player small{
+    display:none!important;
+  }
+  body #app > main.layout > aside.sidebar .player .iconBtn{
+    display:none!important;
+  }
+
+  /* CENTER fixed field */
+  body #app > main.layout > section.main{
+    display:flex!important;
+    flex-direction:column!important;
+    grid-column:2!important;
+    grid-row:1!important;
+    width:auto!important;
+    min-width:0!important;
+    height:100%!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+
+  body #app > main.layout > section.main .gameToolbar{
+    flex:0 0 auto!important;
+    display:grid!important;
+    grid-template-columns:auto minmax(0,1fr) auto!important;
+    gap:3px!important;
+    padding:3px!important;
+  }
+  body #app > main.layout > section.main .gameToolbar .viewTabs{
+    grid-column:1/-1!important;
+    width:100%!important;
+    display:grid!important;
+    grid-template-columns:1fr 1fr 1.25fr!important;
+    gap:2px!important;
+  }
+  body #app > main.layout > section.main .gameToolbar .viewTab{
+    min-height:29px!important;
+    padding:2px!important;
+    font-size:6px!important;
+  }
+  body #app > main.layout > section.main .gameToolbar>b{
+    font-size:7px!important;
+  }
+  body #app > main.layout > section.main #editFieldBtn{
+    min-height:26px!important;
+    padding:2px 4px!important;
+    font-size:6px!important;
+  }
+  body #app > main.layout > section.main #warning{
+    font-size:5px!important;
+    white-space:normal!important;
+    max-width:70px!important;
+    text-align:right!important;
+  }
+
+  body #app > main.layout > section.main .gameStrip{
+    flex:0 0 auto!important;
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:2px!important;
+    padding:3px!important;
+  }
+  body #app > main.layout > section.main .gameStrip button,
+  body #app > main.layout > section.main .gameStrip .clockDisplay{
+    min-height:25px!important;
+    padding:2px 1px!important;
+    font-size:5px!important;
+  }
+  body #app > main.layout > section.main .opponentUnderPossession{
+    margin:0!important;
+  }
+
+  body #app > main.layout > section.main .fieldArea{
+    flex:1 1 auto!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    padding:2px!important;
+    overflow:hidden!important;
+    align-items:center!important;
+    justify-content:center!important;
+  }
+
+  body #app > main.layout > section.main .field{
+    width:100%!important;
+    height:auto!important;
+    max-width:100%!important;
+    max-height:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    aspect-ratio:0.82!important;
+  }
+
+  body #app > main.layout > section.main .field .slot{
+    min-width:32px!important;
+    max-width:44px!important;
+    padding:3px 1px!important;
+    font-size:7px!important;
+    line-height:1!important;
+  }
+  body #app > main.layout > section.main .field .slot small{
+    font-size:5.5px!important;
+  }
+  body #app > main.layout > section.main .field .tag{
+    font-size:7px!important;
+    padding:3px 6px!important;
+  }
+
+  body #app > main.layout > section.main .bottom{
+    flex:0 0 auto!important;
+    display:grid!important;
+    grid-template-columns:auto minmax(0,1fr) auto!important;
+    gap:2px!important;
+    min-height:38px!important;
+    padding:3px!important;
+    overflow:hidden!important;
+  }
+  body #app > main.layout > section.main .bottom #lineChips{
+    display:flex!important;
+    gap:2px!important;
+    min-width:0!important;
+    overflow-x:auto!important;
+    scrollbar-width:none!important;
+  }
+  body #app > main.layout > section.main .bottom #lineChips::-webkit-scrollbar{
+    display:none!important;
+  }
+  body #app > main.layout > section.main .bottom .chip{
+    min-height:30px!important;
+    padding:3px 4px!important;
+    font-size:6px!important;
+    white-space:nowrap!important;
+  }
+  body #app > main.layout > section.main .statsSummary{
+    display:none!important;
+  }
+
+  /* RIGHT game menu — permanently visible and independently scrollable */
+  body #app > main.layout > aside.actions{
+    display:flex!important;
+    flex-direction:column!important;
+    grid-column:3!important;
+    grid-row:1!important;
+    width:auto!important;
+    min-width:0!important;
+    height:100%!important;
+    min-height:0!important;
+    max-height:none!important;
+    gap:4px!important;
+    padding:5px 3px!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    -webkit-overflow-scrolling:touch!important;
+    overscroll-behavior:contain!important;
+    border-left:1px solid #202a38!important;
+    border-top:0!important;
+  }
+  body #app > main.layout > aside.actions button{
+    flex:0 0 auto!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:36px!important;
+    padding:3px 1px!important;
+    margin:0!important;
+    font-size:6px!important;
+    line-height:1!important;
+  }
+
+  body #app > main.layout > .mobileSidelineNav{
+    display:none!important;
+  }
+
+  body #app > main.layout > aside.sidebar::-webkit-scrollbar,
+  body #app > main.layout > aside.actions::-webkit-scrollbar{
+    width:4px!important;
+  }
+}
+
+/* More room when the viewport truly is tablet width. */
+@media (min-width:600px) and (max-width:900px){
+  body #app > main.layout{
+    grid-template-columns:128px minmax(0,1fr) 94px!important;
+  }
+  body #app > main.layout > aside.sidebar .player{
+    grid-template-columns:24px minmax(0,1fr)!important;
+    font-size:8px!important;
+  }
+  body #app > main.layout > aside.sidebar .player small{
+    display:block!important;
+    font-size:6px!important;
+  }
+  body #app > main.layout > aside.actions button{
+    font-size:7px!important;
+  }
+}
