@@ -2587,3 +2587,220 @@ body.mode-tablet .actions::-webkit-scrollbar{
 body.mode-mobile .sidebar{
   display:none!important;
 }
+
+/* v65 — Mobile/portrait side drawers.
+   On narrow screens the field stays in place; Players and Game Menu slide over it
+   and scroll independently instead of being placed below/above the field. */
+.mobileDrawerTab,
+.mobileDrawerShade{
+  display:none;
+}
+
+@media (max-width:900px){
+  body.mode-mobile{
+    overflow-x:hidden;
+  }
+
+  body.mode-mobile .layout{
+    display:block!important;
+    min-height:0!important;
+  }
+
+  body.mode-mobile .main{
+    width:100%!important;
+    min-width:0!important;
+  }
+
+  /* Existing side panels become off-canvas drawers. */
+  body.mode-mobile .sidebar,
+  body.mode-mobile .actions{
+    display:block!important;
+    position:fixed!important;
+    top:calc(58px + env(safe-area-inset-top))!important;
+    bottom:env(safe-area-inset-bottom)!important;
+    z-index:95!important;
+    height:auto!important;
+    max-height:none!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+    background:#0d121a!important;
+    transition:transform .18s ease!important;
+  }
+
+  body.mode-mobile .sidebar{
+    left:0!important;
+    right:auto!important;
+    width:min(82vw,310px)!important;
+    padding:12px!important;
+    border-right:1px solid #2d3b4e!important;
+    transform:translateX(-105%)!important;
+  }
+
+  body.mode-mobile .actions{
+    right:0!important;
+    left:auto!important;
+    width:min(72vw,270px)!important;
+    padding:10px!important;
+    border-left:1px solid #2d3b4e!important;
+    border-top:0!important;
+    transform:translateX(105%)!important;
+    flex-direction:column!important;
+    gap:8px!important;
+  }
+
+  body.mode-mobile.mobilePlayersOpen .sidebar{
+    transform:translateX(0)!important;
+  }
+  body.mode-mobile.mobileControlsOpen .actions{
+    transform:translateX(0)!important;
+  }
+
+  body.mode-mobile .actions button{
+    width:100%!important;
+    min-height:46px!important;
+    flex:0 0 auto!important;
+  }
+
+  /* Edge tabs are always available without moving the field. */
+  body.mode-mobile .mobileDrawerTab{
+    display:block!important;
+    position:fixed!important;
+    z-index:96!important;
+    top:48%!important;
+    min-height:48px!important;
+    padding:6px 4px!important;
+    font-size:9px!important;
+    font-weight:1000!important;
+    letter-spacing:.4px!important;
+    writing-mode:vertical-rl;
+    text-orientation:mixed;
+    border-radius:0 8px 8px 0!important;
+    background:#101722!important;
+    color:#fff!important;
+    border:1px solid #34465d!important;
+  }
+
+  body.mode-mobile .playersDrawerTab{
+    left:0!important;
+  }
+
+  body.mode-mobile .controlsDrawerTab{
+    right:0!important;
+    left:auto!important;
+    border-radius:8px 0 0 8px!important;
+  }
+
+  body.mode-mobile .mobileDrawerShade{
+    display:none!important;
+    position:fixed!important;
+    inset:0!important;
+    z-index:90!important;
+    background:rgba(0,0,0,.46)!important;
+  }
+
+  body.mode-mobile.mobilePlayersOpen .mobileDrawerShade,
+  body.mode-mobile.mobileControlsOpen .mobileDrawerShade{
+    display:block!important;
+  }
+
+  /* Hide the old mobile button strip; MENU drawer replaces it. */
+  body.mode-mobile .mobileSidelineNav{
+    display:none!important;
+  }
+
+  /* Field stays the primary surface. */
+  body.mode-mobile .fieldArea{
+    overflow:hidden!important;
+    padding:3px!important;
+  }
+  body.mode-mobile .field{
+    min-width:0!important;
+    width:100%!important;
+    max-width:100%!important;
+  }
+
+  /* Keep bottom line controls; remove duplicated full action grid from document flow. */
+  body.mode-mobile .bottom{
+    position:relative!important;
+    z-index:2!important;
+  }
+}
+
+/* Treat narrow portrait tablets like the drawer layout if there is not enough
+   horizontal room for three permanent columns. */
+@media (orientation:portrait) and (max-width:820px){
+  body.mode-tablet .layout{
+    display:block!important;
+    height:auto!important;
+    overflow:visible!important;
+  }
+
+  body.mode-tablet .sidebar,
+  body.mode-tablet .actions{
+    position:fixed!important;
+    top:calc(58px + env(safe-area-inset-top))!important;
+    bottom:env(safe-area-inset-bottom)!important;
+    z-index:95!important;
+    height:auto!important;
+    max-height:none!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch;
+    background:#0d121a!important;
+    transition:transform .18s ease!important;
+  }
+
+  body.mode-tablet .sidebar{
+    left:0!important;
+    width:min(68vw,320px)!important;
+    transform:translateX(-105%)!important;
+  }
+  body.mode-tablet .actions{
+    right:0!important;
+    width:min(46vw,280px)!important;
+    transform:translateX(105%)!important;
+  }
+
+  body.mode-tablet.mobilePlayersOpen .sidebar{transform:translateX(0)!important}
+  body.mode-tablet.mobileControlsOpen .actions{transform:translateX(0)!important}
+
+  body.mode-tablet .mobileDrawerTab{
+    display:block!important;
+    position:fixed!important;
+    z-index:96!important;
+    top:48%!important;
+    min-height:48px!important;
+    padding:6px 4px!important;
+    font-size:9px!important;
+    font-weight:1000!important;
+    writing-mode:vertical-rl;
+    border:1px solid #34465d!important;
+    background:#101722!important;
+    color:#fff!important;
+  }
+  body.mode-tablet .playersDrawerTab{left:0!important;border-radius:0 8px 8px 0!important}
+  body.mode-tablet .controlsDrawerTab{right:0!important;border-radius:8px 0 0 8px!important}
+
+  body.mode-tablet.mobilePlayersOpen .mobileDrawerShade,
+  body.mode-tablet.mobileControlsOpen .mobileDrawerShade{
+    display:block!important;
+    position:fixed!important;
+    inset:0!important;
+    z-index:90!important;
+    background:rgba(0,0,0,.46)!important;
+  }
+
+  body.mode-tablet .main{
+    width:100%!important;
+    height:auto!important;
+    overflow:visible!important;
+  }
+  body.mode-tablet .fieldArea{
+    overflow:hidden!important;
+  }
+  body.mode-tablet .field{
+    min-width:0!important;
+    width:100%!important;
+  }
+}

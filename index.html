@@ -166,6 +166,11 @@
   </main>
 </div>
 
+
+<div id="mobileDrawerShade" class="mobileDrawerShade" onclick="closeMobileSideDrawers()"></div>
+<button id="playersDrawerTab" class="mobileDrawerTab playersDrawerTab" type="button" onclick="toggleMobileSideDrawer('players')" aria-label="Open players">PLAYERS</button>
+<button id="controlsDrawerTab" class="mobileDrawerTab controlsDrawerTab" type="button" onclick="toggleMobileSideDrawer('controls')" aria-label="Open game controls">MENU</button>
+
 <div id="modal" class="modalWrap hidden"><div class="modal" id="modalBody"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
@@ -183,5 +188,5 @@
     <button id="fullscreenTdBtn" class="tdPlayBtn">🏈 TD</button>
   </div>
 </div>
-<div id="buildBadge" class="buildBadge">v64 • Tablet Sidebar Fix</div>
+<div id="buildBadge" class="buildBadge">v65 • Side Drawer Fix</div>
 </body></html>

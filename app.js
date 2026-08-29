@@ -416,6 +416,18 @@ window.addEventListener('resize',()=>{
   deviceModeResizeTimer=setTimeout(()=>applyDeviceMode('auto'),120);
 });
 
+
+function closeMobileSideDrawers(){
+  document.body.classList.remove('mobilePlayersOpen','mobileControlsOpen');
+}
+function toggleMobileSideDrawer(which){
+  const isPlayers=which==='players';
+  const cls=isPlayers?'mobilePlayersOpen':'mobileControlsOpen';
+  const already=document.body.classList.contains(cls);
+  closeMobileSideDrawers();
+  if(!already) document.body.classList.add(cls);
+}
+
 async function boot(){
   applyDeviceMode();
 
@@ -722,6 +734,7 @@ window.addEventListener('beforeinstallprompt',e=>{
 });
 
 function showDashboard(){
+  closeMobileSideDrawers();
   if(currentGame) loadGameState();
   $('auth').classList.add('hidden');
   $('app').classList.add('hidden');
