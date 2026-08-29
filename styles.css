@@ -2489,3 +2489,101 @@ body:-webkit-full-screen .fullscreenPlayPanel,
     width:118px!important;
   }
 }
+
+/* v64 — reliable AUTO tablet detection + fixed field / independent side scrolling */
+body.mode-tablet{
+  overflow:hidden!important;
+}
+body.mode-tablet .layout{
+  display:flex!important;
+  flex-direction:row!important;
+  height:calc(100dvh - 62px)!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+body.mode-tablet .sidebar{
+  display:block!important;
+  flex:0 0 190px!important;
+  width:190px!important;
+  height:100%!important;
+  min-height:0!important;
+  padding:8px!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
+body.mode-tablet .sidebar #players{
+  overflow:visible!important;
+  min-height:0!important;
+}
+body.mode-tablet .main{
+  flex:1 1 auto!important;
+  width:auto!important;
+  min-width:0!important;
+  height:100%!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+body.mode-tablet .fieldArea{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  padding:4px!important;
+}
+body.mode-tablet .field{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+}
+body.mode-tablet .actions{
+  display:flex!important;
+  flex-direction:column!important;
+  flex:0 0 108px!important;
+  width:108px!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
+  padding:7px!important;
+  gap:7px!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  border-left:1px solid #202a38!important;
+  border-top:0!important;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
+body.mode-tablet .actions button{
+  flex:0 0 auto!important;
+  width:100%!important;
+  min-height:44px!important;
+  padding:8px 4px!important;
+  font-size:10px!important;
+}
+body.mode-tablet .mobileSidelineNav{
+  display:none!important;
+}
+body.mode-tablet .bottom{
+  flex:0 0 auto!important;
+}
+body.mode-tablet .sidebar::-webkit-scrollbar,
+body.mode-tablet .actions::-webkit-scrollbar{
+  width:6px;
+}
+
+/* Wider iPads get a little more room for the roster. */
+@media(min-width:900px){
+  body.mode-tablet .sidebar{
+    flex-basis:215px!important;
+    width:215px!important;
+  }
+  body.mode-tablet .actions{
+    flex-basis:118px!important;
+    width:118px!important;
+  }
+}
+
+/* Phone portrait stays compact; player roster is intentionally not forced beside a tiny field. */
+body.mode-mobile .sidebar{
+  display:none!important;
+}

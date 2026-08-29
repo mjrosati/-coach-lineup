@@ -319,13 +319,20 @@ const SPECIAL_DEFAULTS={
   ]
 };
 
+function detectedDeviceMode(){
+  const shortSide=Math.min(window.screen?.width||innerWidth,window.screen?.height||innerHeight);
+  const touch=(navigator.maxTouchPoints||0)>0;
+  if(touch && shortSide>=600) return 'tablet';
+  if(!touch && innerWidth>=1050) return 'desktop';
+  return 'mobile';
+}
 function applyDeviceMode(mode=deviceMode){
   deviceMode=mode;
   localStorage.setItem('coachLineupDeviceMode',mode);
-  document.body.classList.remove('mode-mobile','mode-tablet','mode-desktop');
-  if(mode==='mobile') document.body.classList.add('mode-mobile');
-  if(mode==='tablet') document.body.classList.add('mode-tablet');
-  if(mode==='desktop') document.body.classList.add('mode-desktop');
+  document.body.classList.remove('mode-mobile','mode-tablet','mode-desktop','mode-auto');
+  const effective=mode==='auto'?detectedDeviceMode():mode;
+  document.body.classList.add('mode-'+effective);
+  if(mode==='auto') document.body.classList.add('mode-auto');
 }
 function displayYForRegular(p){
   const y=Number(p.y_pct);
@@ -401,6 +408,13 @@ async function loadAppSafe(){
     appLoadInProgress=false;
   }
 }
+
+let deviceModeResizeTimer=null;
+window.addEventListener('resize',()=>{
+  if(deviceMode!=='auto') return;
+  clearTimeout(deviceModeResizeTimer);
+  deviceModeResizeTimer=setTimeout(()=>applyDeviceMode('auto'),120);
+});
 
 async function boot(){
   applyDeviceMode();
