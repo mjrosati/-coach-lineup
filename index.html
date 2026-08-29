@@ -7,11 +7,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Coach Lineup">
-<link rel="manifest" href="manifest.webmanifest?v=74">
+<link rel="manifest" href="manifest.webmanifest?v=75">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="styles.css?v=74">
+<link rel="stylesheet" href="styles.css?v=75">
 <title>Coach Lineup</title>
 </head>
 <body>
@@ -86,6 +86,7 @@
       <button class="primary full" id="addPlayerBtn">+ ADD PLAYER</button>
       <input id="search" class="search" placeholder="Search players...">
       <div class="playerSortControls inlineSort" aria-label="Sort players"><span>SORT</span><button id="sortJerseyBtn" type="button">#</button><button id="sortNameBtn" type="button">NAME</button><button id="sortPositionBtn" type="button">POS</button></div>
+      <div class="rosterColumnHead"><span>#</span><span>PLAYER</span><span>POS</span><span>ST</span></div>
       <div id="players"></div>
       <button class="secondary full" id="linesBtn">MANAGE LINES</button>
       <button class="secondary full" id="positionsBtn">EDIT POSITION LABELS</button>
@@ -93,13 +94,12 @@
     <section class="main">
       <div class="toolbar gameToolbar">
         <b>PLAY #<span id="playNo">0</span></b>
-        <div class="viewTabs">
-          <button class="viewTab active" id="offenseTab">OFFENSE</button>
-          <button class="viewTab" id="defenseTab">DEFENSE</button>
+        <div class="viewTabs combinedViewTabs">
+          <button class="viewTab active" id="bothTab" onclick="setUnifiedFieldView()">OFFENSE / DEFENSE</button>
           <button class="viewTab" id="specialTab">SPECIAL TEAMS</button>
         </div>
         <select id="specialUnitSelect" class="hidden specialUnitSelect"></select>
-        <button class="editFieldBtn" id="editFieldBtn">EDIT FIELD</button>
+        <button class="editFieldBtn" id="editFieldBtn" onclick="openEditLineupChooser()">✎ EDIT LINEUP</button>
         <span class="spacer"></span><span id="warning"></span>
       </div>
       <div id="calledPlayBanner" class="calledPlayBanner hidden"><div class="calledPlayMain">
@@ -143,7 +143,8 @@
   <button onclick="openSmartPlaySuggestion()">SUGGEST</button>
   <button onclick="openGameHistory()">HISTORY</button>
 </div>
-<aside class="actions">
+<aside class="rightRail">
+  <div class="actions">
       
   
   
@@ -162,14 +163,27 @@
       <button id="sidelineBtn" class="sidelineKeep sidelineExitBtn">SIDELINE MODE</button>
       
       <button id="fullscreenBtn">FULL SCREEN</button>
-    </aside>
+    </div>
+  <section class="desktopAnalytics" id="desktopAnalytics">
+    <div class="analyticsCard playingTimeCard">
+      <div class="analyticsHead"><b>PLAYING TIME</b><span id="analyticsTotalPlays">0 PLAYS</span></div>
+      <div class="analyticsSubTabs"><span class="active">OVERALL</span><span>THIS GAME</span></div>
+      <div class="analyticsTableHead"><span>#</span><span>PLAYER</span><span>PLAYS</span><span>%</span><span>ST</span></div>
+      <div id="desktopPlayingTimeRows" class="desktopPlayingTimeRows"></div>
+    </div>
+    <div class="analyticsCard lineStatsCard">
+      <div class="analyticsHead"><b>LINE STATS</b><span>THIS GAME</span></div>
+      <div id="desktopLineChart" class="desktopLineChart"></div>
+    </div>
+  </section>
+</aside>
   </main>
 </div>
 
 <div id="modal" class="modalWrap hidden"><div class="modal" id="modalBody"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=74"></script>
-<script src="app.js?v=74"></script>
+<script src="config.js?v=75"></script>
+<script src="app.js?v=75"></script>
 <div id="fullscreenPlayPanel" class="fullscreenPlayPanel hidden">
   <div class="fullscreenPlayInfo">
     <small>SELECTED PLAY</small>
@@ -183,5 +197,5 @@
     <button id="fullscreenTdBtn" class="tdPlayBtn">🏈 TD</button>
   </div>
 </div>
-<div id="buildBadge" class="buildBadge">v74 • UNIFIED GAME DAY</div>
+<div id="buildBadge" class="buildBadge">v75 • DESKTOP STATS + COMBINED O/D</div>
 </body></html>

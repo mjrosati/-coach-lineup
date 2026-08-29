@@ -3530,3 +3530,308 @@ body:-webkit-full-screen .fullscreenPlayPanel,
   .unifiedPlayerCard span{font-size:5.5px}
   .unifiedPlayerCard small{font-size:5px}
 }
+
+/* v75 — desktop reference layout + analytics */
+
+.rosterColumnHead{
+  display:grid;
+  grid-template-columns:32px minmax(0,1fr) 38px 32px 22px;
+  gap:5px;
+  padding:6px 2px;
+  color:#8796a7;
+  border-bottom:1px solid #26313d;
+  font-size:8px;
+  font-weight:900;
+}
+.player{
+  grid-template-columns:32px minmax(0,1fr) 38px 32px 22px!important;
+}
+.rosterStatusBadge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:29px;
+  min-height:18px;
+  padding:1px 2px;
+  border-radius:4px;
+  font-size:7px;
+  font-weight:1000;
+  line-height:1;
+  border:1px solid #344252;
+}
+.rosterStatusBadge.ok{color:#7ee66c;border-color:#397535;background:#0d2110}
+.rosterStatusBadge.inj{color:#ffc044;border-color:#8b6415;background:#281d05}
+.rosterStatusBadge.out{color:#ff5d51;border-color:#8e2c25;background:#2a0c09}
+.rosterPosBadge{width:34px!important;min-width:34px!important}
+.rosterEditBtn{width:20px!important;min-width:20px!important;padding:0!important}
+
+.combinedViewTabs{
+  grid-template-columns:1.45fr 1fr!important;
+}
+.combinedViewTabs .viewTab{font-weight:1000}
+.editLineupChooser{width:min(560px,94vw)}
+.editSideGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.editSideGrid button{
+  min-height:78px;
+  display:flex!important;
+  flex-direction:column;
+  justify-content:center;
+  gap:4px;
+}
+.editSideGrid button span{font-size:9px;opacity:.7}
+
+/* Right side: narrow game control rail + wide analytics rail */
+.rightRail{
+  min-width:0;
+  display:grid;
+  grid-template-columns:108px minmax(230px,1fr);
+  background:#070b10;
+  border-left:1px solid #202a36;
+  overflow:hidden;
+}
+.rightRail>.actions{
+  width:auto!important;
+  min-width:0!important;
+  border-left:0!important;
+  border-right:1px solid #202a36!important;
+  overflow-y:auto!important;
+  padding:8px!important;
+  gap:7px!important;
+}
+.rightRail>.actions:before{content:"";display:none!important}
+.rightRail>.actions button{
+  min-height:52px!important;
+  padding:6px 3px!important;
+  font-size:8px!important;
+  line-height:1.05!important;
+}
+
+.desktopAnalytics{
+  min-width:0;
+  height:100%;
+  overflow-y:auto;
+  padding:8px;
+  background:#080d12;
+}
+.analyticsCard{
+  border:1px solid #263442;
+  border-radius:8px;
+  background:#0a1016;
+  overflow:hidden;
+  margin-bottom:9px;
+}
+.analyticsHead{
+  min-height:38px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:7px 9px;
+  border-bottom:1px solid #263442;
+}
+.analyticsHead b{font-size:11px;letter-spacing:.5px}
+.analyticsHead span{font-size:7px;color:#93a3b4;font-weight:900}
+.analyticsSubTabs{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  border-bottom:1px solid #263442;
+}
+.analyticsSubTabs span{
+  padding:7px;
+  text-align:center;
+  font-size:8px;
+  font-weight:900;
+  color:#8796a7;
+}
+.analyticsSubTabs .active{
+  color:#fff;
+  border-bottom:2px solid #1d8cf8;
+  background:#0d1d2d;
+}
+.analyticsTableHead,.analyticsPlayerRow{
+  display:grid;
+  grid-template-columns:18px minmax(0,1fr) 34px 70px 28px;
+  gap:4px;
+  align-items:center;
+}
+.analyticsTableHead{
+  padding:6px 7px;
+  color:#8291a1;
+  font-size:7px;
+  font-weight:900;
+  border-bottom:1px solid #263442;
+}
+.analyticsPlayerRow{
+  min-height:32px;
+  padding:5px 7px;
+  border-bottom:1px solid #1d2731;
+  font-size:8px;
+}
+.analyticsPlayerName{
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  font-weight:800;
+}
+.analyticsPct{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 26px;
+  align-items:center;
+  gap:3px;
+}
+.analyticsPct:before{
+  content:"";
+  grid-column:1;
+  grid-row:1;
+  height:4px;
+  border-radius:4px;
+  background:#1d2731;
+}
+.analyticsPct i{
+  grid-column:1;
+  grid-row:1;
+  display:block;
+  height:4px;
+  max-width:100%;
+  border-radius:4px;
+  background:#42a8ff;
+  z-index:1;
+}
+.analyticsPct b{grid-column:2;font-size:8px}
+.analyticsPlayerRow.highUse .analyticsPct i{background:#e33a2f}
+.analyticsStatus{
+  display:inline-flex;
+  justify-content:center;
+  padding:2px;
+  border-radius:3px;
+  font-size:6px;
+  font-weight:1000;
+}
+.analyticsStatus.ok{color:#6ee565}
+.analyticsStatus.inj{color:#ffc044}
+.analyticsStatus.out{color:#ff5d51}
+
+.lineStatsCard{min-height:260px}
+.desktopLineChart{padding:12px 8px 8px}
+.lineChartPlot{
+  height:210px;
+  display:flex;
+  align-items:stretch;
+  justify-content:space-around;
+  gap:7px;
+  padding-top:15px;
+  border-left:1px solid #32404e;
+  border-bottom:1px solid #32404e;
+  background:
+    linear-gradient(to top,transparent 24%,#202b3528 25%,transparent 26%,transparent 49%,#202b3528 50%,transparent 51%,transparent 74%,#202b3528 75%,transparent 76%);
+}
+.lineChartItem{
+  flex:1 1 0;
+  min-width:0;
+  display:grid;
+  grid-template-rows:18px 1fr 26px 16px;
+  align-items:end;
+  justify-items:center;
+}
+.lineChartValue{font-size:8px;font-weight:1000}
+.lineChartBarTrack{
+  width:65%;
+  height:100%;
+  display:flex;
+  align-items:flex-end;
+}
+.lineChartBar{
+  width:100%;
+  min-height:3px;
+  border:1px solid;
+  border-radius:2px 2px 0 0;
+  opacity:.9;
+}
+.lineChartLabel{
+  width:100%;
+  padding-top:4px;
+  text-align:center;
+  font-size:6px;
+  font-weight:900;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.lineChartItem small{font-size:6px;color:#8291a1}
+.lineChartEmpty{padding:10px;text-align:center;font-size:8px;color:#8291a1}
+
+/* Correct combined-field display uses the database's existing x/y coordinates. */
+.field.view-both .tag.offense{display:block!important;top:7px!important}
+.field.view-both .tag.defense{display:block!important;top:51%!important}
+.field.view-both .mid{display:block!important}
+.unifiedSlot{z-index:4}
+
+/* Desktop layout modeled after the approved reference */
+@media(min-width:901px){
+  #app>.layout{
+    display:grid!important;
+    grid-template-columns:250px minmax(540px,1fr) minmax(350px,430px)!important;
+    height:calc(100dvh - 62px)!important;
+    overflow:hidden!important;
+  }
+  #app>.layout>.sidebar{
+    width:auto!important;
+    min-width:0!important;
+    height:100%!important;
+    overflow-y:auto!important;
+  }
+  #app>.layout>.main{
+    width:auto!important;
+    min-width:0!important;
+    height:100%!important;
+    overflow:hidden!important;
+  }
+  #app>.layout>.rightRail{
+    height:100%!important;
+  }
+  .fieldArea{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    overflow:hidden!important;
+    padding:6px!important;
+  }
+  .field{
+    width:100%!important;
+    height:100%!important;
+    aspect-ratio:auto!important;
+  }
+}
+
+/* On tablet the analytics panel moves below the compact right controls. */
+@media(min-width:600px) and (max-width:900px){
+  body #app>main.layout{
+    grid-template-columns:138px minmax(0,1fr) 108px!important;
+  }
+  .rightRail{
+    display:block!important;
+    width:auto!important;
+    overflow:hidden!important;
+  }
+  .rightRail>.actions{height:100%!important}
+  .desktopAnalytics{display:none!important}
+}
+
+/* Mobile keeps the same design language without squeezing the analytics. */
+@media(max-width:599px){
+  .rightRail{display:block!important}
+  .rightRail>.actions{
+    display:grid!important;
+    grid-template-columns:repeat(2,1fr)!important;
+    width:100%!important;
+    height:auto!important;
+  }
+  .desktopAnalytics{
+    display:block!important;
+    height:auto!important;
+    max-height:none!important;
+  }
+  .lineChartPlot{height:180px}
+  .rosterColumnHead{grid-template-columns:32px minmax(0,1fr) 38px 32px 22px}
+}
+
+.unifiedField{display:none!important}

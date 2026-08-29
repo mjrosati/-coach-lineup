@@ -337,17 +337,20 @@ function storedYFromDisplay(side,displayY){
   return side==='offense' ? ((d-8)/84)*50 : 50+((d-8)/84)*50;
 }
 function setActiveView(view){
-  unifiedFieldView=false;
-  document.body.classList.remove('unifiedFieldMode');
-  $('bothTab')?.classList.remove('active');
-  activeView=view;
-  ['offense','defense','special'].forEach(v=>{
-    const id=v==='special'?'specialTab':v+'Tab';
-    $(id)?.classList.toggle('active',v===view);
-  });
-  $('specialUnitSelect').classList.toggle('hidden',view!=='special');
-  renderField();
-  renderPlayers();
+  if(view==='special'){
+    unifiedFieldView=false;
+    editingIndividualSide=null;
+    activeView='special';
+    document.body.classList.remove('unifiedFieldMode');
+    $('bothTab')?.classList.remove('active');
+    $('specialTab')?.classList.add('active');
+    $('specialUnitSelect')?.classList.remove('hidden');
+    if($('editFieldBtn')) $('editFieldBtn').innerHTML='✎ EDIT LINEUP';
+    renderField();
+    renderPlayers();
+    return;
+  }
+  editUnifiedSide(view,false);
 }
 function toggleEditField(){
   editFieldMode=!editFieldMode;
@@ -408,87 +411,102 @@ async function loadAppSafe(){
 
 
 let unifiedFieldView=true;
+let editingIndividualSide=null;
 
 function setUnifiedFieldView(){
   unifiedFieldView=true;
+  editingIndividualSide=null;
+  editFieldMode=false;
+  activeView='offense';
   document.body.classList.add('unifiedFieldMode');
-  ['bothTab','offenseTab','defenseTab','specialTab'].forEach(id=>$(id)?.classList.remove('active'));
   $('bothTab')?.classList.add('active');
-  renderUnifiedField();
+  $('specialTab')?.classList.remove('active');
+  $('specialUnitSelect')?.classList.add('hidden');
+  if($('editFieldBtn')) $('editFieldBtn').innerHTML='✎ EDIT LINEUP';
+  renderField();
   renderPlayers();
 }
 
-function setIndividualFieldView(side){
+function editUnifiedSide(side,dragPositions=false){
   unifiedFieldView=false;
+  editingIndividualSide=side;
+  activeView=side;
   document.body.classList.remove('unifiedFieldMode');
-  setActiveView(side);
+  $('bothTab')?.classList.remove('active');
+  $('specialTab')?.classList.remove('active');
+  $('specialUnitSelect')?.classList.add('hidden');
+  editFieldMode=!!dragPositions;
+  if($('editFieldBtn')) $('editFieldBtn').textContent='✓ BACK TO BOTH';
+  closeModal();
+  renderField();
+  renderPlayers();
 }
 
-function unifiedAssignmentMap(side){
-  const map={};
-  currentLineAssignments().filter(a=>a.side===side).forEach(a=>map[a.position_label]=a);
-  return map;
-}
-
-function unifiedPlayerCard(pos, assignment, side){
-  const p=assignment ? players.find(x=>x.id===assignment.player_id) : null;
-  const shown = p ? (showNumbers ? '#'+esc(p.jersey_number) : esc(p.name)) : '';
-  const num = p && !showNumbers ? '#'+esc(p.jersey_number) : '';
-  const prior = p && previousPlayPlayerIds.has(p.id) ? ' previousPlayPlayer' : '';
-  const click = p ? `onclick="openLineupEditor('${p.id}')"` : '';
-  return `<button class="unifiedPlayerCard ${side}${prior}" ${click}>
-    <b>${esc(pos)}</b>
-    <span>${shown||'—'}</span>
-    ${num?`<small>${num}</small>`:''}
-  </button>`;
+function openEditLineupChooser(){
+  if(editingIndividualSide){
+    setUnifiedFieldView();
+    return;
+  }
+  openModal(`<div class="editLineupChooser">
+    <div class="playerStatsHead">
+      <div><small>EDIT CURRENT LINE</small><h2>Choose Side</h2></div>
+      <button class="secondary" onclick="closeModal()">✕ CLOSE</button>
+    </div>
+    <div class="editSideGrid">
+      <button onclick="editUnifiedSide('offense',false)"><b>OFFENSE</b><span>Change player assignments</span></button>
+      <button onclick="editUnifiedSide('defense',false)"><b>DEFENSE</b><span>Change player assignments</span></button>
+      <button class="secondary" onclick="editUnifiedSide('offense',true)"><b>OFFENSE POSITIONS</b><span>Move position boxes</span></button>
+      <button class="secondary" onclick="editUnifiedSide('defense',true)"><b>DEFENSE POSITIONS</b><span>Move position boxes</span></button>
+    </div>
+  </div>`);
 }
 
 function renderUnifiedField(){
-  if(!unifiedFieldView || activeView==='special') return;
-  const field=$('field');
-  if(!field) return;
-  const off=unifiedAssignmentMap('offense');
-  const def=unifiedAssignmentMap('defense');
-  const op=(positions.offense||[]).map(x=>x.label);
-  const dp=(positions.defense||[]).map(x=>x.label);
-  const offCards=op.map(pos=>unifiedPlayerCard(pos,off[pos],'offense')).join('');
-  const defCards=dp.map(pos=>unifiedPlayerCard(pos,def[pos],'defense')).join('');
-  field.innerHTML=`<div class="unifiedField">
-    <section class="unifiedHalf offenseHalf">
-      <div class="unifiedSideLabel offenseLabel">OFFENSE</div>
-      <div class="unifiedCards offenseCards">${offCards}</div>
-    </section>
-    <section class="unifiedHalf defenseHalf">
-      <div class="unifiedSideLabel defenseLabel">DEFENSE</div>
-      <div class="unifiedCards defenseCards">${defCards}</div>
-    </section>
-  </div>`;
+  const f=$('field');
+  if(!f) return;
+  ensureFieldDecor();
+  f.querySelectorAll('.slot').forEach(x=>x.remove());
+  f.classList.remove('view-offense','view-defense','view-special');
+  f.classList.add('view-both');
+  f.classList.remove('editing');
+
+  const offenseTag=f.querySelector('.tag.offense');
+  const defenseTag=f.querySelector('.tag.defense');
+  if(offenseTag){ offenseTag.style.display='block'; offenseTag.style.top='7px'; }
+  if(defenseTag){ defenseTag.style.display='block'; defenseTag.style.top='51%'; }
+
+  const playerMap=new Map(players.map(p=>[String(p.id),p]));
+  const assignmentMap=new Map(currentLineAssignments().map(a=>[String(a.position_label_id),playerMap.get(String(a.player_id))]));
+
+  positions
+    .filter(pos=>pos.side==='offense'||pos.side==='defense')
+    .forEach(pos=>{
+      const pl=assignmentMap.get(String(pos.id));
+      const el=document.createElement('div');
+      el.className='slot unifiedSlot '+(pos.side==='defense'?'def ':'')+
+        (pl?availabilityClass(pl):'')+
+        (pl&&previousLinePlayerIdsForSide(pos.side).has(pl.id)?' playedPreviousLine':'');
+      el.style.left=Number(pos.x_pct)+'%';
+      el.style.top=Number(pos.y_pct)+'%';
+      el.innerHTML=`${esc(pos.label)}<small>${pl?(displayMode==='names'?esc(pl.name):'#'+esc(pl.jersey_number)):'OPEN'}</small>`;
+      if(roleCanEdit()){
+        el.classList.add('tappableSub');
+        el.title=`Edit ${pos.side} ${pos.label}`;
+        el.onclick=()=>openLineupEditor(pos.id);
+      }
+      f.appendChild(el);
+    });
 }
 
-async function boot(){
-  applyDeviceMode();
-
-  const {data:{session},error}=await sb.auth.getSession();
-  if(error) console.error('Session check failed:',error);
-
-  if(session) await loadAppSafe();
-  else showAuth();
-
-  // Do not await database/API calls directly inside Supabase's auth callback.
-  // Scheduling the app load outside the callback prevents the auth transition
-  // from stalling after a successful password login.
-  sb.auth.onAuthStateChange((_event,s)=>{
-    setTimeout(()=>{
-      if(s) loadAppSafe();
-      else showAuth();
-    },0);
-  });
-
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js').then(reg=>reg.update()).catch(()=>{});
-  }
-  updateConnectionStatus();
-  if(navigator.onLine) setTimeout(syncOfflineQueue,800);
+function previousLinePlayerIdsForSide(side){
+  if(!lines.length || currentLine<0) return new Set();
+  const prevIndex=(currentLine-1+lines.length)%lines.length;
+  const prevLine=lines[prevIndex];
+  if(!prevLine) return new Set();
+  const ids=new Set(positions.filter(p=>p.side===side).map(p=>String(p.id)));
+  return new Set(assignments
+    .filter(a=>String(a.line_id)===String(prevLine.id)&&ids.has(String(a.position_label_id)))
+    .map(a=>a.player_id));
 }
 
 async function loadApp(){
@@ -1123,8 +1141,87 @@ async function loadCounts(){
   (pp||[]).forEach(r=>counts[r.player_id]=(counts[r.player_id]||0)+1);
 }
 
+
+let desktopLineStatsCache={};
+
+function renderDesktopPlayingTime(){
+  const host=$('desktopPlayingTimeRows');
+  if(!host) return;
+  const total=Number(playCount||0);
+  if($('analyticsTotalPlays')) $('analyticsTotalPlays').textContent=`${total} PLAY${total===1?'':'S'}`;
+  const rows=players.map(p=>{
+    const plays=Number(counts[p.id]||0);
+    const pct=total?Math.round(plays/total*100):0;
+    return {p,plays,pct};
+  }).sort((a,b)=>b.pct-a.pct||b.plays-a.plays||a.p.name.localeCompare(b.p.name)).slice(0,10);
+  host.innerHTML=rows.map((r,i)=>{
+    const st=compactAvailability(r.p);
+    return `<div class="analyticsPlayerRow ${r.pct>=threshold?'highUse':''}">
+      <span class="rank">${i+1}</span>
+      <span class="analyticsPlayerName">#${esc(r.p.jersey_number)} ${esc(r.p.name)}</span>
+      <span>${r.plays}</span>
+      <span class="analyticsPct"><i style="width:${Math.min(100,r.pct)}%"></i><b>${r.pct}%</b></span>
+      <span class="analyticsStatus ${st.toLowerCase()}">${st}</span>
+    </div>`;
+  }).join('')||'<div class="emptyState">No player data yet.</div>';
+}
+
+function renderDesktopLineChart(stats=desktopLineStatsCache){
+  const host=$('desktopLineChart');
+  if(!host) return;
+  const rows=lines.map((line,i)=>{
+    const plays=Number(stats?.[line.id]||0);
+    return {line,plays,i};
+  });
+  const total=rows.reduce((s,r)=>s+r.plays,0);
+  host.innerHTML=`<div class="lineChartPlot">
+    ${rows.map(r=>{
+      const pct=total?Math.round(r.plays/total*100):0;
+      return `<div class="lineChartItem">
+        <div class="lineChartValue">${pct}%</div>
+        <div class="lineChartBarTrack"><div class="lineChartBar" style="height:${Math.max(3,pct)}%;border-color:${esc(r.line.color||'#2584ff')};background:${esc(r.line.color||'#2584ff')}"></div></div>
+        <div class="lineChartLabel">${r.i+1} ${esc(r.line.name)}</div>
+        <small>${r.plays} play${r.plays===1?'':'s'}</small>
+      </div>`;
+    }).join('')}
+  </div>${total?'' : '<div class="lineChartEmpty">Line usage will appear after plays are recorded.</div>'}`;
+}
+
+async function refreshDesktopLineStats(){
+  if(!currentGame?.id){
+    desktopLineStatsCache={};
+    renderDesktopLineChart();
+    return;
+  }
+  if(!navigator.onLine){
+    try{ desktopLineStatsCache=JSON.parse(localStorage.getItem(`coachLineupLineStats:${currentGame.id}`)||'{}'); }catch{desktopLineStatsCache={};}
+    const queued=getOfflineQueue().filter(x=>x.type==='game_play'&&String(x.game_id)===String(currentGame.id));
+    const merged={...desktopLineStatsCache};
+    queued.forEach(x=>merged[x.line_id]=Number(merged[x.line_id]||0)+1);
+    renderDesktopLineChart(merged);
+    return;
+  }
+  try{
+    const {data,error}=await sb.from('game_plays').select('line_id').eq('game_id',currentGame.id);
+    if(error) throw error;
+    const stats={};
+    (data||[]).forEach(r=>{ if(r.line_id) stats[r.line_id]=Number(stats[r.line_id]||0)+1; });
+    desktopLineStatsCache=stats;
+    try{localStorage.setItem(`coachLineupLineStats:${currentGame.id}`,JSON.stringify(stats));}catch{}
+    renderDesktopLineChart(stats);
+  }catch(e){
+    console.warn('Line stats refresh failed',e);
+    renderDesktopLineChart();
+  }
+}
+
+function refreshDesktopAnalytics(){
+  renderDesktopPlayingTime();
+  refreshDesktopLineStats();
+}
+
 function renderAll(){
-  renderLineSelect(); renderPlayers(); renderSpecialUnitSelect(); renderField(); renderSummary(); applyGameDaySettings();
+  renderLineSelect(); renderPlayers(); renderSpecialUnitSelect(); renderField(); renderSummary(); applyGameDaySettings(); refreshDesktopAnalytics();
 }
 
 function renderLineSelect(){
@@ -1150,29 +1247,33 @@ function renderSpecialUnitSelect(){
 }
 
 function rosterPositionBadge(p){
-  const list=activeView==='defense'?(p.defense_positions||[]):activeView==='offense'?(p.offense_positions||[]):[];
-  const first=(Array.isArray(list)&&list.length?list[0]:'') || p.primary_position || '';
-  return first||'—';
+  let side=activeView;
+  if(unifiedFieldView) side=possession==='theirs'?'defense':'offense';
+  const list=side==='defense'?(p.defense_positions||[]):side==='offense'?(p.offense_positions||[]):[];
+  return (Array.isArray(list)&&list.length?list[0]:'') || p.primary_position || '—';
 }
 function compactAvailability(p){
   const s=(p?.availability_status||'active').toLowerCase();
   if(s==='injured') return 'INJ';
   if(s==='out') return 'OUT';
-  return '';
+  return 'OK';
 }
 function renderPlayers(){
   const q=($('search').value||'').toLowerCase();
   [['sortJerseyBtn','jersey'],['sortNameBtn','name'],['sortPositionBtn','position']].forEach(([id,m])=>$(id)?.classList.toggle('activeSort',playerSortMode===m));
   $('players').innerHTML=sortedPlayers(players)
     .filter(p=>(`${p.name} ${p.jersey_number} ${p.primary_position||''} ${availabilityLabel(p)}`).toLowerCase().includes(q))
-    .map(p=>`<div class="player ${availabilityClass(p)}">
-      <span class="num">#${esc(p.jersey_number)}</span>
-      <span class="playerRosterName">${esc(p.name)} ${compactAvailability(p)?`<span class="miniStatus compact">${compactAvailability(p)}</span>`:''}</span>
-      <span class="rosterPosBadge">${esc(rosterPositionBadge(p))}</span>
-      ${roleCanEdit()?`<button class="iconBtn rosterEditBtn" onclick="editPlayer('${p.id}')">✎</button>`:''}
-    </div>`).join('');
+    .map(p=>{
+      const st=compactAvailability(p);
+      return `<div class="player ${availabilityClass(p)}">
+        <span class="num">#${esc(p.jersey_number)}</span>
+        <span class="playerRosterName">${esc(p.name)}</span>
+        <span class="rosterPosBadge">${esc(rosterPositionBadge(p))}</span>
+        <span class="rosterStatusBadge ${st.toLowerCase()}">${st}</span>
+        ${roleCanEdit()?`<button class="iconBtn rosterEditBtn" onclick="editPlayer('${p.id}')">✎</button>`:''}
+      </div>`;
+    }).join('');
 }
-
 function previousLinePlayerIds(){
   if(!lines.length || currentLine<0 || activeView==='special') return new Set();
   const prevIndex=(currentLine-1+lines.length)%lines.length;
@@ -1212,6 +1313,7 @@ function ensureFieldDecor(){
 }
 
 function renderField(){
+  if(unifiedFieldView && activeView!=='special'){ renderUnifiedField(); return; }
   const f=$('field');
   ensureFieldDecor();
   f.querySelectorAll('.slot').forEach(x=>x.remove());
@@ -1358,6 +1460,7 @@ function renderSummary(){
   warningEl.setAttribute('aria-label',over.length
     ? `Playing-time alert. ${over.length} player${over.length===1?'':'s'} at or above ${threshold} percent. Tap for details.`
     : `Playing time is okay. Tap for details.`);
+  renderDesktopPlayingTime();
 }
 
 function setLine(i){ currentLine=i; renderLineSelect(); renderField(); }
@@ -3068,6 +3171,7 @@ async function startGame(){
   closeModal(); renderSummary(); showGameScreen(); saveOfflineSnapshot();
 }
 async function nextPlay(resultType='record'){
+  const recordView=unifiedFieldView?(possession==='theirs'?'defense':'offense'):activeView;
   if(!pendingCalledPlay){
     alert('Select a play from the Playbook first.');
     return;
@@ -3078,7 +3182,7 @@ async function nextPlay(resultType='record'){
   const line=lines[currentLine]; if(!line) return alert('Create a line first.');
 
   let participants=[];
-  if(activeView==='special'){
+  if(recordView==='special'){
     const unit=specialUnits[currentSpecialUnit];
     if(!unit) return alert('Select a special teams unit.');
     const slots=new Map(specialSlots.filter(s=>s.unit_id===unit.id).map(s=>[s.id,s]));
@@ -3087,14 +3191,14 @@ async function nextPlay(resultType='record'){
       position_label:`${unit.name}: ${slots.get(a.slot_id)?.label||''}`
     }));
   }else{
-    const posById=new Map(positions.filter(p=>p.side===activeView).map(p=>[p.id,p]));
+    const posById=new Map(positions.filter(p=>p.side===recordView).map(p=>[p.id,p]));
     participants=currentLineAssignments()
       .filter(a=>posById.has(a.position_label_id))
       .map(a=>({player_id:a.player_id,position_label:posById.get(a.position_label_id)?.label||''}));
   }
 
   if(!participants.length){
-    alert(`No players are assigned to the ${activeView==='special'?(specialUnits[currentSpecialUnit]?.name||'Special Teams'):activeView.toUpperCase()} view yet.`);
+    alert(`No players are assigned to the ${recordView==='special'?(specialUnits[currentSpecialUnit]?.name||'Special Teams'):recordView.toUpperCase()} view yet.`);
     return;
   }
 
@@ -3114,7 +3218,7 @@ async function nextPlay(resultType='record'){
   }
 
   const unique=[...new Map(participants.map(x=>[x.player_id,x])).values()];
-  const baseNote=activeView==='special' ? `special:${specialUnits[currentSpecialUnit]?.name||''}` : activeView;
+  const baseNote=recordView==='special' ? `special:${specialUnits[currentSpecialUnit]?.name||''}` : recordView;
   const calledPlayForRecord=pendingCalledPlay;
   const note=encodeGameNote(baseNote,calledPlayForRecord);
 
@@ -3163,6 +3267,7 @@ async function nextPlay(resultType='record'){
     persistGameState();
     renderGameStrip();
     saveOfflineSnapshot();
+    refreshDesktopLineStats();
 
     // Automatically rotate to the next configured line after each recorded play.
     if(lines.length>1){
