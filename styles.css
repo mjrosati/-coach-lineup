@@ -2224,3 +2224,14 @@ body:-webkit-full-screen .fullscreenPlayPanel,
   :fullscreen .field .slot{font-size:17px !important}
   :fullscreen .field .slot small{font-size:10px}
 }
+
+/* Offline sideline mode */
+#syncStatus{cursor:pointer}
+#syncStatus.offline{
+  border-color:rgba(255,176,0,.85)!important;
+  background:rgba(255,176,0,.12)!important;
+}
+.offlineSavedNotice{
+  font-size:10px;
+  font-weight:900;
+}

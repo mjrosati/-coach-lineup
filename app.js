@@ -42,17 +42,219 @@ function updateConnectionStatus(){
   const el=$('syncStatus');
   if(!el) return;
   const online=navigator.onLine;
-  el.textContent=online?'● LIVE':'● OFFLINE';
-  el.classList.toggle('offline',!online);
+  const queued=getOfflineQueue().length;
+  if(!online) el.textContent=queued?`● OFFLINE • ${queued} SAVED`:'● OFFLINE';
+  else if(offlineSyncRunning) el.textContent=`↻ SYNCING ${queued}`;
+  else if(queued) el.textContent=`● ONLINE • ${queued} TO SYNC`;
+  else el.textContent='● LIVE';
+  el.classList.toggle('offline',!online||queued>0);
 }
-window.addEventListener('online',updateConnectionStatus);
-window.addEventListener('offline',updateConnectionStatus);
-function userId(){ return sb.auth.getUser().then(r=>r.data.user?.id); }
+window.addEventListener('online',()=>{ updateConnectionStatus(); syncOfflineQueue(); });
+window.addEventListener('offline',()=>{ saveOfflineSnapshot(); updateConnectionStatus(); });
+async function userId(){
+  try{
+    if(navigator.onLine){
+      const r=await sb.auth.getUser();
+      if(r?.data?.user?.id) return r.data.user.id;
+    }
+    const s=await sb.auth.getSession();
+    return s?.data?.session?.user?.id||null;
+  }catch{
+    try{
+      const s=await sb.auth.getSession();
+      return s?.data?.session?.user?.id||null;
+    }catch{return null;}
+  }
+}
 function roleCanEdit(){ return membership && ['owner','admin','coach'].includes(membership.role); }
 function roleIsAdmin(){ return membership && ['owner','admin'].includes(membership.role); }
 function roleIsOwner(){ return membership?.role==='owner'; }
 
 
+
+const OFFLINE_SNAPSHOT_KEY='coachLineupOfflineSnapshot:v1';
+const OFFLINE_QUEUE_KEY='coachLineupOfflineQueue:v1';
+let offlineSyncRunning=false;
+
+function getOfflineQueue(){
+  try{return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY)||'[]')||[];}catch{return [];}
+}
+function setOfflineQueue(q){
+  try{localStorage.setItem(OFFLINE_QUEUE_KEY,JSON.stringify(q||[]));}catch{}
+  updateConnectionStatus();
+}
+function queueOfflineAction(action){
+  const q=getOfflineQueue();
+  q.push({...action,queued_at:new Date().toISOString()});
+  setOfflineQueue(q);
+}
+function saveOfflineSnapshot(){
+  if(!team) return;
+  try{
+    localStorage.setItem(OFFLINE_SNAPSHOT_KEY,JSON.stringify({
+      saved_at:new Date().toISOString(),
+      membership,team,threshold,
+      players,lines,positions,playbookPlays,currentGame,assignments,counts,
+      specialUnits,specialSlots,specialAssignments,
+      currentLine,currentSpecialUnit,playCount,
+      pendingLineupLabel
+    }));
+  }catch(e){ console.warn('Offline snapshot could not be saved',e); }
+}
+function hasOfflineSnapshot(){
+  try{return !!localStorage.getItem(OFFLINE_SNAPSHOT_KEY);}catch{return false;}
+}
+function loadOfflineSnapshot(){
+  try{
+    const s=JSON.parse(localStorage.getItem(OFFLINE_SNAPSHOT_KEY)||'null');
+    if(!s?.team) return false;
+    membership=s.membership||membership;
+    team=s.team;
+    threshold=Number(s.threshold||team.warning_threshold||75);
+    players=s.players||[];
+    lines=s.lines||[];
+    positions=s.positions||[];
+    playbookPlays=s.playbookPlays||[];
+    currentGame=s.currentGame||null;
+    assignments=s.assignments||[];
+    counts=s.counts||{};
+    specialUnits=s.specialUnits||[];
+    specialSlots=s.specialSlots||[];
+    specialAssignments=s.specialAssignments||[];
+    currentLine=Math.max(0,Math.min(Number(s.currentLine||0),Math.max(0,lines.length-1)));
+    currentSpecialUnit=Math.max(0,Number(s.currentSpecialUnit||0));
+    playCount=Number(s.playCount??currentGame?.total_plays??0);
+    pendingLineupLabel=s.pendingLineupLabel||'Offline lineup';
+    if(currentGame) currentGame.total_plays=playCount;
+    $('teamName').textContent=team.name||'Coach Lineup';
+    $('teamRole').textContent=(membership?.role||'coach').toUpperCase()+' • OFFLINE';
+    renderAll();
+    showDashboard();
+    updateConnectionStatus();
+    return true;
+  }catch(e){
+    console.error('Offline snapshot load failed',e);
+    return false;
+  }
+}
+function offlineAssignmentSet(lineId,positionId,playerId){
+  assignments=assignments.filter(a=>!(String(a.line_id)===String(lineId)&&String(a.position_label_id)===String(positionId)));
+  if(playerId){
+    assignments.push({
+      id:`offline-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      line_id:lineId,
+      position_label_id:positionId,
+      player_id:playerId,
+      _offline:true
+    });
+  }
+  saveOfflineSnapshot();
+}
+function recordOfflineGamePlay({line,unique,note,calledPlay,resultType}){
+  const quality=resultType==='quality'||resultType==='td';
+  const touchdown=resultType==='td';
+  playCount=Number(playCount||0)+1;
+  if(currentGame){
+    currentGame.total_plays=playCount;
+  }
+  unique.forEach(r=>counts[r.player_id]=(counts[r.player_id]||0)+1);
+  queueOfflineAction({
+    type:'game_play',
+    game_id:currentGame?.id,
+    line_id:line.id,
+    note,
+    participants:unique,
+    context:{
+      drive_number:driveNumber,
+      down:gameDown,
+      distance:gameDistance,
+      possession,
+      quality_play:quality,
+      touchdown
+    },
+    called_play:calledPlay?{
+      id:calledPlay.id,name:calledPlay.name,play_code:calledPlay.play_code,
+      category:calledPlay.category
+    }:null
+  });
+  pendingCalledPlay=null;
+  gameDown=gameDown>=4?1:gameDown+1;
+  persistGameState();
+  renderGameStrip();
+  renderCalledPlay();
+  renderSummary();
+  saveOfflineSnapshot();
+  const flash=$('playNo');
+  flash?.classList.add('playFlash');
+  setTimeout(()=>flash?.classList.remove('playFlash'),450);
+}
+async function syncOfflineQueue(){
+  if(offlineSyncRunning||!navigator.onLine) return;
+  const queue=getOfflineQueue();
+  if(!queue.length){ updateConnectionStatus(); return; }
+  offlineSyncRunning=true;
+  updateConnectionStatus();
+  const remaining=[];
+  try{
+    for(let i=0;i<queue.length;i++){
+      const item=queue[i];
+      try{
+        if(item.type==='assignment'){
+          const del=await sb.from('line_assignments').delete()
+            .eq('line_id',item.line_id).eq('position_label_id',item.position_label_id);
+          if(del.error) throw del.error;
+          if(item.player_id){
+            const ins=await sb.from('line_assignments').insert({
+              line_id:item.line_id,
+              player_id:item.player_id,
+              position_label_id:item.position_label_id
+            });
+            if(ins.error) throw ins.error;
+          }
+        }else if(item.type==='game_play'){
+          const {data,error}=await sb.rpc('record_game_play',{
+            p_game_id:item.game_id,
+            p_line_id:item.line_id,
+            p_note:item.note,
+            p_participants:item.participants||[]
+          });
+          if(error) throw error;
+          const result=Array.isArray(data)?data[0]:data;
+          const serverPlayNo=Number(result?.play_number||result?.total_plays||0);
+          if(serverPlayNo){
+            const {data:gp}=await sb.from('game_plays').select('id')
+              .eq('game_id',item.game_id).eq('play_number',serverPlayNo).maybeSingle();
+            if(gp?.id){
+              const u=await sb.from('game_plays').update(item.context||{}).eq('id',gp.id);
+              if(u.error) throw u.error;
+              if(item.called_play && typeof saveCallResult==='function'){
+                const oldGame=currentGame;
+                if(!currentGame||String(currentGame.id)!==String(item.game_id)){
+                  currentGame={...(currentGame||{}),id:item.game_id};
+                }
+                await saveCallResult(gp.id,item.called_play,!!item.context?.quality_play,!!item.context?.touchdown);
+                currentGame=oldGame;
+              }
+            }
+          }
+        }
+      }catch(e){
+        console.error('Offline sync item failed',item,e);
+        remaining.push(...queue.slice(i));
+        break;
+      }
+    }
+    setOfflineQueue(remaining);
+    if(!remaining.length){
+      if(team) saveOfflineSnapshot();
+      const el=$('syncStatus');
+      if(el){ el.textContent='✓ SYNCED'; setTimeout(updateConnectionStatus,1500); }
+    }
+  }finally{
+    offlineSyncRunning=false;
+    updateConnectionStatus();
+  }
+}
 const ALLOWED_REGULAR_SLOTS=new Set(DEFAULT_POS.map(x=>x[2]));
 const SPECIAL_DEFAULTS={
   'Kickoff':[
@@ -153,8 +355,12 @@ async function loadAppSafe(){
     await loadApp();
   }catch(e){
     console.error('Coach Lineup load failed:',e);
-    msg('Signed in, but the app could not finish loading. Please try again.');
-    showAuth();
+    if(hasOfflineSnapshot() && loadOfflineSnapshot()){
+      msg('Offline mode: using the last saved sideline data.');
+    }else{
+      msg('Signed in, but the app could not finish loading. Please try again.');
+      showAuth();
+    }
   }finally{
     appLoadInProgress=false;
   }
@@ -183,10 +389,15 @@ async function boot(){
     navigator.serviceWorker.register('./sw.js').then(reg=>reg.update()).catch(()=>{});
   }
   updateConnectionStatus();
+  if(navigator.onLine) setTimeout(syncOfflineQueue,800);
 }
 
 async function loadApp(){
   showApp();
+
+  if(!navigator.onLine && hasOfflineSnapshot()){
+    if(loadOfflineSnapshot()) return;
+  }
 
   // Load only memberships belonging to the current signed-in user.
   const uid=await userId();
@@ -714,6 +925,7 @@ async function loadTeamData(){
     await loadAssignments();
     await loadCounts();
     renderAll();
+    saveOfflineSnapshot();
     if(players.length===0 && roleCanEdit()) openRosterSetup();
   }catch(e){ alert(e.message||String(e)); }
 }
@@ -741,6 +953,7 @@ async function loadAssignments(){
   const {data,error}=await sb.from('line_assignments').select('*').in('line_id',ids);
   if(error){ console.error(error); assignments=[]; return; }
   assignments=data||[];
+  saveOfflineSnapshot();
 }
 
 async function loadCounts(){
@@ -1356,9 +1569,14 @@ function openLineupEditor(positionId){
 }
 async function clearAssignment(positionId){
   const line=lines[currentLine]; if(!line) return;
+  if(!navigator.onLine){
+    offlineAssignmentSet(line.id,positionId,'');
+    queueOfflineAction({type:'assignment',line_id:line.id,position_label_id:positionId,player_id:''});
+    closeModal(); renderField(); return;
+  }
   const {error}=await sb.from('line_assignments').delete().eq('line_id',line.id).eq('position_label_id',positionId);
   if(error) return alert(error.message);
-  closeModal(); await loadAssignments(); renderField();
+  closeModal(); await loadAssignments(); renderField(); saveOfflineSnapshot();
 }
 async function assignPlayer(positionId,playerId){
   const line=lines[currentLine]; if(!line) return;
@@ -1371,10 +1589,15 @@ async function assignPlayer(positionId,playerId){
     const dp=positions.find(p=>p.id===duplicate.position_label_id);
     return alert(`${player.name} is already assigned to ${dp?.label||'another position'} on this ${side?.toUpperCase()||''} line.`);
   }
+  if(!navigator.onLine){
+    offlineAssignmentSet(line.id,positionId,playerId);
+    queueOfflineAction({type:'assignment',line_id:line.id,position_label_id:positionId,player_id:playerId});
+    closeModal(); renderField(); return;
+  }
   await sb.from('line_assignments').delete().eq('line_id',line.id).eq('position_label_id',positionId);
   const {error}=await sb.from('line_assignments').insert({line_id:line.id,player_id:playerId,position_label_id:positionId});
   if(error) return alert(error.message.includes('already assigned')?error.message:'Could not assign player: '+error.message);
-  closeModal(); await loadAssignments(); renderField();
+  closeModal(); await loadAssignments(); renderField(); saveOfflineSnapshot();
 }
 
 
@@ -2673,7 +2896,7 @@ async function startGame(){
 
   await snapshotCurrentLineup(`vs ${opp} - ${new Date().toLocaleDateString()}`,data.id,true,true);
   pendingLineupLabel='Current lineup';
-  closeModal(); renderSummary(); showGameScreen();
+  closeModal(); renderSummary(); showGameScreen(); saveOfflineSnapshot();
 }
 async function nextPlay(resultType='record'){
   if(!pendingCalledPlay){
@@ -2732,6 +2955,10 @@ async function nextPlay(resultType='record'){
   });
 
   try{
+    if(!navigator.onLine){
+      recordOfflineGamePlay({line,unique,note,calledPlay:calledPlayForRecord,resultType});
+      return;
+    }
     const {data,error}=await sb.rpc('record_game_play',{
       p_game_id:currentGame.id,
       p_line_id:line.id,
@@ -2766,6 +2993,7 @@ async function nextPlay(resultType='record'){
     gameDown=gameDown>=4?1:gameDown+1;
     persistGameState();
     renderGameStrip();
+    saveOfflineSnapshot();
 
     // Automatically rotate to the next configured line after each recorded play.
     if(lines.length>1){
@@ -2869,6 +3097,22 @@ function openStats(){
 }
 
 async function loadCurrentGamePlayerStatsData(){
+  if(!navigator.onLine){
+    const total=Number(playCount||0);
+    const rows=players.map(p=>{
+      const currentLines=lines.filter(line=>
+        assignments.some(a=>String(a.line_id)===String(line.id)&&String(a.player_id)===String(p.id))
+      ).map(line=>line.name);
+      return {
+        id:p.id,jersey:p.jersey_number||'',name:p.name||'Player',
+        plays:Number(counts[p.id]||0),
+        pct:total?Math.round(Number(counts[p.id]||0)/total*100):0,
+        positions:{},
+        currentLines
+      };
+    });
+    return {total,rows};
+  }
   if(!currentGame?.id) throw new Error('Start or resume a game to view player stats.');
 
   const {data:gamePlays,error:gpErr}=await sb.from('game_plays')
