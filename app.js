@@ -51,7 +51,7 @@ function updateConnectionStatus(){
 }
 window.addEventListener('online',()=>{ updateConnectionStatus(); syncOfflineQueue(); });
 window.addEventListener('offline',()=>{ saveOfflineSnapshot(); updateConnectionStatus(); });
-const COACH_LINEUP_BUILD='v61 • Cleanup + Offline';
+const COACH_LINEUP_BUILD='v76 • Resume Game Fix';
 
 async function userId(){
   try{
@@ -809,8 +809,10 @@ function showGameScreen(){
   if(currentGame) loadGameState();
   $('dashboard').classList.add('hidden');
   $('app').classList.remove('hidden');
+  unifiedFieldView=true;
+  activeView='offense';
   renderAll();
-  setActiveView(activeView);
+  setUnifiedFieldView();
   renderCalledPlay();
   updatePlayRecordButtons();
   renderFullscreenSelectedPlay();
@@ -3859,16 +3861,25 @@ $('logoutBtn').onclick=()=>sb.auth.signOut();
 $('modal').onclick=e=>{ if(e.target===$('modal')) closeModal(); };
 
 
-$('offenseTab').onclick=()=>setActiveView('offense');
-$('defenseTab').onclick=()=>setActiveView('defense');
-$('specialTab').onclick=()=>setActiveView('special');
-$('editFieldBtn').onclick=toggleEditField;
+$('bothTab')?.addEventListener('click',setUnifiedFieldView);
+$('offenseTab')?.addEventListener('click',()=>setActiveView('offense'));
+$('defenseTab')?.addEventListener('click',()=>setActiveView('defense'));
+$('specialTab')?.addEventListener('click',()=>setActiveView('special'));
+if($('editFieldBtn')) $('editFieldBtn').onclick=openEditLineupChooser;
 $('resetFieldBtn')?.addEventListener('click',resetCurrentField);
 $('fullscreenBtn').onclick=toggleFieldFullscreen;
 $('specialUnitSelect').onchange=e=>{currentSpecialUnit=Number(e.target.value);renderField();};
 $('homeBtn')?.addEventListener('click',showDashboard);
 $('dashLogout')?.addEventListener('click',()=>sb.auth.signOut());
-$('gameDayCard')?.addEventListener('click',()=>{ if(currentGame) showGameScreen(); else openGameSetup(); });
+$('gameDayCard')?.addEventListener('click',()=>{
+  try{
+    if(currentGame) showGameScreen();
+    else openGameSetup();
+  }catch(e){
+    console.error('Game Day could not open:',e);
+    alert('Game Day could not open: '+(e?.message||String(e)));
+  }
+});
 $('rosterCard')?.addEventListener('click',openRosterManager);
 $('linesCard')?.addEventListener('click',openLines);
 $('templatesCard')?.addEventListener('click',openSavedLineups);
