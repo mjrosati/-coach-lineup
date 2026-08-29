@@ -1924,6 +1924,52 @@ async function replacePlayerLinked(positionId, newPlayerId){
   }
 }
 
+
+function playerPositionPreferences(player,side){
+  const list=side==='offense'?(player.offense_positions||[]):side==='defense'?(player.defense_positions||[]):[];
+  return Array.isArray(list)?list.filter(Boolean):[];
+}
+
+function normalizedPosition(s){
+  return String(s||'').trim().toUpperCase();
+}
+
+function playerPositionMatchScore(player,pos,linkedPos=null){
+  const prefs=playerPositionPreferences(player,pos.side).map(normalizedPosition);
+  const target=normalizedPosition(pos.label);
+
+  let score=0;
+  let reason='';
+
+  // Exact primary / secondary / third position matches are strongest.
+  const exactIndex=prefs.indexOf(target);
+  if(exactIndex===0){ score+=100; reason=`1st ${pos.side} position: ${pos.label}`; }
+  else if(exactIndex===1){ score+=82; reason=`2nd ${pos.side} position: ${pos.label}`; }
+  else if(exactIndex===2){ score+=68; reason=`3rd ${pos.side} position: ${pos.label}`; }
+
+  // Fall back to primary_position when older roster data is present.
+  if(!score && normalizedPosition(player.primary_position)===target){
+    score+=60; reason=`Primary position: ${pos.label}`;
+  }
+
+  // If this will be a linked substitution, reward a good opposite-side fit too.
+  if(linkedPos){
+    const other=oppositeSide(pos.side);
+    const otherPrefs=playerPositionPreferences(player,other).map(normalizedPosition);
+    const linkedTarget=normalizedPosition(linkedPos.label);
+    const oi=otherPrefs.indexOf(linkedTarget);
+    if(oi===0){ score+=35; reason += `${reason?' • ':''}1st ${other} position: ${linkedPos.label}`; }
+    else if(oi===1){ score+=25; reason += `${reason?' • ':''}2nd ${other} position: ${linkedPos.label}`; }
+    else if(oi===2){ score+=18; reason += `${reason?' • ':''}3rd ${other} position: ${linkedPos.label}`; }
+  }
+
+  // Slight preference for players who have rested more / played less.
+  const plays=Number(counts[player.id]||0);
+  score += Math.max(0,20-Math.min(20,plays));
+
+  return {score,reason};
+}
+
 function openLineupEditor(positionId){
   const line=lines[currentLine];
   const pos=positions.find(p=>String(p.id)===String(positionId));
@@ -1936,12 +1982,13 @@ function openLineupEditor(positionId){
 
   const eligible=players
     .filter(p=>playerCanPlay(p))
-    .slice()
-    .sort((a,b)=>{
-      const ap=(pos.side==='offense'?(a.offense_positions||[]):a.defense_positions||[]).includes(pos.label)?0:1;
-      const bp=(pos.side==='offense'?(b.offense_positions||[]):b.defense_positions||[]).includes(pos.label)?0:1;
-      return ap-bp || Number(a.jersey_number||999)-Number(b.jersey_number||999) || a.name.localeCompare(b.name);
-    });
+    .map(p=>({p,...playerPositionMatchScore(p,pos,linkedPos)}))
+    .sort((a,b)=>
+      b.score-a.score ||
+      Number(counts[a.p.id]||0)-Number(counts[b.p.id]||0) ||
+      Number(a.p.jersey_number||999)-Number(b.p.jersey_number||999) ||
+      a.p.name.localeCompare(b.p.name)
+    );
 
   openModal(`<div class="directReplaceModal">
     <div class="playerStatsHead">
@@ -1952,13 +1999,29 @@ function openLineupEditor(positionId){
       <button class="secondary" onclick="closeModal()">✕ CLOSE</button>
     </div>
     ${linkedPos?`<div class="linkedSubNotice">LINKED SUB: ${esc(currentPlayer.name)} is also at ${otherSide.toUpperCase()} ${esc(linkedPos.label)}. Choosing a replacement will update both sides of this line.</div>`:''}
+    ${eligible.length?`<div class="subRecommendationHero">
+      <small>RECOMMENDED REPLACEMENT</small>
+      <b>#${esc(eligible[0].p.jersey_number)} ${esc(eligible[0].p.name)}</b>
+      <span>${esc(eligible[0].reason||'Lowest current playing time among available players')}</span>
+      <button onclick="replacePlayerLinked('${pos.id}','${eligible[0].p.id}')">USE RECOMMENDATION</button>
+    </div>`:''}
+    <div class="replaceListHead"><span>PLAYER</span><span>POSITION FIT</span><span>PLAYS</span></div>
     <div class="replacePlayerList">
-      ${eligible.map(p=>{
-        const prefs=pos.side==='offense'?(p.offense_positions||[]):p.defense_positions||[];
-        const otherPrefs=otherSide==='offense'?(p.offense_positions||[]):p.defense_positions||[];
-        return `<button class="replacePlayerRow ${String(p.id)===String(currentPlayer?.id)?'current':''}" onclick="replacePlayerLinked('${pos.id}','${p.id}')">
-          <b>#${esc(p.jersey_number)} ${esc(p.name)}</b>
-          <span>${prefs.length?esc(prefs.join(' / ')):'—'}${linkedPos&&otherPrefs.length?` • ${otherSide[0].toUpperCase()}: ${esc(otherPrefs.join('/'))}`:''}</span>
+      ${eligible.map((item,index)=>{
+        const p=item.p;
+        const prefs=playerPositionPreferences(p,pos.side);
+        const otherPrefs=playerPositionPreferences(p,otherSide);
+        const match=item.score>=100?'BEST FIT':item.score>=68?'GOOD FIT':item.score>=35?'POSSIBLE':'OTHER';
+        return `<button class="replacePlayerRow ${String(p.id)===String(currentPlayer?.id)?'current':''} ${index===0?'recommended':''}" onclick="replacePlayerLinked('${pos.id}','${p.id}')">
+          <div class="replacePlayerIdentity">
+            <b>#${esc(p.jersey_number)} ${esc(p.name)}</b>
+            <small>${compactAvailability(p)}</small>
+          </div>
+          <div class="replacePlayerFit">
+            <strong>${match}</strong>
+            <span>${prefs.length?esc(prefs.join(' / ')):'No saved '+pos.side+' positions'}${linkedPos&&otherPrefs.length?` • ${otherSide[0].toUpperCase()}: ${esc(otherPrefs.join('/'))}`:''}</span>
+          </div>
+          <div class="replacePlayerPlays">${Number(counts[p.id]||0)}</div>
         </button>`;
       }).join('')}
     </div>

@@ -4552,3 +4552,105 @@ body.fullscreen #app .field .slot small{
   background:#0c2134!important;
 }
 .field .slot.tappableSub{cursor:pointer}
+
+/* v83 — Position-aware substitution recommendations */
+.subRecommendationHero{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:3px 10px;
+  align-items:center;
+  margin:10px 0;
+  padding:11px;
+  border:1px solid #1d8cf8;
+  border-radius:9px;
+  background:#0c2032;
+}
+.subRecommendationHero small{
+  grid-column:1;
+  color:#79bfff;
+  font-size:7px;
+  font-weight:1000;
+  letter-spacing:.6px;
+}
+.subRecommendationHero b{
+  grid-column:1;
+  font-size:12px;
+}
+.subRecommendationHero span{
+  grid-column:1;
+  font-size:8px;
+  color:#b8c7d8;
+}
+.subRecommendationHero button{
+  grid-column:2;
+  grid-row:1 / span 3;
+  min-height:42px!important;
+  padding:6px 9px!important;
+}
+.replaceListHead{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(120px,1.2fr) 42px;
+  gap:8px;
+  padding:5px 10px;
+  color:#7f90a3;
+  font-size:7px;
+  font-weight:1000;
+}
+.replacePlayerRow{
+  grid-template-columns:minmax(0,1fr) minmax(120px,1.2fr) 42px!important;
+}
+.replacePlayerRow.recommended{
+  outline:2px solid #1d8cf8;
+  background:#0d2031!important;
+}
+.replacePlayerIdentity{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  min-width:0;
+}
+.replacePlayerIdentity b{
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+.replacePlayerIdentity small{
+  font-size:6px;
+  opacity:.65;
+}
+.replacePlayerFit{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  min-width:0;
+}
+.replacePlayerFit strong{
+  font-size:7px;
+  color:#79bfff;
+}
+.replacePlayerFit span{
+  font-size:7px;
+  opacity:.7;
+  white-space:normal;
+}
+.replacePlayerPlays{
+  text-align:center;
+  font-size:10px;
+  font-weight:1000;
+}
+@media(max-width:700px){
+  .subRecommendationHero{
+    grid-template-columns:1fr;
+  }
+  .subRecommendationHero button{
+    grid-column:1;
+    grid-row:auto;
+    width:100%;
+  }
+  .replaceListHead{
+    grid-template-columns:minmax(0,1fr) 90px 34px;
+  }
+  .replacePlayerRow{
+    grid-template-columns:minmax(0,1fr) 90px 34px!important;
+  }
+}
