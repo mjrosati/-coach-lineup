@@ -4329,3 +4329,113 @@ body:-webkit-full-screen .fullscreenPlayPanel,
     grid-template-columns:165px minmax(0,1fr) 112px!important;
   }
 }
+
+/* v79 — Bigger, easier-to-read player cards on the football field */
+
+/* Regular Game Day field: enlarge every player card without moving formations. */
+body #app .field .slot{
+  min-width:72px!important;
+  max-width:96px!important;
+  min-height:46px!important;
+  padding:7px 5px!important;
+  font-size:13px!important;
+  line-height:1.05!important;
+  border-width:3px!important;
+  border-radius:7px!important;
+}
+body #app .field .slot small{
+  display:block!important;
+  margin-top:3px!important;
+  font-size:10px!important;
+  line-height:1.05!important;
+  font-weight:800!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+body #app .field .slot .playedLastBadge,
+body #app .field .slot .repeatBadge{
+  transform:scale(1.12);
+  transform-origin:center;
+}
+
+/* Tablet landscape regular view: noticeably larger than v78. */
+@media (min-width:768px) and (max-width:1180px) and (orientation:landscape){
+  body #app > main.layout > .main .field .slot{
+    min-width:62px!important;
+    max-width:82px!important;
+    min-height:42px!important;
+    padding:6px 4px!important;
+    font-size:11px!important;
+  }
+  body #app > main.layout > .main .field .slot small{
+    font-size:8px!important;
+  }
+}
+
+/* Phones / narrow portrait: grow cards, but cap them so the formation still fits. */
+@media (max-width:767px){
+  body #app .field .slot{
+    min-width:58px!important;
+    max-width:78px!important;
+    min-height:40px!important;
+    padding:5px 3px!important;
+    font-size:11px!important;
+  }
+  body #app .field .slot small{
+    font-size:8px!important;
+  }
+}
+
+/* Fullscreen is the sideline reading view: make cards largest here. */
+body.fullscreenGame #app .field .slot,
+body.gameFullscreen #app .field .slot,
+body.fullscreen #app .field .slot{
+  min-width:78px!important;
+  max-width:106px!important;
+  min-height:50px!important;
+  padding:8px 6px!important;
+  font-size:14px!important;
+  line-height:1.05!important;
+}
+body.fullscreenGame #app .field .slot small,
+body.gameFullscreen #app .field .slot small,
+body.fullscreen #app .field .slot small{
+  font-size:10px!important;
+}
+
+/* Browser Fullscreen API fallback */
+:fullscreen .field .slot,
+:-webkit-full-screen .field .slot{
+  min-width:78px!important;
+  max-width:106px!important;
+  min-height:50px!important;
+  padding:8px 6px!important;
+  font-size:14px!important;
+}
+:fullscreen .field .slot small,
+:-webkit-full-screen .field .slot small{
+  font-size:10px!important;
+}
+
+/* iPad/tablet fullscreen needs a little restraint so all 11 across still fit. */
+@media (min-width:768px) and (max-width:1180px) and (orientation:landscape){
+  body.fullscreenGame #app .field .slot,
+  body.gameFullscreen #app .field .slot,
+  body.fullscreen #app .field .slot,
+  :fullscreen .field .slot,
+  :-webkit-full-screen .field .slot{
+    min-width:68px!important;
+    max-width:90px!important;
+    min-height:46px!important;
+    padding:7px 4px!important;
+    font-size:12px!important;
+  }
+  body.fullscreenGame #app .field .slot small,
+  body.gameFullscreen #app .field .slot small,
+  body.fullscreen #app .field .slot small,
+  :fullscreen .field .slot small,
+  :-webkit-full-screen .field .slot small{
+    font-size:9px!important;
+  }
+}
