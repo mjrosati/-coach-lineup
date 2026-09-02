@@ -5059,3 +5059,92 @@ body.fullscreen #app .field .slot small{
     font-weight:900!important;
   }
 }
+
+/* v88 — Tablet field PLAYER CARD enlargement.
+   Increase the actual dark player card, not merely the NEXT outline. */
+@media (min-width:768px) and (max-width:1180px) and (orientation:landscape){
+
+  body.field-fullscreen .field .slot,
+  :fullscreen .field .slot,
+  :-webkit-full-screen .field .slot{
+    width:132px!important;
+    min-width:132px!important;
+    max-width:132px!important;
+    height:82px!important;
+    min-height:82px!important;
+    box-sizing:border-box!important;
+    padding:12px 8px 10px!important;
+    border-width:5px!important;
+    border-radius:12px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:center!important;
+    overflow:visible!important;
+    font-size:23px!important;
+    font-weight:950!important;
+    line-height:.95!important;
+  }
+
+  body.field-fullscreen .field .slot small,
+  :fullscreen .field .slot small,
+  :-webkit-full-screen .field .slot small{
+    display:block!important;
+    width:100%!important;
+    max-width:116px!important;
+    margin-top:7px!important;
+    font-size:17px!important;
+    font-weight:900!important;
+    line-height:1!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    text-align:center!important;
+  }
+
+  /* NEXT is now a small status tab rather than the thing making the card look large. */
+  body.field-fullscreen .field .slot.playsNextLine::after,
+  :fullscreen .field .slot.playsNextLine::after,
+  :-webkit-full-screen .field .slot.playsNextLine::after{
+    top:-12px!important;
+    left:50%!important;
+    transform:translateX(-50%)!important;
+    font-size:7px!important;
+    line-height:1!important;
+    padding:3px 8px!important;
+    border-radius:999px!important;
+  }
+
+  body.field-fullscreen .field .slot.playsNextLine,
+  :fullscreen .field .slot.playsNextLine,
+  :-webkit-full-screen .field .slot.playsNextLine{
+    outline-width:4px!important;
+    outline-offset:3px!important;
+  }
+
+  /* Regular tablet: actual cards also larger, while retaining more room for side panels. */
+  body:not(.field-fullscreen) #app .field .slot{
+    width:102px!important;
+    min-width:102px!important;
+    max-width:102px!important;
+    height:66px!important;
+    min-height:66px!important;
+    box-sizing:border-box!important;
+    padding:9px 7px!important;
+    font-size:18px!important;
+    font-weight:950!important;
+    line-height:.95!important;
+  }
+
+  body:not(.field-fullscreen) #app .field .slot small{
+    width:100%!important;
+    max-width:90px!important;
+    margin-top:5px!important;
+    font-size:13px!important;
+    font-weight:900!important;
+    line-height:1!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+}

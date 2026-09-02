@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v87-tablet-fullscreen-xxxl";
+const CACHE="coach-lineup-v88-big-player-cards";
 const CORE=[
   "./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest",
   "./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png"
