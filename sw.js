@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v90-text-only";
+const CACHE="coach-lineup-v91-clean-tablet";
 const CORE=[
   "./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest",
   "./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png"

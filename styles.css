@@ -5284,3 +5284,86 @@ body.fullscreen #app .field .slot small{
     bottom:128px!important;
   }
 }
+
+/* v91 — CLEAN TABLET FULLSCREEN */
+@media (min-width:768px) and (max-width:1180px) and (orientation:landscape){
+
+  /* Player cards: keep the large v88/v90 boxes, but use balanced readable typography. */
+  body.field-fullscreen .field .slot,
+  :fullscreen .field .slot,
+  :-webkit-full-screen .field .slot{
+    font-size:24px!important;
+    font-weight:1000!important;
+    line-height:1!important;
+    gap:4px!important;
+    padding:7px 5px!important;
+    justify-content:center!important;
+  }
+  body.field-fullscreen .field .slot small,
+  :fullscreen .field .slot small,
+  :-webkit-full-screen .field .slot small{
+    font-size:18px!important;
+    font-weight:900!important;
+    line-height:1!important;
+    margin-top:1px!important;
+  }
+
+  /* Game strip: compact, even 4-column x 2-row layout. */
+  body.field-fullscreen .gameStrip,
+  :fullscreen .gameStrip,
+  :-webkit-full-screen .gameStrip{
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    grid-auto-rows:34px!important;
+    gap:4px!important;
+    padding:4px 6px!important;
+    min-height:76px!important;
+    height:76px!important;
+    align-items:stretch!important;
+  }
+
+  body.field-fullscreen .gameStrip button,
+  body.field-fullscreen .gameStrip .clockDisplay,
+  :fullscreen .gameStrip button,
+  :fullscreen .gameStrip .clockDisplay,
+  :-webkit-full-screen .gameStrip button,
+  :-webkit-full-screen .gameStrip .clockDisplay{
+    width:100%!important;
+    height:34px!important;
+    min-height:34px!important;
+    padding:3px 6px!important;
+    margin:0!important;
+    font-size:12px!important;
+    font-weight:900!important;
+    line-height:1!important;
+    border-radius:7px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    white-space:nowrap!important;
+  }
+
+  body.field-fullscreen .opponentUnderPossession,
+  :fullscreen .opponentUnderPossession,
+  :-webkit-full-screen .opponentUnderPossession{
+    display:contents!important;
+    margin:0!important;
+  }
+  body.field-fullscreen .opponentUnderPossession #opponentBtn,
+  :fullscreen .opponentUnderPossession #opponentBtn,
+  :-webkit-full-screen .opponentUnderPossession #opponentBtn{
+    width:100%!important;
+    height:34px!important;
+    min-height:34px!important;
+    padding:3px 6px!important;
+    font-size:12px!important;
+    font-weight:900!important;
+  }
+
+  /* Leave enough room for the compact strip and bottom controls. */
+  body.field-fullscreen .fieldArea,
+  :fullscreen .fieldArea,
+  :-webkit-full-screen .fieldArea{
+    bottom:154px!important;
+  }
+}
