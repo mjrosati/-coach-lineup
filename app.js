@@ -51,7 +51,7 @@ function updateConnectionStatus(){
 }
 window.addEventListener('online',()=>{ updateConnectionStatus(); syncOfflineQueue(); });
 window.addEventListener('offline',()=>{ saveOfflineSnapshot(); updateConnectionStatus(); });
-const COACH_LINEUP_BUILD='v76 • Resume Game Fix';
+const COACH_LINEUP_BUILD='v86 • HARD CACHE RESET';
 
 async function userId(){
   try{
@@ -485,7 +485,7 @@ function renderUnifiedField(){
       const el=document.createElement('div');
       el.className='slot unifiedSlot '+(pos.side==='defense'?'def ':'')+
         (pl?availabilityClass(pl):'')+
-        (pl&&previousLinePlayerIdsForSide(pos.side).has(pl.id)?' playedPreviousLine':'');
+        (pl&&nextLinePlayerIdsForSide(pos.side).has(pl.id)?' playsNextLine':'');
       el.style.left=Number(pos.x_pct)+'%';
       el.style.top=Number(pos.y_pct)+'%';
       el.innerHTML=`${esc(pos.label)}<small>${pl?(displayMode==='names'?esc(pl.name):'#'+esc(pl.jersey_number)):'OPEN'}</small>`;
@@ -1276,6 +1276,24 @@ function renderPlayers(){
       </div>`;
     }).join('');
 }
+
+function nextLinePlayerIdsForSide(side){
+  if(!lines.length || currentLine<0) return new Set();
+  const nextIndex=(currentLine+1)%lines.length;
+  const nextLine=lines[nextIndex];
+  if(!nextLine) return new Set();
+
+  const sidePositionIds=new Set(
+    positions.filter(p=>p.side===side).map(p=>String(p.id))
+  );
+
+  return new Set(
+    assignments
+      .filter(a=>String(a.line_id)===String(nextLine.id) && sidePositionIds.has(String(a.position_label_id)))
+      .map(a=>a.player_id)
+  );
+}
+
 function previousLinePlayerIds(){
   if(!lines.length || currentLine<0 || activeView==='special') return new Set();
   const prevIndex=(currentLine-1+lines.length)%lines.length;
@@ -1352,7 +1370,7 @@ function renderField(){
   positions.filter(p=>p.side===activeView).forEach(p=>{
     const pl=map[p.id];
     const el=document.createElement('div');
-    el.className='slot '+(p.side==='defense'?'def ':'')+(pl?availabilityClass(pl):'')+(pl&&previousLinePlayerIds().has(pl.id)?' playedPreviousLine':'');
+    el.className='slot '+(p.side==='defense'?'def ':'')+(pl?availabilityClass(pl):'')+(pl&&nextLinePlayerIdsForSide(p.side).has(pl.id)?' playsNextLine':'');
     el.style.left=Number(p.x_pct)+'%';
     el.style.top=displayYForRegular(p)+'%';
     el.innerHTML=`${esc(p.label)}<small>${pl?(displayMode==='names'?esc(pl.name):'#'+esc(pl.jersey_number)):'OPEN'}${pl&&!playerCanPlay(pl)?` • ${availabilityLabel(pl)}`:''}</small>`;
@@ -2150,13 +2168,72 @@ async function snapshotCurrentLineup(name, sourceGameId=null, isAuto=false, sile
   }
 }
 
-async function promptSaveLineup(){
+function promptSaveLineup(){
   const suggested=currentGame
     ? `vs ${currentGame.opponent||'Opponent'}`
     : `Lineup ${new Date().toLocaleDateString()}`;
-  const name=window.prompt('Name this saved lineup:',suggested);
-  if(!name) return;
-  await snapshotCurrentLineup(name,null,false,false);
+
+  openModal(`<div class="saveLineupModal">
+    <div class="playerStatsHead">
+      <div><small>SAVED LINEUPS</small><h2>Save Current Lineup</h2></div>
+      <button class="secondary" onclick="closeModal()">✕ CLOSE</button>
+    </div>
+    <p class="muted">Give this lineup a name so you can reuse the same line assignments later.</p>
+    <label class="saveLineupNameLabel">
+      LINEUP NAME
+      <input id="saveLineupNameInput" class="saveLineupNameInput"
+        value="${esc(suggested)}"
+        placeholder="Example: Week 1 Starting Lineup"
+        maxlength="80"
+        autocomplete="off"
+        autocapitalize="words">
+    </label>
+    <div class="modalFoot">
+      <button class="secondary" onclick="openSavedLineups()">CANCEL</button>
+      <button class="primary" onclick="confirmSaveCurrentLineup()">SAVE LINEUP</button>
+    </div>
+  </div>`);
+
+  setTimeout(()=>{
+    const input=$('saveLineupNameInput');
+    if(input){
+      input.focus();
+      input.select();
+      input.addEventListener('keydown',e=>{
+        if(e.key==='Enter'){
+          e.preventDefault();
+          confirmSaveCurrentLineup();
+        }
+      });
+    }
+  },50);
+}
+
+async function confirmSaveCurrentLineup(){
+  const input=$('saveLineupNameInput');
+  const name=String(input?.value||'').trim();
+  if(!name){
+    input?.focus();
+    return;
+  }
+
+  const btn=[...document.querySelectorAll('#modalBody button')].find(b=>b.textContent.includes('SAVE LINEUP'));
+  if(btn){
+    btn.disabled=true;
+    btn.textContent='SAVING…';
+  }
+
+  try{
+    await snapshotCurrentLineup(name,null,false,false);
+    await openSavedLineups();
+  }catch(e){
+    console.error('Save lineup failed',e);
+    alert(e?.message||'Unable to save lineup.');
+    if(btn){
+      btn.disabled=false;
+      btn.textContent='SAVE LINEUP';
+    }
+  }
 }
 
 async function getSavedLineups(){
@@ -2171,19 +2248,32 @@ async function getSavedLineups(){
 async function openSavedLineups(){
   const templates=await getSavedLineups();
   const manual=templates.filter(t=>!t.is_auto);
-  openModal(`<h2>Saved Lineups</h2>
-    <p class="muted">Save today's setup once, then reuse it for future games. Loading a saved lineup changes the current line assignments, but it does not copy old game stats or play counts.</p>
-    <button class="primary full" onclick="promptSaveLineup()">💾 SAVE CURRENT LINEUP</button>
-    <div class="savedList">
-      ${manual.length?manual.map(t=>`
-        <div class="savedRow">
-          <button class="playerPick" onclick="loadSavedLineup('${t.id}','${esc(t.name)}')">
-            <b>${esc(t.name)}</b><small>${new Date(t.created_at).toLocaleDateString()}</small>
-          </button>
-          <button class="dangerBtn" onclick="deleteSavedLineup('${t.id}')">DELETE</button>
-        </div>`).join(''):`<div class="notice">No saved lineup templates yet. Tap <b>Save Current Lineup</b> to create one.</div>`}
+
+  openModal(`<div class="savedLineupsModal">
+    <div class="playerStatsHead">
+      <div><small>TEAM SETUP</small><h2>Saved Lineups</h2></div>
+      <button class="secondary" onclick="closeModal()">✕ CLOSE</button>
     </div>
-    <div class="modalFoot"><button class="secondary" onclick="closeModal()">CLOSE</button></div>`);
+
+    <p class="muted savedLineupsIntro">Save today's setup once, then reuse it for future games. Loading a saved lineup changes the current line assignments but does not copy old game stats or play counts.</p>
+
+    <button class="primary full savedLineupPrimaryAction" onclick="promptSaveLineup()">💾 SAVE CURRENT LINEUP</button>
+
+    <div class="savedList tabletSavedList">
+      ${manual.length?manual.map(t=>`
+        <div class="savedRow tabletSavedRow">
+          <button class="playerPick savedLineupPick" onclick="loadSavedLineup('${t.id}','${esc(t.name)}')">
+            <b>${esc(t.name)}</b>
+            <small>Saved ${new Date(t.created_at).toLocaleDateString()}</small>
+          </button>
+          <button class="dangerBtn savedLineupDelete" onclick="deleteSavedLineup('${t.id}')">DELETE</button>
+        </div>`).join(''):`<div class="notice savedLineupEmpty">No saved lineup templates yet. Tap <b>Save Current Lineup</b> to create one.</div>`}
+    </div>
+
+    <div class="modalFoot savedLineupsFoot">
+      <button class="secondary" onclick="closeModal()">CLOSE</button>
+    </div>
+  </div>`);
 }
 
 async function deleteSavedLineup(id){

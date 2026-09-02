@@ -4654,3 +4654,280 @@ body.fullscreen #app .field .slot small{
     grid-template-columns:minmax(0,1fr) 90px 34px!important;
   }
 }
+
+/* v84 — Saved Lineups tablet/iPad cleanup */
+.savedLineupsModal,
+.saveLineupModal{
+  width:min(720px,94vw);
+  max-height:min(82dvh,720px);
+  overflow:hidden;
+}
+
+.savedLineupsModal{
+  display:flex;
+  flex-direction:column;
+}
+
+.savedLineupsIntro{
+  margin:7px 0 11px!important;
+  line-height:1.35;
+}
+
+.savedLineupPrimaryAction{
+  flex:0 0 auto;
+  min-height:48px!important;
+  font-size:11px!important;
+}
+
+.tabletSavedList{
+  flex:1 1 auto;
+  min-height:100px;
+  max-height:48dvh;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  margin-top:10px;
+  padding-right:3px;
+}
+
+.tabletSavedRow{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 78px!important;
+  gap:8px!important;
+  align-items:stretch!important;
+  padding:7px 0!important;
+  border-bottom:1px solid rgba(255,255,255,.10);
+}
+
+.savedLineupPick{
+  min-height:52px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  align-items:flex-start!important;
+  text-align:left!important;
+  padding:9px 11px!important;
+  background:#0d151f!important;
+  border:1px solid #2b3949!important;
+  border-radius:8px!important;
+  color:#fff!important;
+}
+.savedLineupPick b{
+  font-size:11px!important;
+  color:#fff!important;
+}
+.savedLineupPick small{
+  margin-top:3px!important;
+  font-size:8px!important;
+  color:#8fa0b4!important;
+}
+
+.savedLineupDelete{
+  min-height:52px!important;
+  width:100%!important;
+  padding:6px 4px!important;
+  font-size:8px!important;
+  border-radius:8px!important;
+}
+
+.savedLineupEmpty{
+  min-height:70px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:14px!important;
+  background:#0b131c!important;
+  border:1px solid #293746!important;
+  border-radius:8px!important;
+  color:#c7d2de!important;
+}
+
+.savedLineupsFoot{
+  flex:0 0 auto;
+  padding-top:10px!important;
+  margin-top:8px!important;
+}
+
+/* Replace the native white iPad prompt with a proper dark in-app form. */
+.saveLineupNameLabel{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin:14px 0 8px;
+  font-size:8px;
+  font-weight:1000;
+  color:#91a2b5;
+  letter-spacing:.45px;
+}
+
+.saveLineupNameInput{
+  display:block!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  min-height:52px!important;
+  box-sizing:border-box!important;
+  padding:11px 12px!important;
+  border:1px solid #36506b!important;
+  border-radius:9px!important;
+  outline:none!important;
+  background:#07111b!important;
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+  caret-color:#4dabff!important;
+  font-size:16px!important;
+  line-height:1.2!important;
+  box-shadow:none!important;
+  appearance:none!important;
+  -webkit-appearance:none!important;
+}
+
+.saveLineupNameInput::placeholder{
+  color:#697b8e!important;
+  opacity:1!important;
+}
+
+.saveLineupNameInput:focus{
+  border-color:#1d8cf8!important;
+  box-shadow:0 0 0 2px rgba(29,140,248,.18)!important;
+}
+
+/* iPad landscape sizing */
+@media (min-width:768px) and (max-width:1180px){
+  .savedLineupsModal,
+  .saveLineupModal{
+    width:min(690px,88vw)!important;
+    max-height:78dvh!important;
+  }
+  .tabletSavedList{
+    max-height:42dvh!important;
+  }
+}
+
+/* Small screens */
+@media (max-width:700px){
+  .savedLineupsModal,
+  .saveLineupModal{
+    width:94vw!important;
+    max-height:84dvh!important;
+  }
+  .tabletSavedRow{
+    grid-template-columns:minmax(0,1fr) 68px!important;
+  }
+}
+
+/* v85 — Fullscreen readability + NEXT LINE highlighting */
+
+/* Highlight players who are scheduled on the NEXT line, not previous line. */
+.field .slot.playsNextLine{
+  outline:4px solid #ffffff!important;
+  outline-offset:3px!important;
+  box-shadow:
+    0 0 0 3px rgba(29,140,248,.95),
+    0 0 16px rgba(29,140,248,.65)!important;
+  z-index:8!important;
+}
+.field .slot.playsNextLine::after{
+  content:"NEXT";
+  position:absolute;
+  top:-13px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:12;
+  padding:2px 5px;
+  border-radius:999px;
+  background:#1d8cf8;
+  color:#fff;
+  font-size:7px;
+  font-weight:1000;
+  line-height:1;
+  letter-spacing:.35px;
+}
+
+/* Tablet fullscreen: player cards noticeably larger. */
+@media (min-width:768px) and (max-width:1180px) and (orientation:landscape){
+  body.field-fullscreen .field .slot,
+  :fullscreen .field .slot,
+  :-webkit-full-screen .field .slot{
+    min-width:108px!important;
+    max-width:138px!important;
+    min-height:68px!important;
+    padding:11px 8px!important;
+    font-size:19px!important;
+    line-height:1!important;
+    border-width:5px!important;
+    border-radius:11px!important;
+  }
+
+  body.field-fullscreen .field .slot small,
+  :fullscreen .field .slot small,
+  :-webkit-full-screen .field .slot small{
+    font-size:14px!important;
+    line-height:1!important;
+    margin-top:5px!important;
+    font-weight:900!important;
+  }
+
+  body.field-fullscreen .field .slot.playsNextLine::after,
+  :fullscreen .field .slot.playsNextLine::after,
+  :-webkit-full-screen .field .slot.playsNextLine::after{
+    top:-15px!important;
+    font-size:8px!important;
+    padding:3px 6px!important;
+  }
+
+  /* Bottom fullscreen controls: larger and easier to read/tap. */
+  body.field-fullscreen .fullscreenControls,
+  :fullscreen .fullscreenControls,
+  :-webkit-full-screen .fullscreenControls{
+    min-height:62px!important;
+    grid-template-columns:minmax(130px,1.2fr) 150px 110px 110px 130px!important;
+    gap:7px!important;
+    padding:7px 10px calc(7px + env(safe-area-inset-bottom))!important;
+  }
+
+  body.field-fullscreen .fullscreenControls button,
+  body.field-fullscreen .fullscreenLineBadge,
+  :fullscreen .fullscreenControls button,
+  :fullscreen .fullscreenLineBadge,
+  :-webkit-full-screen .fullscreenControls button,
+  :-webkit-full-screen .fullscreenLineBadge{
+    min-height:48px!important;
+    padding:8px 10px!important;
+    font-size:12px!important;
+    font-weight:900!important;
+    line-height:1!important;
+    border-radius:8px!important;
+  }
+
+  body.field-fullscreen .gameStrip,
+  :fullscreen .gameStrip,
+  :-webkit-full-screen .gameStrip{
+    min-height:56px!important;
+    bottom:62px!important;
+    grid-template-columns:70px 86px 95px minmax(140px,1.6fr) 95px 90px 95px!important;
+    gap:6px!important;
+    padding:6px 8px!important;
+  }
+
+  body.field-fullscreen .gameStrip button,
+  body.field-fullscreen .gameStrip .clockDisplay,
+  :fullscreen .gameStrip button,
+  :fullscreen .gameStrip .clockDisplay,
+  :-webkit-full-screen .gameStrip button,
+  :-webkit-full-screen .gameStrip .clockDisplay{
+    min-height:42px!important;
+    padding:7px 6px!important;
+    font-size:10px!important;
+    font-weight:900!important;
+  }
+
+  /* Give the field the rest of the screen after larger controls. */
+  body.field-fullscreen .fieldArea,
+  :fullscreen .fieldArea,
+  :-webkit-full-screen .fieldArea{
+    bottom:118px!important;
+  }
+}
