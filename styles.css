@@ -4931,3 +4931,131 @@ body.fullscreen #app .field .slot small{
     bottom:118px!important;
   }
 }
+
+/* v87 — Tablet Fullscreen XXXL readability pass
+   Aggressively larger player cards + bottom controls for iPad landscape. */
+
+@media (min-width:768px) and (max-width:1180px) and (orientation:landscape){
+
+  /* Fullscreen field player cards: ~40% larger than the currently visible v86 result. */
+  body.field-fullscreen .field .slot,
+  :fullscreen .field .slot,
+  :-webkit-full-screen .field .slot{
+    min-width:118px!important;
+    max-width:150px!important;
+    min-height:76px!important;
+    padding:12px 9px!important;
+    font-size:21px!important;
+    line-height:1!important;
+    border-width:5px!important;
+    border-radius:12px!important;
+  }
+
+  body.field-fullscreen .field .slot small,
+  :fullscreen .field .slot small,
+  :-webkit-full-screen .field .slot small{
+    font-size:16px!important;
+    line-height:1!important;
+    margin-top:6px!important;
+    font-weight:900!important;
+    letter-spacing:.1px!important;
+  }
+
+  /* Keep NEXT useful but visually subordinate to the player card itself. */
+  body.field-fullscreen .field .slot.playsNextLine::after,
+  :fullscreen .field .slot.playsNextLine::after,
+  :-webkit-full-screen .field .slot.playsNextLine::after{
+    top:-13px!important;
+    padding:2px 6px!important;
+    font-size:7px!important;
+    letter-spacing:.25px!important;
+    border-radius:999px!important;
+  }
+
+  body.field-fullscreen .field .slot.playsNextLine,
+  :fullscreen .field .slot.playsNextLine,
+  :-webkit-full-screen .field .slot.playsNextLine{
+    outline-width:4px!important;
+    outline-offset:3px!important;
+  }
+
+  /* Enlarge offense/defense labels slightly. */
+  body.field-fullscreen .field .tag,
+  :fullscreen .field .tag,
+  :-webkit-full-screen .field .tag{
+    font-size:12px!important;
+    padding:5px 12px!important;
+  }
+
+  /* Fullscreen bottom controls: much easier to read and tap. */
+  body.field-fullscreen .fullscreenControls,
+  :fullscreen .fullscreenControls,
+  :-webkit-full-screen .fullscreenControls{
+    min-height:74px!important;
+    grid-template-columns:minmax(150px,1.25fr) 170px 120px 120px 150px!important;
+    gap:9px!important;
+    padding:9px 12px calc(9px + env(safe-area-inset-bottom))!important;
+  }
+
+  body.field-fullscreen .fullscreenControls button,
+  body.field-fullscreen .fullscreenLineBadge,
+  :fullscreen .fullscreenControls button,
+  :fullscreen .fullscreenLineBadge,
+  :-webkit-full-screen .fullscreenControls button,
+  :-webkit-full-screen .fullscreenLineBadge{
+    min-height:54px!important;
+    padding:10px 12px!important;
+    font-size:14px!important;
+    font-weight:900!important;
+    line-height:1!important;
+    border-radius:9px!important;
+  }
+
+  /* Game strip: larger text/buttons as well. */
+  body.field-fullscreen .gameStrip,
+  :fullscreen .gameStrip,
+  :-webkit-full-screen .gameStrip{
+    min-height:66px!important;
+    bottom:74px!important;
+    grid-template-columns:78px 96px 106px minmax(160px,1.7fr) 108px 102px 108px!important;
+    gap:7px!important;
+    padding:7px 10px!important;
+  }
+
+  body.field-fullscreen .gameStrip button,
+  body.field-fullscreen .gameStrip .clockDisplay,
+  :fullscreen .gameStrip button,
+  :fullscreen .gameStrip .clockDisplay,
+  :-webkit-full-screen .gameStrip button,
+  :-webkit-full-screen .gameStrip .clockDisplay{
+    min-height:48px!important;
+    padding:8px 7px!important;
+    font-size:11px!important;
+    font-weight:900!important;
+  }
+
+  /* Preserve enough vertical field space after larger bottom controls. */
+  body.field-fullscreen .fieldArea,
+  :fullscreen .fieldArea,
+  :-webkit-full-screen .fieldArea{
+    bottom:140px!important;
+  }
+}
+
+/* Regular tablet mode: modest increase, not as aggressive as fullscreen. */
+@media (min-width:768px) and (max-width:1180px) and (orientation:landscape){
+  body:not(.field-fullscreen) #app .field .slot{
+    min-width:88px!important;
+    max-width:112px!important;
+    min-height:58px!important;
+    padding:9px 7px!important;
+    font-size:16px!important;
+    border-width:4px!important;
+    border-radius:9px!important;
+  }
+  body:not(.field-fullscreen) #app .field .slot small{
+    font-size:12px!important;
+    margin-top:4px!important;
+    font-weight:900!important;
+  }
+}
