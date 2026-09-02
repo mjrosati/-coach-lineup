@@ -5148,3 +5148,139 @@ body.fullscreen #app .field .slot small{
     text-overflow:ellipsis!important;
   }
 }
+
+/* v89 — Fill player cards + larger fullscreen game-state buttons */
+
+@media (min-width:768px) and (max-width:1180px) and (orientation:landscape){
+
+  /* Make position + jersey number visually fill the large tablet cards. */
+  body.field-fullscreen .field .slot,
+  :fullscreen .field .slot,
+  :-webkit-full-screen .field .slot{
+    justify-content:center!important;
+    gap:7px!important;
+    font-size:31px!important;
+    font-weight:1000!important;
+    line-height:.88!important;
+    letter-spacing:.2px!important;
+  }
+
+  body.field-fullscreen .field .slot small,
+  :fullscreen .field .slot small,
+  :-webkit-full-screen .field .slot small{
+    margin-top:0!important;
+    max-width:120px!important;
+    font-size:24px!important;
+    font-weight:1000!important;
+    line-height:.9!important;
+    letter-spacing:.3px!important;
+  }
+
+  /* When NAMES mode is used, keep long player names readable inside the same box. */
+  body.field-fullscreen.namesMode .field .slot small,
+  :fullscreen .field.namesMode .slot small,
+  :-webkit-full-screen .field.namesMode .slot small{
+    font-size:16px!important;
+    line-height:1!important;
+  }
+
+  /* Make the white Q/clock/start/possession/opponent/drive/down/distance buttons much larger. */
+  body.field-fullscreen .gameStrip,
+  :fullscreen .gameStrip,
+  :-webkit-full-screen .gameStrip{
+    min-height:82px!important;
+    bottom:74px!important;
+    grid-template-columns:94px 118px 128px minmax(190px,1.7fr) 122px 118px 122px!important;
+    gap:9px!important;
+    padding:9px 12px!important;
+  }
+
+  body.field-fullscreen .gameStrip button,
+  body.field-fullscreen .gameStrip .clockDisplay,
+  :fullscreen .gameStrip button,
+  :fullscreen .gameStrip .clockDisplay,
+  :-webkit-full-screen .gameStrip button,
+  :-webkit-full-screen .gameStrip .clockDisplay{
+    min-height:58px!important;
+    padding:11px 9px!important;
+    font-size:14px!important;
+    font-weight:1000!important;
+    line-height:1!important;
+    border-radius:9px!important;
+  }
+
+  body.field-fullscreen .opponentUnderPossession,
+  :fullscreen .opponentUnderPossession,
+  :-webkit-full-screen .opponentUnderPossession{
+    margin:0!important;
+    min-width:0!important;
+  }
+
+  body.field-fullscreen .opponentUnderPossession #opponentBtn,
+  :fullscreen .opponentUnderPossession #opponentBtn,
+  :-webkit-full-screen .opponentUnderPossession #opponentBtn{
+    min-height:58px!important;
+    font-size:14px!important;
+    font-weight:1000!important;
+    padding:11px 8px!important;
+  }
+
+  /* Give the field the remaining height after the larger game strip. */
+  body.field-fullscreen .fieldArea,
+  :fullscreen .fieldArea,
+  :-webkit-full-screen .fieldArea{
+    bottom:156px!important;
+  }
+
+  /* Regular tablet view: stronger position + jersey text too. */
+  body:not(.field-fullscreen) #app .field .slot{
+    font-size:23px!important;
+    gap:5px!important;
+  }
+  body:not(.field-fullscreen) #app .field .slot small{
+    font-size:17px!important;
+    margin-top:0!important;
+  }
+}
+
+/* v90 — Keep game-state button sizes unchanged; enlarge TEXT only. */
+@media (min-width:768px) and (max-width:1180px) and (orientation:landscape){
+  body.field-fullscreen .gameStrip,
+  :fullscreen .gameStrip,
+  :-webkit-full-screen .gameStrip{
+    min-height:unset!important;
+    bottom:74px!important;
+    grid-template-columns:repeat(4,1fr)!important;
+    gap:4px!important;
+    padding:4px 6px!important;
+  }
+
+  body.field-fullscreen .gameStrip button,
+  body.field-fullscreen .gameStrip .clockDisplay,
+  :fullscreen .gameStrip button,
+  :fullscreen .gameStrip .clockDisplay,
+  :-webkit-full-screen .gameStrip button,
+  :-webkit-full-screen .gameStrip .clockDisplay{
+    min-height:unset!important;
+    padding:6px 8px!important;
+    font-size:15px!important;
+    font-weight:1000!important;
+    line-height:1!important;
+    border-radius:inherit!important;
+  }
+
+  body.field-fullscreen .opponentUnderPossession #opponentBtn,
+  :fullscreen .opponentUnderPossession #opponentBtn,
+  :-webkit-full-screen .opponentUnderPossession #opponentBtn{
+    min-height:unset!important;
+    padding:6px 8px!important;
+    font-size:15px!important;
+    font-weight:1000!important;
+  }
+
+  body.field-fullscreen .fieldArea,
+  :fullscreen .fieldArea,
+  :-webkit-full-screen .fieldArea{
+    bottom:128px!important;
+  }
+}

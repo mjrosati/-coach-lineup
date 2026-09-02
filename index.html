@@ -5,7 +5,7 @@
 <script>
 (function(){
   try{
-    const key='coachLineupV88HardResetDone';
+    const key='coachLineupV89HardResetDone';
     if(sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key,'1');
 
@@ -24,8 +24,8 @@
       })
       .then(function(){
         const u=new URL(location.href);
-        if(u.searchParams.get('build')!=='88'){
-          u.searchParams.set('build','88');
+        if(u.searchParams.get('build')!=='89'){
+          u.searchParams.set('build','89');
           location.replace(u.toString());
         }
       })
@@ -40,11 +40,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Coach Lineup">
-<link rel="manifest" href="manifest.webmanifest?v=88">
+<link rel="manifest" href="manifest.webmanifest?v=90">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="styles.css?v=88">
+<link rel="stylesheet" href="styles.css?v=90">
 <title>Coach Lineup</title>
 </head>
 <body>
@@ -215,8 +215,8 @@
 
 <div id="modal" class="modalWrap hidden"><div class="modal" id="modalBody"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=88"></script>
-<script src="app.js?v=88"></script>
+<script src="config.js?v=90"></script>
+<script src="app.js?v=90"></script>
 <div id="fullscreenPlayPanel" class="fullscreenPlayPanel hidden">
   <div class="fullscreenPlayInfo">
     <small>SELECTED PLAY</small>
@@ -230,5 +230,5 @@
     <button id="fullscreenTdBtn" class="tdPlayBtn">🏈 TD</button>
   </div>
 </div>
-<div id="buildBadge" class="buildBadge">v88 • BIG PLAYER CARDS</div>
+<div id="buildBadge" class="buildBadge">v90 • BIG TEXT • ORIGINAL BUTTON SIZE</div>
 </body></html>
