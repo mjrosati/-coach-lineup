@@ -5367,3 +5367,32 @@ body.fullscreen #app .field .slot small{
     bottom:154px!important;
   }
 }
+
+/* v92 — Larger player-card typography, same card/layout size */
+@media (min-width:768px) and (max-width:1180px) and (orientation:landscape){
+  body.field-fullscreen .field .slot,
+  :fullscreen .field .slot,
+  :-webkit-full-screen .field .slot{
+    font-size:30px!important;
+    font-weight:1000!important;
+    line-height:.95!important;
+    gap:7px!important;
+  }
+
+  body.field-fullscreen .field .slot small,
+  :fullscreen .field .slot small,
+  :-webkit-full-screen .field .slot small{
+    font-size:23px!important;
+    font-weight:1000!important;
+    line-height:.95!important;
+    margin-top:0!important;
+  }
+
+  /* Keep names from overflowing when switched to NAMES mode. */
+  body.field-fullscreen.namesMode .field .slot small,
+  :fullscreen .field.namesMode .slot small,
+  :-webkit-full-screen .field.namesMode .slot small{
+    font-size:17px!important;
+    line-height:1!important;
+  }
+}
