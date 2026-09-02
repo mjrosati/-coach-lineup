@@ -5396,3 +5396,32 @@ body.fullscreen #app .field .slot small{
     line-height:1!important;
   }
 }
+
+/* v93 — Extra-large position + jersey text only */
+@media (min-width:768px) and (max-width:1180px) and (orientation:landscape){
+  body.field-fullscreen .field .slot,
+  :fullscreen .field .slot,
+  :-webkit-full-screen .field .slot{
+    font-size:36px!important;
+    font-weight:1000!important;
+    line-height:.9!important;
+    gap:8px!important;
+  }
+
+  body.field-fullscreen .field .slot small,
+  :fullscreen .field .slot small,
+  :-webkit-full-screen .field .slot small{
+    font-size:28px!important;
+    font-weight:1000!important;
+    line-height:.9!important;
+    margin-top:0!important;
+  }
+
+  /* Names stay smaller so longer names still fit. */
+  body.field-fullscreen.namesMode .field .slot small,
+  :fullscreen .field.namesMode .slot small,
+  :-webkit-full-screen .field.namesMode .slot small{
+    font-size:18px!important;
+    line-height:1!important;
+  }
+}
