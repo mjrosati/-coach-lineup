@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v116-field-fix";
+const CACHE="coach-lineup-v117-stable-update-system";
 const CORE=[
   "./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest",
   "./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png"
@@ -24,6 +24,21 @@ self.addEventListener("fetch",event=>{
   if(event.request.method!=="GET") return;
   const url=new URL(event.request.url);
   if(url.origin!==location.origin) return;
+
+  if(url.pathname.endsWith("/coach-update.js")){
+    event.respondWith(
+      fetch(event.request, {cache:"no-store"})
+        .then(response=>{
+          if(response.ok){
+            const copy=response.clone();
+            caches.open(CACHE).then(cache=>cache.put(event.request,copy));
+          }
+          return response;
+        })
+        .catch(()=>caches.match(event.request))
+    );
+    return;
+  }
 
   if(event.request.mode==="navigate"){
     event.respondWith(

@@ -4939,30 +4939,3 @@ window.addEventListener('load',()=>{
 
 
 /* v114 expansion uses native radio/label CSS; no JS needed. */
-
-
-/* v115 DOM-moving field workspace removed in v116. */
-
-/* =========================================================
-   v116 SAFE EXPANDED FIELD
-   Keeps the real Game Day DOM in place and raises it above the dashboard.
-   ========================================================= */
-(function(){
-  function syncV116Field(){
-    const fieldRadio=document.getElementById('v114Field');
-    if(fieldRadio?.checked){
-      document.body.classList.add('v116-field-expanded');
-      try{ renderField(); }catch(e){}
-    }else{
-      document.body.classList.remove('v116-field-expanded');
-      try{ renderField(); }catch(e){}
-    }
-  }
-
-  window.addEventListener('load',()=>{
-    document.querySelectorAll('input[name="v114PanelState"]').forEach(r=>{
-      r.addEventListener('change',syncV116Field);
-    });
-    syncV116Field();
-  });
-})();
