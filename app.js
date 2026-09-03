@@ -4348,3 +4348,54 @@ window.coachExpandField=function(ev){if(ev){ev.preventDefault();ev.stopPropagati
 window.coachShowFivePanel=function(ev){if(ev){ev.preventDefault();ev.stopPropagation();}window.coachCloseMenu();try{if(typeof setFieldFullscreen==='function')setFieldFullscreen(false);}catch(e){}document.getElementById('fivePanelDashboard')?.classList.remove('hidden');};
 window.coachHideFivePanel=function(ev){if(ev){ev.preventDefault();ev.stopPropagation();}document.getElementById('fivePanelDashboard')?.classList.add('hidden');};
 window.coachOpenFivePanelSection=function(name,ev){if(ev){ev.preventDefault();ev.stopPropagation();}window.coachHideFivePanel();try{if(name==='field')setFieldFullscreen(true);else if(name==='players')openRosterManager();else if(name==='lines')openLines();else if(name==='stats')openStats();else if(name==='plays')openPlaybook();}catch(e){console.error(e);}};
+
+/* v99: Resume Game opens directly into 5-panel dashboard */
+window.coachResumeToFivePanel = async function(){
+  try{
+    // Use the app's normal resume/start behavior first so currentGame/current line data load.
+    if(typeof resumeGame === 'function'){
+      await resumeGame();
+    } else if(typeof resumeCurrentGame === 'function'){
+      await resumeCurrentGame();
+    } else if(typeof showGameScreen === 'function'){
+      await showGameScreen();
+    }
+  }catch(e){ console.warn('resume game base flow',e); }
+
+  // Let the game screen finish rendering, then open the 5-panel view.
+  setTimeout(function(){
+    try{
+      if(typeof setFieldFullscreen==='function') setFieldFullscreen(false);
+    }catch(e){}
+    const p=document.getElementById('fivePanelDashboard');
+    if(p){
+      p.classList.remove('hidden');
+      p.style.display='grid';
+      p.scrollTop=0;
+    }
+  },80);
+};
+
+/* Capture Resume Game before older handlers can intercept it.
+   Supports the dashboard card/button even if its exact id changed between builds. */
+document.addEventListener('pointerup',function(ev){
+  const el=ev.target && ev.target.closest ? ev.target.closest('button,.dashCard,[role="button"]') : null;
+  if(!el) return;
+  const text=(el.textContent||'').replace(/\s+/g,' ').trim().toUpperCase();
+  if(text.includes('RESUME') && text.includes('GAME')){
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    window.coachResumeToFivePanel();
+  }
+},true);
+
+document.addEventListener('touchend',function(ev){
+  const el=ev.target && ev.target.closest ? ev.target.closest('button,.dashCard,[role="button"]') : null;
+  if(!el) return;
+  const text=(el.textContent||'').replace(/\s+/g,' ').trim().toUpperCase();
+  if(text.includes('RESUME') && text.includes('GAME')){
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    window.coachResumeToFivePanel();
+  }
+},{capture:true,passive:false});
