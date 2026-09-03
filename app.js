@@ -4171,3 +4171,23 @@ boot();
 loadPlayerSort();
 
 setTimeout(renderOpponentAlertBanner,500);
+
+/* v94 persistent accessible navigation */
+(function(){
+ const g=id=>document.getElementById(id);
+ function close(){g('accessNav')?.classList.remove('open');g('accessNavBackdrop')?.classList.add('hidden')}
+ function open(){g('accessNav')?.classList.add('open');g('accessNavBackdrop')?.classList.remove('hidden')}
+ function hit(ids){for(const id of ids){let e=g(id);if(e){e.click();return true}}return false}
+ function go(x){close();
+  if(x==='dashboard'){if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});document.body.classList.remove('field-fullscreen');hit(['homeBtn','gameHomeBtn','backDashboardBtn','dashboardBtn']);let d=g('dashboard'),a=g('app');if(d)d.classList.remove('hidden');if(a)a.classList.add('hidden');scrollTo(0,0);return}
+  if(x==='game'){hit(['resumeGameBtn','gameDayBtn','resumeBtn']);return}
+  let m={roster:['rosterCard','rosterBtn','openRosterBtn'],lines:['linesCard','linesBtn','openLinesBtn'],playbook:['playbookCard','playbookBtn','openPlaybookBtn'],history:['historyCard','gameHistoryBtn','historyBtn'],settings:['settingsCard','teamSettingsBtn','settingsBtn']};hit(m[x]||[])
+ }
+ document.addEventListener('click',e=>{
+  if(e.target.closest('#accessMenuBtn'))open();
+  if(e.target.closest('#accessNavClose')||e.target.closest('#accessNavBackdrop'))close();
+  let n=e.target.closest('[data-nav]');if(n)go(n.dataset.nav);
+  if(e.target.closest('#accessExpandBtn')){close();if(!hit(['fullscreenBtn','fullScreenBtn'])){let t=g('app')||document.documentElement;(t.requestFullscreen||t.webkitRequestFullscreen)?.call(t)}}
+ });
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+})();

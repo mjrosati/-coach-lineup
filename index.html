@@ -40,14 +40,27 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Coach Lineup">
-<link rel="manifest" href="manifest.webmanifest?v=93">
+<link rel="manifest" href="manifest.webmanifest?v=94">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="styles.css?v=93">
+<link rel="stylesheet" href="styles.css?v=94">
 <title>Coach Lineup</title>
 </head>
-<body>
+<body><button id="accessMenuBtn" class="accessMenuBtn" type="button" aria-label="Open navigation menu">☰ <span>MENU</span></button>
+<div id="accessNavBackdrop" class="accessNavBackdrop hidden"></div>
+<aside id="accessNav" class="accessNav" aria-label="Coach Lineup navigation">
+<div class="accessNavHead"><b>🏈 COACH <em>LINEUP</em></b><button id="accessNavClose">×</button></div>
+<div class="accessNavRule"><i></i><i></i><i></i></div>
+<button data-nav="dashboard">⌂ <span><b>DASHBOARD</b><small>Team home</small></span></button>
+<button data-nav="game">🏈 <span><b>GAME DAY</b><small>Return to the field</small></span></button>
+<button data-nav="roster">👥 <span><b>ROSTER</b><small>Players & availability</small></span></button>
+<button data-nav="lines">▤ <span><b>LINES</b><small>Offense & defense</small></span></button>
+<button data-nav="playbook">📘 <span><b>PLAYBOOK</b><small>Calls & attachments</small></span></button>
+<button data-nav="history">▥ <span><b>GAME HISTORY</b><small>Stats & reports</small></span></button>
+<button data-nav="settings">⚙ <span><b>TEAM SETTINGS</b><small>Team information</small></span></button>
+<div class="accessNavFoot"><button id="accessExpandBtn">⛶ <span><b>EXPAND FIELD</b><small>Full-screen Game Day</small></span></button></div>
+</aside>
 <div id="auth" class="screen">
   <div class="auth-card">
     <div class="logo">🏈 <b>COACH <span>LINEUP</span></b></div>
@@ -215,8 +228,8 @@
 
 <div id="modal" class="modalWrap hidden"><div class="modal" id="modalBody"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=93"></script>
-<script src="app.js?v=93"></script>
+<script src="config.js?v=94"></script>
+<script src="app.js?v=94"></script>
 <div id="fullscreenPlayPanel" class="fullscreenPlayPanel hidden">
   <div class="fullscreenPlayInfo">
     <small>SELECTED PLAY</small>
@@ -230,5 +243,5 @@
     <button id="fullscreenTdBtn" class="tdPlayBtn">🏈 TD</button>
   </div>
 </div>
-<div id="buildBadge" class="buildBadge">v93 • EXTRA LARGE PLAYER FONT</div>
+<div id="buildBadge" class="buildBadge">v94 • PERFORMANCE DASHBOARD</div>
 </body></html>
