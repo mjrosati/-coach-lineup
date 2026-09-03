@@ -4933,100 +4933,101 @@ window.addEventListener('load',()=>{
 /* v108 interception handlers removed in v110 */
 
 
-window._v110LastTap=0;
-window.expandFivePanelV110=function(name,ev){
-  if(ev){ev.preventDefault();ev.stopPropagation();}
-  const now=Date.now();
-  if(now-window._v110LastTap<250) return false;
-  window._v110LastTap=now;
 
-  const hub=document.getElementById('fivePanelDashboard');
-  if(!hub) return false;
+/* Legacy dashboard button handlers removed in v112. */
 
-  hub.classList.add('v109-expanded-mode');
-  document.querySelectorAll('#fivePanelDashboard .fivePanel[data-panel]').forEach(p=>{
-    const selected=p.dataset.panel===name;
-    p.classList.toggle('v109-expanded-panel',selected);
-    p.classList.toggle('v109-hidden-panel',!selected);
-  });
+/* =========================================================
+   v112 CLEAN BUTTON HANDLERS — no capture listeners, no overlays
+   ========================================================= */
+window.v112OpenTool=function(name){
+  try{
+    const hub=document.getElementById('fivePanelDashboard');
+    if(hub){
+      hub.classList.add('hidden');
+      hub.style.display='';
+    }
+    document.body.classList.remove('five-panel-open');
 
-  const back=document.getElementById('v109BackToFive');
-  if(back) back.classList.remove('hidden');
+    if(name==='field'){
+      if(typeof setFieldFullscreen==='function') return setFieldFullscreen(true);
+      const b=document.getElementById('fullscreenBtn');
+      if(b) return b.click();
+    }
 
-  try{ if(typeof renderFivePanelRealData==='function') renderFivePanelRealData(); }catch(e){}
-  return false;
+    if(name==='players'){
+      if(typeof openRosterManager==='function') return openRosterManager();
+    }
+
+    if(name==='lines'){
+      if(typeof openLines==='function') return openLines();
+      const b=document.getElementById('linesBtn');
+      if(b) return b.click();
+    }
+
+    if(name==='stats'){
+      if(typeof openStats==='function') return openStats();
+      const b=document.getElementById('statsBtn');
+      if(b) return b.click();
+    }
+
+    if(name==='plays'){
+      if(typeof openPlaybook==='function') return openPlaybook();
+      const b=document.getElementById('playbookBtn');
+      if(b) return b.click();
+    }
+  }catch(e){
+    console.error('v112 open tool failed',name,e);
+  }
 };
 
-window.collapseFivePanelV110=function(ev){
-  if(ev){ev.preventDefault();ev.stopPropagation();}
-  const hub=document.getElementById('fivePanelDashboard');
-  if(hub) hub.classList.remove('v109-expanded-mode');
-
-  document.querySelectorAll('#fivePanelDashboard .fivePanel[data-panel]').forEach(p=>{
-    p.classList.remove('v109-expanded-panel','v109-hidden-panel');
-  });
-  document.getElementById('v109BackToFive')?.classList.add('hidden');
-  try{ if(typeof renderFivePanelRealData==='function') renderFivePanelRealData(); }catch(e){}
-  return false;
+window.v112Undo=function(){
+  try{
+    const b=document.getElementById('undoPlayBtn');
+    if(b) return b.click();
+    if(typeof undoLastPlay==='function') return undoLastPlay();
+  }catch(e){console.error('v112 undo failed',e)}
 };
 
-/* v110 cleanup: remove every stale per-panel listener installed by v97-v108.
-   Cloning preserves markup + the v110 overlay buttons, but drops JS listeners/properties. */
-window.addEventListener('load',()=>{
-  document.querySelectorAll('#fivePanelDashboard .fivePanel[data-panel]').forEach(panel=>{
-    const clean=panel.cloneNode(true);
-    clean.removeAttribute('onclick');
-    panel.replaceWith(clean);
-  });
+window.v112Next=function(){
+  try{
+    const b=document.getElementById('nextLineBtn');
+    if(b) return b.click();
+    if(typeof nextLine==='function') return nextLine();
+  }catch(e){console.error('v112 next line failed',e)}
+};
 
-  // Re-point the back button after old handlers have finished registering.
-  const back=document.getElementById('v109BackToFive');
-  if(back) back.onclick=window.collapseFivePanelV110;
+window.addEventListener('load',function(){
+  const bind=(id,fn)=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('click',function(ev){
+      ev.preventDefault();
+      ev.stopPropagation();
+      fn();
+    },{passive:false});
+  };
+
+  bind('v112FieldBtn',()=>window.v112OpenTool('field'));
+  bind('v112PlayersBtn',()=>window.v112OpenTool('players'));
+  bind('v112LinesBtn',()=>window.v112OpenTool('lines'));
+  bind('v112StatsBtn',()=>window.v112OpenTool('stats'));
+  bind('v112PlaysBtn',()=>window.v112OpenTool('plays'));
+  bind('v112UndoPlayBtn',window.v112Undo);
+  bind('v112NextLineBtn',window.v112Next);
 });
 
-
-window.addEventListener('load',()=>{
-  document.querySelectorAll('#fivePanelDashboard .v109PanelTap').forEach(btn=>{
-    const panel=btn.closest('.fivePanel[data-panel]');
-    const name=panel?.dataset.panel;
-    if(!name) return;
-
-    btn.onclick=(ev)=>window.expandFivePanelV110(name,ev);
-    btn.onpointerup=(ev)=>window.expandFivePanelV110(name,ev);
-    btn.ontouchend=(ev)=>window.expandFivePanelV110(name,ev);
-  });
+window.addEventListener('load',function(){
+  const b=document.getElementById('fivePanelBackMain');
+  if(b){
+    b.onclick=function(ev){
+      ev.preventDefault(); ev.stopPropagation();
+      const hub=document.getElementById('fivePanelDashboard');
+      if(hub){hub.classList.add('hidden');hub.style.display='';}
+      document.body.classList.remove('five-panel-open');
+      try{ showDashboard(); }catch(e){
+        document.getElementById('app')?.classList.add('hidden');
+        document.getElementById('dashboard')?.classList.remove('hidden');
+      }
+    };
+  }
 });
-
-window.v111UndoPlay=function(ev){
-  if(ev){ev.preventDefault();ev.stopPropagation();}
-  try{
-    const original=document.getElementById('undoPlayBtn');
-    if(original){
-      original.click();
-      if(typeof renderFivePanelRealData==='function') setTimeout(renderFivePanelRealData,50);
-      return false;
-    }
-    if(typeof undoLastPlay==='function'){
-      undoLastPlay();
-      if(typeof renderFivePanelRealData==='function') setTimeout(renderFivePanelRealData,50);
-    }
-  }catch(e){ console.error('v111 undo failed',e); }
-  return false;
-};
-
-window.v111NextLine=function(ev){
-  if(ev){ev.preventDefault();ev.stopPropagation();}
-  try{
-    const original=document.getElementById('nextLineBtn');
-    if(original){
-      original.click();
-      if(typeof renderFivePanelRealData==='function') setTimeout(renderFivePanelRealData,50);
-      return false;
-    }
-    if(typeof nextLine==='function'){
-      nextLine();
-      if(typeof renderFivePanelRealData==='function') setTimeout(renderFivePanelRealData,50);
-    }
-  }catch(e){ console.error('v111 next line failed',e); }
-  return false;
-};

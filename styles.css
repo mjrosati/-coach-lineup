@@ -6782,3 +6782,63 @@ body.v108ExpandedTool #modalBody h2{
 .fivePanel[data-panel="lines"] .v111LineActions,
 .fivePanel[data-panel="lines"] .v111LineActions *{pointer-events:auto!important;}
 #fiveLinesPreview{flex:1 1 auto!important;min-height:0!important;overflow:auto!important;}
+
+/* =========================================================
+   v112 BUTTON RESET — one clean event layer only
+   ========================================================= */
+.v112ActionBtn{
+  margin-left:auto!important;
+  min-width:58px!important;
+  min-height:34px!important;
+  padding:5px 9px!important;
+  border:2px solid #fff!important;
+  border-radius:4px!important;
+  background:#0057b8!important;
+  color:#fff!important;
+  font-size:8px!important;
+  font-weight:1000!important;
+  letter-spacing:.35px!important;
+  touch-action:manipulation!important;
+  -webkit-appearance:none!important;
+  appearance:none!important;
+  position:relative!important;
+  z-index:300!important;
+}
+.v112ActionBtn:active{background:#0b75d1!important}
+
+.v112LineActions{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:6px!important;
+  padding:7px!important;
+  margin-top:auto!important;
+  border-top:1px solid #2c73af!important;
+  background:#001b3d!important;
+  position:relative!important;
+  z-index:300!important;
+}
+.v112LineActions button{
+  min-height:40px!important;
+  padding:6px 8px!important;
+  border-radius:4px!important;
+  border:2px solid #fff!important;
+  background:#0a376a!important;
+  color:#fff!important;
+  font-size:8px!important;
+  font-weight:1000!important;
+  touch-action:manipulation!important;
+  -webkit-appearance:none!important;
+  appearance:none!important;
+}
+#v112NextLineBtn{background:#0057b8!important}
+#v112UndoPlayBtn{background:#0b2b52!important}
+
+/* Absolutely disable all old transparent overlays if any stale CSS/markup survives */
+.v109PanelTap{display:none!important;pointer-events:none!important}
+
+/* Header labels must allow the OPEN button to receive taps */
+.fivePanelLabel{pointer-events:auto!important}
+.fivePanelLabel *{pointer-events:auto!important}
+
+/* Keep original bottom controls hidden but present as functional fallbacks */
+#undoPlayBtn,#nextLineBtn{display:none!important}
