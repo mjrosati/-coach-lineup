@@ -5965,3 +5965,93 @@ body,.dashScreen,.dashWrap,#app>.layout{background:var(--tonka-black)!important}
 #fivePanelBtn{
   display:none!important;
 }
+
+/* v101 — clean 2 | FIELD | 2 sideline layout */
+body.five-panel-open .accessMenuBtn{display:none!important}
+#fivePanelDashboard{
+  position:absolute!important;inset:0!important;z-index:9500!important;
+  min-height:100%!important;padding:10px!important;background:#03162f!important;
+  grid-template-rows:auto minmax(0,1fr)!important;overflow:hidden!important
+}
+#fivePanelDashboard.hidden{display:none!important}
+.fivePanelTop{
+  min-height:54px!important;padding:6px 8px 9px!important;background:#03162f!important;
+  border-bottom:2px solid #0b75d1!important
+}
+.fivePanelTop h2{font-size:18px!important;font-weight:800!important;letter-spacing:.4px!important}
+.fivePanelTopActions button{min-width:145px!important;min-height:42px!important;font-size:9px!important}
+
+.fivePanelGrid{
+  display:grid!important;
+  grid-template-columns:minmax(180px,.82fr) minmax(430px,1.9fr) minmax(180px,.82fr)!important;
+  grid-template-rows:minmax(0,1fr) minmax(0,1fr)!important;
+  grid-template-areas:"players field lines" "stats field plays"!important;
+  gap:8px!important;padding-top:8px!important;min-height:0!important
+}
+.fivePanel[data-panel=players]{grid-area:players!important}
+.fivePanel[data-panel=lines]{grid-area:lines!important}
+.fivePanel[data-panel=stats]{grid-area:stats!important}
+.fivePanel[data-panel=plays]{grid-area:plays!important}
+.fiveFieldPanel{grid-area:field!important;grid-row:auto!important;min-height:0!important}
+
+.fivePanel{
+  min-height:0!important;background:#082a53!important;border:1px solid #2b6ca9!important;
+  border-radius:3px!important;overflow:hidden!important
+}
+.fivePanelLabel{
+  min-height:39px!important;padding:7px 9px!important;background:#001f47!important;
+  border-bottom:1px solid #286aa8!important
+}
+.fivePanelLabel b{font-size:10px!important;letter-spacing:.7px!important}
+.fivePanelLabel small{font-size:7px!important;color:#b8d8f5!important}
+.expandHint{
+  padding:5px 8px!important;font-size:6px!important;background:#001a3d!important;
+  color:#a8d5ff!important;border-top:1px solid #225d95!important
+}
+
+.miniField{flex:1!important;min-height:0!important;margin:7px!important;border:2px solid #fff!important}
+.miniField i{width:38px!important;height:27px!important}
+
+.fivePreviewList,.fiveLinesPreview,.fiveStatsPreview{overflow:hidden!important}
+.fivePreviewList{gap:2px!important;padding:5px!important}
+.v101PlayerRow{
+  display:grid!important;grid-template-columns:minmax(0,1fr) 28px 30px!important;gap:4px!important;
+  align-items:center!important;min-height:27px!important;padding:4px 5px!important;
+  background:#0a376a!important;border-bottom:1px solid #205f99!important
+}
+.v101PlayerRow strong{font-size:8px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.v101PlayerRow small{font-size:7px!important;color:#b8d6ef!important;text-align:center!important}
+.v101PlayerRow em{font-size:6px!important;font-style:normal!important;text-align:center!important;border:1px solid currentColor!important;border-radius:2px!important;padding:2px!important}
+.v101PlayerRow em.ok{color:#ddf8e6!important}.v101PlayerRow em.warn{color:#fff1a8!important}
+
+.fiveLinesPreview{gap:4px!important;padding:6px!important}
+.fiveLinesPreview span{min-height:30px!important;padding:4px 6px!important;background:#0a376a!important}
+.fiveLinesPreview span.current{outline:2px solid #fff!important;outline-offset:-2px!important}
+.fiveLinesPreview span strong{min-width:0!important;flex:1!important;font-size:8px!important}
+.fiveLinesPreview span em{font-size:6px!important;font-style:normal!important;color:#fff!important}
+
+.fiveStatsPreview{padding:7px!important;gap:5px!important}
+.v101StatRow{
+  display:grid!important;grid-template-columns:minmax(0,1fr) 52px 20px 27px!important;
+  gap:4px!important;align-items:center!important;min-height:23px!important;font-size:7px!important
+}
+.v101StatRow i{height:7px!important;background:#001a3d!important;border-radius:4px!important;overflow:hidden!important}
+.v101StatRow i b{display:block!important;height:100%!important;background:#0b75d1!important}
+.v101StatRow strong,.v101StatRow em{text-align:right!important;font-style:normal!important}
+
+.v101PlayRow{
+  display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:5px!important;
+  min-height:29px!important;padding:5px 6px!important;background:#0a376a!important
+}
+.v101PlayRow strong{font-size:8px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.v101PlayRow em{font-size:6px!important;font-style:normal!important;color:#c9e7ff!important}
+.v101Empty{padding:12px 8px!important;text-align:center!important;font-size:8px!important;color:#b8d6ef!important}
+
+@media(max-width:767px){
+  #fivePanelDashboard{overflow:auto!important}
+  .fivePanelGrid{
+    grid-template-columns:1fr!important;grid-template-rows:auto!important;
+    grid-template-areas:"field" "players" "lines" "stats" "plays"!important;overflow:visible!important
+  }
+  .fiveFieldPanel{min-height:420px!important}.fivePanel{min-height:180px!important}
+}
