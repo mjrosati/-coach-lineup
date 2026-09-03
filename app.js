@@ -820,7 +820,7 @@ function showGameScreen(){
 
   setTimeout(function(){
     try{
-      if(typeof window.coachRenderFivePanelV101==='function') window.coachRenderFivePanelV101();
+      if(typeof window.coachRenderFivePanelV102==='function') window.coachRenderFivePanelV102();
       const panel=document.getElementById('fivePanelDashboard');
       if(panel){
         panel.classList.remove('hidden');
@@ -1115,6 +1115,7 @@ async function loadTeamData(){
     await loadAssignments();
     await loadCounts();
     renderAll();
+    try{ if(typeof window.coachRenderFivePanelV102==='function') window.coachRenderFivePanelV102(); }catch(e){}
     saveOfflineSnapshot();
     if(players.length===0 && roleCanEdit()) openRosterSetup();
   }catch(e){ alert(e.message||String(e)); }
@@ -1238,6 +1239,7 @@ function refreshDesktopAnalytics(){
 
 function renderAll(){
   renderLineSelect(); renderPlayers(); renderSpecialUnitSelect(); renderField(); renderSummary(); applyGameDaySettings(); refreshDesktopAnalytics();
+  try{ if(typeof window.coachRenderFivePanelV102==='function') window.coachRenderFivePanelV102(); }catch(e){}
 }
 
 function renderLineSelect(){
@@ -4495,3 +4497,153 @@ window.coachGoDashboard=function(ev){
   }
   window.scrollTo(0,0);
 };
+
+/* =========================================================
+   v102 FUNCTIONAL SIDELINE DASHBOARD
+   ========================================================= */
+window.coachRenderFivePanelV102=function(){
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  try{
+    const roster=Array.isArray(players)?players:[];
+    const lineList=Array.isArray(lines)?lines:[];
+    const pb=Array.isArray(playbookPlays)?playbookPlays:[];
+    const total=Number(playCount||0);
+
+    // Game strip
+    const opp=document.getElementById('v102GameOpponent');
+    const q=document.getElementById('v102GameQuarter');
+    const drive=document.getElementById('v102GameDrive');
+    const down=document.getElementById('v102GameDown');
+    const playsEl=document.getElementById('v102GamePlays');
+    if(opp) opp.textContent=currentGame?.opponent?`VS ${currentGame.opponent}`:'GAME DAY';
+    if(q) q.textContent=String(gameQuarter||'Q1');
+    if(drive) drive.textContent=`DRIVE ${Number(driveNumber||1)}`;
+    if(down) down.textContent=`${Number(gameDown||1)}${Number(gameDown||1)===1?'ST':Number(gameDown||1)===2?'ND':Number(gameDown||1)===3?'RD':'TH'} & ${gameDistance||10}`;
+    if(playsEl) playsEl.textContent=`${total} PLAY${total===1?'':'S'}`;
+
+    // Players
+    const ph=document.getElementById('fivePlayersPreview');
+    if(ph){
+      const sorted=typeof sortedPlayers==='function'?sortedPlayers(roster):[...roster];
+      ph.innerHTML=sorted.slice(0,8).map(p=>{
+        const st=typeof compactAvailability==='function'?compactAvailability(p):'OK';
+        const pos=typeof rosterPositionBadge==='function'?rosterPositionBadge(p):(p.primary_position||'');
+        return `<div class="v102RosterRow">
+          <span class="v102Num">#${esc(p.jersey_number)}</span>
+          <span class="v102Name">${esc(p.name)}</span>
+          <span class="v102Pos">${esc(pos||'—')}</span>
+          <span class="v102Status ${String(st).toLowerCase()}">${esc(st)}</span>
+        </div>`;
+      }).join('') || '<div class="v102Empty">No players on roster</div>';
+    }
+
+    // Lines
+    const lh=document.getElementById('fiveLinesPreview');
+    if(lh){
+      lh.innerHTML=lineList.slice(0,6).map((l,i)=>{
+        const active=i===Number(currentLine||0);
+        const assigned=Array.isArray(assignments)?assignments.filter(a=>String(a.line_id)===String(l.id)).length:0;
+        return `<div class="v102LineRow ${active?'active':''}" style="--line-color:${esc(l.color||'#0b75d1')}">
+          <span class="v102LineIndex">${i+1}</span>
+          <span class="v102LineName">${esc(l.name||`Line ${i+1}`)}</span>
+          <span class="v102LineCount">${assigned} POS</span>
+          ${active?'<span class="v102Active">LIVE</span>':''}
+        </div>`;
+      }).join('') || '<div class="v102Empty">No lines created</div>';
+    }
+
+    // Stats
+    const sh=document.getElementById('fiveStatsPreview');
+    if(sh){
+      const c=counts||{};
+      const rows=roster.map(p=>({p,n:Number(c[p.id]||0)}))
+        .sort((a,b)=>b.n-a.n||Number(a.p.jersey_number||999)-Number(b.p.jersey_number||999))
+        .slice(0,7);
+      sh.innerHTML=rows.map(r=>{
+        const pct=total?Math.round((r.n/total)*100):0;
+        const warn=Number(threshold||75) && pct>=Number(threshold||75);
+        return `<div class="v102StatRow ${warn?'warn':''}">
+          <span class="v102StatName">#${esc(r.p.jersey_number)} ${esc(r.p.name)}</span>
+          <span class="v102Bar"><i style="width:${Math.min(100,pct)}%"></i></span>
+          <span class="v102StatPlays">${r.n}</span>
+          <span class="v102StatPct">${pct}%</span>
+        </div>`;
+      }).join('') || '<div class="v102Empty">Record a play to begin stats</div>';
+    }
+
+    // Plays
+    const pbh=document.getElementById('fivePlaysPreview');
+    if(pbh){
+      pbh.innerHTML=pb.slice(0,7).map(p=>`
+        <div class="v102PlayRow">
+          <span class="v102PlayCode">${esc(p.play_code||p.code||'PLAY')}</span>
+          <span class="v102PlayName">${esc(p.name||'Untitled')}</span>
+          <span class="v102PlayCat">${esc(String(p.category||'').toUpperCase())}</span>
+        </div>
+      `).join('') || '<div class="v102Empty">No plays in playbook</div>';
+    }
+
+    // Live center field preview from the actual current lineup.
+    const mini=document.querySelector('#fivePanelDashboard .miniField');
+    if(mini){
+      mini.querySelectorAll('.v102MiniPlayer').forEach(n=>n.remove());
+      const current=lineList[Number(currentLine||0)];
+      const currentAssignments=current && Array.isArray(assignments)
+        ? assignments.filter(a=>String(a.line_id)===String(current.id))
+        : [];
+      const amap=new Map(currentAssignments.map(a=>[String(a.position_label_id), roster.find(p=>String(p.id)===String(a.player_id))]));
+      const regular=(Array.isArray(positions)?positions:[]).filter(p=>p.side==='offense'||p.side==='defense');
+      regular.forEach(pos=>{
+        const pl=amap.get(String(pos.id));
+        const el=document.createElement('div');
+        el.className='v102MiniPlayer '+(pos.side==='defense'?'def':'off');
+        el.style.left=`${Number(pos.x_pct||50)}%`;
+        let y=Number(pos.y_pct||50);
+        try{ if(typeof displayYForRegular==='function') y=displayYForRegular(pos); }catch(e){}
+        el.style.top=`${y}%`;
+        el.innerHTML=`<b>${esc(pos.label||'')}</b><small>${pl?`#${esc(pl.jersey_number)}`:'OPEN'}</small>`;
+        mini.appendChild(el);
+      });
+      const lineTag=document.getElementById('v102MiniLineTag');
+      if(lineTag) lineTag.textContent=current?.name||'CURRENT LINE';
+    }
+  }catch(e){
+    console.error('v102 dashboard render',e);
+  }
+};
+
+// Update center field markup with live line label once the page loads.
+window.addEventListener('load',()=>{
+  const mini=document.querySelector('#fivePanelDashboard .miniField');
+  if(mini && !document.getElementById('v102MiniLineTag')){
+    const tag=document.createElement('span');
+    tag.id='v102MiniLineTag';
+    tag.className='v102MiniLineTag';
+    tag.textContent='CURRENT LINE';
+    mini.appendChild(tag);
+  }
+
+  document.querySelectorAll('#fivePanelDashboard .fivePanel[data-panel]').forEach(panel=>{
+    const name=panel.dataset.panel;
+    const open=(ev)=>{
+      ev.preventDefault();
+      ev.stopPropagation();
+      window.coachOpenFivePanelSection(name,ev);
+    };
+    panel.addEventListener('click',open);
+    panel.addEventListener('keydown',ev=>{
+      if(ev.key==='Enter'||ev.key===' '){ open(ev); }
+    });
+  });
+
+  try{ window.coachRenderFivePanelV102(); }catch(e){}
+});
+
+// Keep dashboard fresh while it is visible.
+setInterval(()=>{
+  const panel=document.getElementById('fivePanelDashboard');
+  if(panel && !panel.classList.contains('hidden')){
+    try{ window.coachRenderFivePanelV102(); }catch(e){}
+  }
+},1500);

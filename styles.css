@@ -6055,3 +6055,259 @@ body.five-panel-open .accessMenuBtn{display:none!important}
   }
   .fiveFieldPanel{min-height:420px!important}.fivePanel{min-height:180px!important}
 }
+
+/* =========================================================
+   v102 COOLER + CLEANER TONKA SIDELINE DASHBOARD
+   ========================================================= */
+#fivePanelDashboard{
+  background:
+    radial-gradient(circle at 50% 0%, rgba(11,117,209,.18), transparent 34%),
+    linear-gradient(180deg,#03162f 0%,#020d1e 100%)!important;
+}
+
+.fivePanelTop{
+  background:linear-gradient(90deg,#001d43,#053b76 55%,#001d43)!important;
+  border-bottom:1px solid rgba(255,255,255,.18)!important;
+}
+.fivePanelTop h2{
+  letter-spacing:1px!important;
+  text-shadow:0 1px 0 #000!important;
+}
+.fivePanelTop small{
+  color:#83c7ff!important;
+}
+
+.v102GameStrip{
+  display:grid!important;
+  grid-template-columns:1.4fr repeat(4,1fr)!important;
+  gap:5px!important;
+  margin-top:7px!important;
+}
+.v102GameStrip span{
+  min-height:31px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:5px 8px!important;
+  background:linear-gradient(180deg,#0a3c73,#082c55)!important;
+  border:1px solid #2c73af!important;
+  color:#fff!important;
+  font-size:8px!important;
+  font-weight:1000!important;
+  letter-spacing:.45px!important;
+}
+.v102GameStrip span:first-child{
+  justify-content:flex-start!important;
+  border-left:4px solid #fff!important;
+}
+
+.fivePanelGrid{
+  grid-template-columns:minmax(190px,.8fr) minmax(470px,2.05fr) minmax(190px,.8fr)!important;
+  gap:7px!important;
+}
+.fivePanel{
+  position:relative!important;
+  background:linear-gradient(180deg,#092d59,#062246)!important;
+  border:1px solid #1f619b!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06)!important;
+  cursor:pointer!important;
+}
+.fivePanel:focus-visible{
+  outline:3px solid #fff!important;
+  outline-offset:2px!important;
+}
+.fivePanel:after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.fivePanelLabel{
+  background:linear-gradient(90deg,#001c40,#063a72)!important;
+}
+.fivePanel[data-panel="players"] .fivePanelLabel{border-left:4px solid #fff!important}
+.fivePanel[data-panel="stats"] .fivePanelLabel{border-left:4px solid #00d4ff!important}
+.fivePanel[data-panel="lines"] .fivePanelLabel{border-left:4px solid #ff445a!important}
+.fivePanel[data-panel="plays"] .fivePanelLabel{border-left:4px solid #8b9cff!important}
+.fiveFieldPanel .fivePanelLabel{border-left:4px solid #0b75d1!important}
+
+.expandHint{
+  opacity:.92!important;
+  letter-spacing:.55px!important;
+}
+
+/* Live roster rows */
+.v102RosterRow{
+  display:grid!important;
+  grid-template-columns:32px minmax(0,1fr) 32px 30px!important;
+  gap:4px!important;
+  align-items:center!important;
+  min-height:29px!important;
+  padding:4px 5px!important;
+  border-bottom:1px solid rgba(255,255,255,.08)!important;
+  background:rgba(5,52,99,.72)!important;
+}
+.v102RosterRow:nth-child(even){background:rgba(8,61,113,.72)!important}
+.v102Num{font-size:7px!important;color:#9dd2ff!important;font-weight:1000!important}
+.v102Name{font-size:8px!important;font-weight:900!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.v102Pos{font-size:7px!important;text-align:center!important;color:#d9ebfb!important}
+.v102Status{
+  font-size:6px!important;
+  text-align:center!important;
+  padding:2px!important;
+  border:1px solid currentColor!important;
+  border-radius:2px!important;
+}
+.v102Status.ok{color:#baffc8!important}
+.v102Status.inj,.v102Status.out{color:#ffd36a!important}
+
+/* Live line rows */
+.v102LineRow{
+  --line-color:#0b75d1;
+  display:grid!important;
+  grid-template-columns:26px minmax(0,1fr) 38px 28px!important;
+  gap:5px!important;
+  align-items:center!important;
+  min-height:33px!important;
+  padding:5px 6px!important;
+  margin-bottom:4px!important;
+  background:#0a376a!important;
+  border-left:5px solid var(--line-color)!important;
+}
+.v102LineRow.active{
+  background:#104a89!important;
+  outline:1px solid #fff!important;
+}
+.v102LineIndex{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:22px!important;
+  height:22px!important;
+  border-radius:50%!important;
+  background:#001a3d!important;
+  font-size:7px!important;
+  font-weight:1000!important;
+}
+.v102LineName{font-size:8px!important;font-weight:900!important}
+.v102LineCount{font-size:6px!important;color:#b8d7f2!important;text-align:right!important}
+.v102Active{font-size:6px!important;color:#fff!important;font-weight:1000!important;text-align:right!important}
+
+/* Stats */
+.v102StatRow{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 60px 18px 29px!important;
+  gap:5px!important;
+  align-items:center!important;
+  min-height:26px!important;
+  padding:3px 2px!important;
+  font-size:7px!important;
+}
+.v102StatName{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.v102Bar{
+  height:7px!important;
+  background:#00152f!important;
+  border:1px solid #154f82!important;
+  border-radius:5px!important;
+  overflow:hidden!important;
+}
+.v102Bar i{
+  display:block!important;
+  height:100%!important;
+  background:linear-gradient(90deg,#0b75d1,#2bbcff)!important;
+}
+.v102StatRow.warn .v102Bar i{background:linear-gradient(90deg,#ff9d00,#ffd45d)!important}
+.v102StatPlays,.v102StatPct{text-align:right!important;font-weight:900!important}
+
+/* Plays */
+.v102PlayRow{
+  display:grid!important;
+  grid-template-columns:42px minmax(0,1fr) 42px!important;
+  gap:5px!important;
+  align-items:center!important;
+  min-height:31px!important;
+  padding:5px 6px!important;
+  margin-bottom:3px!important;
+  background:rgba(7,55,104,.8)!important;
+  border-bottom:1px solid rgba(255,255,255,.08)!important;
+}
+.v102PlayCode{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-height:20px!important;
+  padding:2px 4px!important;
+  background:#001a3d!important;
+  border:1px solid #3c80b9!important;
+  font-size:6px!important;
+  font-weight:1000!important;
+}
+.v102PlayName{font-size:8px!important;font-weight:900!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.v102PlayCat{font-size:6px!important;color:#b5d9f6!important;text-align:right!important}
+
+.v102Empty{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-height:90px!important;
+  padding:10px!important;
+  color:#a9c7e2!important;
+  font-size:8px!important;
+  text-align:center!important;
+}
+
+/* Actual lineup mini field */
+.miniField{
+  background:
+    repeating-linear-gradient(to bottom,transparent 0 9.5%,rgba(255,255,255,.34) 9.7% 10%),
+    linear-gradient(180deg,#159346,#0d7136)!important;
+  overflow:hidden!important;
+}
+.miniField > i{display:none!important}
+.v102MiniPlayer{
+  position:absolute!important;
+  transform:translate(-50%,-50%)!important;
+  width:46px!important;
+  min-height:31px!important;
+  padding:3px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  background:#101820!important;
+  border-radius:4px!important;
+  color:#fff!important;
+  box-shadow:0 1px 3px rgba(0,0,0,.45)!important;
+  z-index:4!important;
+}
+.v102MiniPlayer.off{border:2px solid #ff5a55!important}
+.v102MiniPlayer.def{border:2px solid #1aa3ff!important}
+.v102MiniPlayer b{font-size:6px!important;line-height:1!important}
+.v102MiniPlayer small{font-size:7px!important;font-weight:1000!important;margin-top:2px!important}
+.v102MiniLineTag{
+  top:4px!important;
+  right:5px!important;
+  left:auto!important;
+  transform:none!important;
+  background:#001f47!important;
+  border:1px solid #fff!important;
+  font-size:6px!important;
+  letter-spacing:.5px!important;
+}
+.fiveFieldPanel{
+  border-color:#2c7dbd!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)!important;
+}
+
+@media(min-width:768px) and (orientation:landscape){
+  #fivePanelDashboard{
+    padding:8px!important;
+  }
+  .fivePanelTop{
+    min-height:48px!important;
+  }
+  .fivePanelGrid{
+    grid-template-columns:minmax(170px,.76fr) minmax(500px,2.2fr) minmax(170px,.76fr)!important;
+  }
+}
