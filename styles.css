@@ -5449,3 +5449,265 @@ button:focus-visible,[role=button]:focus-visible,.dashCard:focus-visible{outline
 body.field-fullscreen .accessMenuBtn{top:10px!important;left:10px!important}
 @media(min-width:1100px){.dashGrid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
 @media(max-width:767px){.dashGrid{grid-template-columns:1fr!important}.accessMenuBtn{min-width:48px!important}.accessMenuBtn span{display:none!important}}
+
+/* =========================================================
+   v95 GAME DAY REDESIGN — performance-board visual system
+   ========================================================= */
+
+/* Top bar */
+#app .top{
+  background:#071d47!important;
+  border-bottom:1px solid #4f6f96!important;
+  box-shadow:none!important;
+  min-height:58px!important;
+}
+#app .top .brand{
+  font-weight:800!important;
+  letter-spacing:.4px!important;
+}
+#app .top .brand span{color:#2ca1ff!important}
+#app .top button,#app .top select{
+  border-radius:3px!important;
+}
+.dashReturnBtn{
+  border-color:#ff9d00!important;
+  color:#ffd27a!important;
+  background:#102a53!important;
+  font-weight:900!important;
+}
+
+/* Overall 3-column dashboard-like composition */
+#app>.layout{
+  background:#061b43!important;
+  gap:6px!important;
+  padding:6px!important;
+}
+#app>.layout>.sidebar,
+#app>.layout>.rightRail,
+#app>.layout>.main{
+  border:1px solid #2c4e78!important;
+  background:#0b254d!important;
+  box-shadow:none!important;
+}
+
+/* Left roster panel */
+#app .sidebar{
+  padding:8px!important;
+}
+#app .sidebar:before{
+  content:"ROSTER / STATUS";
+  display:block;
+  background:#0a1d43;
+  border-bottom:3px solid #1688f8;
+  color:#fff;
+  font-size:10px;
+  font-weight:1000;
+  letter-spacing:.8px;
+  text-align:center;
+  padding:7px;
+  margin:-8px -8px 8px;
+}
+#app .teamHead{
+  background:#153760!important;
+  border:1px solid #315887!important;
+  padding:7px!important;
+  margin-bottom:7px!important;
+}
+#app .search{
+  background:#07162e!important;
+  border-color:#355d8e!important;
+  color:#fff!important;
+}
+#app .player{
+  background:#0d2b54!important;
+  border-bottom:1px solid #284b76!important;
+}
+#app .player:hover{background:#153b68!important}
+#app .rosterColumnHead{
+  background:#071d47!important;
+  color:#bcd0e8!important;
+}
+
+/* Center game panel */
+#app .main{
+  overflow:hidden!important;
+}
+#app .gameToolbar{
+  background:#102d57!important;
+  border-bottom:1px solid #315887!important;
+  padding:7px!important;
+  min-height:50px!important;
+}
+#app .combinedViewTabs{
+  background:#071d47!important;
+  border:1px solid #315887!important;
+  padding:3px!important;
+  gap:3px!important;
+}
+#app .combinedViewTabs .viewTab{
+  border-radius:2px!important;
+  background:#17365f!important;
+}
+#app .combinedViewTabs .viewTab.active{
+  background:#176fd1!important;
+  border-color:#59a8ff!important;
+}
+#app .editFieldBtn{
+  background:#17365f!important;
+  border:1px solid #ff9d00!important;
+  color:#fff!important;
+}
+
+/* Game state panel */
+#app .gameStrip{
+  background:#18345f!important;
+  border:1px solid #315887!important;
+  border-radius:2px!important;
+  padding:6px!important;
+  gap:5px!important;
+}
+#app .gameStrip>*{
+  border-radius:2px!important;
+  border:1px solid #8aa1bc!important;
+  background:#f4f6f8!important;
+  color:#0a2a50!important;
+  font-weight:1000!important;
+}
+#app .gameStrip>*:focus-visible{
+  outline:3px solid #ff9d00!important;
+  outline-offset:2px!important;
+}
+
+/* Field panel */
+#app .fieldArea{
+  background:#07182d!important;
+  border-top:1px solid #2d527e!important;
+  border-bottom:1px solid #2d527e!important;
+  padding:5px!important;
+}
+#app .field{
+  border:2px solid #dce8f5!important;
+  box-shadow:inset 0 0 0 1px #061b43!important;
+}
+
+/* Bottom line rotation becomes dashboard control strip */
+#app .bottom{
+  background:#0b254d!important;
+  border-top:1px solid #315887!important;
+  padding:6px!important;
+  gap:5px!important;
+}
+#app .bottom .chip{
+  background:#102d57!important;
+  border:1px solid #365d8e!important;
+  color:#fff!important;
+  border-radius:2px!important;
+}
+#app .bottom .chip.active,
+#app .bottom .chip[aria-current="true"]{
+  border-color:#ff9d00!important;
+  box-shadow:inset 0 -3px 0 #ff9d00!important;
+}
+
+/* Right control rail */
+#app .rightRail{
+  background:#071d47!important;
+}
+#app .rightRail:before{
+  content:"GAME DAY CONTROLS";
+  display:block;
+  background:#0a1d43;
+  border-bottom:3px solid #ff4d55;
+  color:#fff;
+  font-size:10px;
+  font-weight:1000;
+  letter-spacing:.8px;
+  text-align:center;
+  padding:7px;
+}
+#app .rightRail>.actions{
+  background:#0b254d!important;
+  padding:7px!important;
+  gap:6px!important;
+}
+#app .rightRail>.actions button{
+  background:#153760!important;
+  border:1px solid #315887!important;
+  color:#fff!important;
+  border-radius:2px!important;
+  font-weight:900!important;
+}
+#app .rightRail>.actions button:hover{
+  background:#204875!important;
+  border-color:#68aaf1!important;
+}
+#app #fullscreenBtn{
+  border-color:#ff9d00!important;
+  color:#ffe2a4!important;
+}
+#app #statsBtn{
+  border-color:#1688f8!important;
+}
+#app #subBtn{
+  border-color:#ff4d55!important;
+}
+
+/* Analytics panels */
+#app .desktopAnalytics{
+  background:#061b43!important;
+  padding:6px!important;
+}
+#app .analyticsCard{
+  border-radius:2px!important;
+  background:#18345f!important;
+  border:1px solid #315887!important;
+}
+#app .analyticsHead{
+  background:#0a1d43!important;
+  border-bottom:2px solid #1688f8!important;
+}
+#app .lineStatsCard .analyticsHead{
+  border-bottom-color:#ff9d00!important;
+}
+
+/* Persistent navigation */
+.accessMenuBtn{
+  border-radius:3px!important;
+  background:#0a2f61!important;
+  border-color:#58a6ff!important;
+}
+.accessNav{
+  border-right:3px solid #1688f8!important;
+}
+.accessNav>button,.accessNavFoot button{
+  border-radius:2px!important;
+}
+
+/* Tablet landscape: center field is primary, side panels remain accessible */
+@media (min-width:768px) and (max-width:1180px) and (orientation:landscape){
+  #app>.layout{
+    grid-template-columns:150px minmax(0,1fr) 114px!important;
+  }
+  #app .sidebar:before,#app .rightRail:before{
+    font-size:7px!important;
+    padding:5px!important;
+  }
+  #app .rightRail>.actions button{
+    min-height:39px!important;
+    font-size:7px!important;
+  }
+  #app .gameToolbar{
+    min-height:42px!important;
+  }
+}
+
+/* Mobile: dashboard-style panels stack cleanly */
+@media(max-width:767px){
+  #app>.layout{
+    background:#061b43!important;
+  }
+  #app .sidebar,#app .rightRail,#app .main{
+    border-left:0!important;
+    border-right:0!important;
+  }
+}

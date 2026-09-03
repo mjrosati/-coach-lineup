@@ -4172,22 +4172,89 @@ loadPlayerSort();
 
 setTimeout(renderOpponentAlertBanner,500);
 
-/* v94 persistent accessible navigation */
+/* v95 persistent accessible navigation */
 (function(){
- const g=id=>document.getElementById(id);
- function close(){g('accessNav')?.classList.remove('open');g('accessNavBackdrop')?.classList.add('hidden')}
- function open(){g('accessNav')?.classList.add('open');g('accessNavBackdrop')?.classList.remove('hidden')}
- function hit(ids){for(const id of ids){let e=g(id);if(e){e.click();return true}}return false}
- function go(x){close();
-  if(x==='dashboard'){if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});document.body.classList.remove('field-fullscreen');hit(['homeBtn','gameHomeBtn','backDashboardBtn','dashboardBtn']);let d=g('dashboard'),a=g('app');if(d)d.classList.remove('hidden');if(a)a.classList.add('hidden');scrollTo(0,0);return}
-  if(x==='game'){hit(['resumeGameBtn','gameDayBtn','resumeBtn']);return}
-  let m={roster:['rosterCard','rosterBtn','openRosterBtn'],lines:['linesCard','linesBtn','openLinesBtn'],playbook:['playbookCard','playbookBtn','openPlaybookBtn'],history:['historyCard','gameHistoryBtn','historyBtn'],settings:['settingsCard','teamSettingsBtn','settingsBtn']};hit(m[x]||[])
- }
- document.addEventListener('click',e=>{
-  if(e.target.closest('#accessMenuBtn'))open();
-  if(e.target.closest('#accessNavClose')||e.target.closest('#accessNavBackdrop'))close();
-  let n=e.target.closest('[data-nav]');if(n)go(n.dataset.nav);
-  if(e.target.closest('#accessExpandBtn')){close();if(!hit(['fullscreenBtn','fullScreenBtn'])){let t=g('app')||document.documentElement;(t.requestFullscreen||t.webkitRequestFullscreen)?.call(t)}}
- });
- document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+  const el=id=>document.getElementById(id);
+
+  function closeNav(){
+    el('accessNav')?.classList.remove('open');
+    el('accessNavBackdrop')?.classList.add('hidden');
+    el('accessMenuBtn')?.setAttribute('aria-expanded','false');
+  }
+  function openNav(){
+    el('accessNav')?.classList.add('open');
+    el('accessNavBackdrop')?.classList.remove('hidden');
+    el('accessMenuBtn')?.setAttribute('aria-expanded','true');
+  }
+  function leaveFullscreen(){
+    try{
+      if(typeof setFieldFullscreen==='function') setFieldFullscreen(false);
+    }catch(e){}
+    if(document.fullscreenElement && document.exitFullscreen){
+      document.exitFullscreen().catch(()=>{});
+    }
+    document.body.classList.remove('field-fullscreen');
+  }
+  function goDashboard(){
+    closeNav();
+    leaveFullscreen();
+    try{
+      if(typeof showDashboard==='function'){
+        showDashboard();
+      }else{
+        el('app')?.classList.add('hidden');
+        el('dashboard')?.classList.remove('hidden');
+      }
+    }catch(e){
+      console.error('Dashboard navigation failed',e);
+      el('app')?.classList.add('hidden');
+      el('dashboard')?.classList.remove('hidden');
+    }
+    window.scrollTo(0,0);
+  }
+  function goGame(){
+    closeNav();
+    try{
+      if(typeof showGameScreen==='function') showGameScreen();
+      else el('gameDayCard')?.click();
+    }catch(e){ console.error(e); }
+  }
+  function goSection(name){
+    closeNav();
+    const actions={
+      roster:()=>typeof openRosterManager==='function'&&openRosterManager(),
+      lines:()=>typeof openLines==='function'&&openLines(),
+      playbook:()=>typeof openPlaybook==='function'&&openPlaybook(),
+      history:()=>typeof openAllGameHistory==='function'&&openAllGameHistory(),
+      settings:()=>typeof openTeamSettings==='function'&&openTeamSettings()
+    };
+    try{ actions[name]?.(); }catch(e){ console.error(e); }
+  }
+  function expandField(){
+    closeNav();
+    try{
+      if(typeof setFieldFullscreen==='function') setFieldFullscreen(true);
+      else el('fullscreenBtn')?.click();
+    }catch(e){ console.error(e); }
+  }
+
+  document.addEventListener('click',e=>{
+    if(e.target.closest('#accessMenuBtn')) openNav();
+    if(e.target.closest('#accessNavClose')||e.target.closest('#accessNavBackdrop')) closeNav();
+
+    const nav=e.target.closest('[data-nav]');
+    if(nav){
+      const target=nav.dataset.nav;
+      if(target==='dashboard') goDashboard();
+      else if(target==='game') goGame();
+      else goSection(target);
+    }
+
+    if(e.target.closest('#accessExpandBtn')) expandField();
+    if(e.target.closest('#dashReturnBtn')) goDashboard();
+  });
+
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape') closeNav();
+  });
 })();
