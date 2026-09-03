@@ -6642,3 +6642,49 @@ body.five-panel-open .accessMenuBtn{display:none!important}
 .v106Mini.off{border:2px solid #ff574f!important}
 .v106Mini.def{border:2px solid #18a4ff!important}
 .v106Mini b{font-size:6px!important}.v106Mini small{font-size:7px!important;font-weight:1000!important}
+
+/* =========================================================
+   v108 PANEL TAP -> FULL VIEW
+   ========================================================= */
+body.v108ExpandedTool #modal{
+  position:fixed!important;
+  inset:0!important;
+  z-index:100000!important;
+  padding:8px!important;
+  background:#020b18ee!important;
+  display:flex!important;
+  align-items:stretch!important;
+  justify-content:stretch!important;
+}
+body.v108ExpandedTool #modal.hidden{
+  display:none!important;
+}
+body.v108ExpandedTool #modalBody{
+  width:100%!important;
+  max-width:none!important;
+  height:100%!important;
+  max-height:none!important;
+  margin:0!important;
+  overflow:auto!important;
+  border-radius:4px!important;
+  border:2px solid #0b75d1!important;
+  background:#061b3a!important;
+}
+body.v108ExpandedTool #modalBody h2{
+  position:sticky!important;
+  top:0!important;
+  z-index:2!important;
+  margin:0 0 10px!important;
+  padding:10px!important;
+  background:#002d62!important;
+  border-bottom:1px solid #2873b4!important;
+}
+.fivePanel[data-panel]{
+  cursor:pointer!important;
+  touch-action:manipulation!important;
+  -webkit-tap-highlight-color:rgba(255,255,255,.12)!important;
+}
+.fivePanel[data-panel]:active{
+  outline:3px solid #fff!important;
+  outline-offset:-3px!important;
+}

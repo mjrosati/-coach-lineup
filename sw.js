@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v107-force-refresh-real-data";
+const CACHE="coach-lineup-v108-panel-tap-full-view";
 const CORE=[
   "./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest",
   "./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png"

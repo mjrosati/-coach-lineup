@@ -4929,3 +4929,93 @@ window.addEventListener('load',()=>{
     panel.onclick=(ev)=>window.coachOpenFivePanelSection(panel.dataset.panel,ev);
   });
 });
+
+/* =========================================================
+   v108 RELIABLE PANEL OPENING
+   ========================================================= */
+window.coachOpenPanelV108=function(name,ev){
+  if(ev){
+    ev.preventDefault();
+    ev.stopPropagation();
+  }
+
+  // Hide the five-panel hub before opening a tool.
+  const hub=document.getElementById('fivePanelDashboard');
+  if(hub){
+    hub.classList.add('hidden');
+    hub.style.display='';
+  }
+  document.body.classList.remove('five-panel-open');
+
+  try{
+    if(name==='field'){
+      // Use the app's known-working fullscreen control.
+      const btn=document.getElementById('fullscreenBtn');
+      if(btn){
+        btn.click();
+      }else if(typeof setFieldFullscreen==='function'){
+        setFieldFullscreen(true);
+      }
+      return false;
+    }
+
+    document.body.classList.add('v108ExpandedTool');
+
+    if(name==='players'){
+      if(typeof openRosterManager==='function') openRosterManager();
+      return false;
+    }
+
+    if(name==='lines'){
+      const btn=document.getElementById('linesBtn');
+      if(btn) btn.click();
+      else if(typeof openLines==='function') openLines();
+      return false;
+    }
+
+    if(name==='stats'){
+      const btn=document.getElementById('statsBtn');
+      if(btn) btn.click();
+      else if(typeof openStats==='function') openStats();
+      return false;
+    }
+
+    if(name==='plays'){
+      const btn=document.getElementById('playbookBtn');
+      if(btn) btn.click();
+      else if(typeof openPlaybook==='function') openPlaybook();
+      return false;
+    }
+  }catch(e){
+    console.error('v108 panel open failed',name,e);
+  }
+  return false;
+};
+
+// Clean up expanded styling whenever a modal closes.
+(function(){
+  const oldClose=window.closeModal;
+  if(typeof closeModal==='function'){
+    window.closeModal=function(){
+      document.body.classList.remove('v108ExpandedTool');
+      return oldClose ? oldClose() : document.getElementById('modal')?.classList.add('hidden');
+    };
+  }
+
+  // Capture taps before any nested child can swallow them on iPad Safari.
+  document.addEventListener('pointerup',function(ev){
+    const panel=ev.target?.closest?.('#fivePanelDashboard .fivePanel[data-panel]');
+    if(!panel) return;
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    window.coachOpenPanelV108(panel.dataset.panel,ev);
+  },true);
+
+  document.addEventListener('touchend',function(ev){
+    const panel=ev.target?.closest?.('#fivePanelDashboard .fivePanel[data-panel]');
+    if(!panel) return;
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    window.coachOpenPanelV108(panel.dataset.panel,ev);
+  },{capture:true,passive:false});
+})();
