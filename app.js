@@ -4338,3 +4338,13 @@ window.addEventListener('load', function(){
     });
   });
 })();
+
+window.coachCloseMenu=function(ev){if(ev){ev.preventDefault();ev.stopPropagation();}document.getElementById('accessNav')?.classList.remove('open');document.getElementById('accessNavBackdrop')?.classList.add('hidden');};
+window.coachOpenMenu=function(ev){if(ev){ev.preventDefault();ev.stopPropagation();}document.getElementById('accessNav')?.classList.add('open');document.getElementById('accessNavBackdrop')?.classList.remove('hidden');};
+window.coachGoDashboard=function(ev){if(ev){ev.preventDefault();ev.stopPropagation();}window.coachCloseMenu();try{if(typeof setFieldFullscreen==='function')setFieldFullscreen(false);}catch(e){}document.getElementById('fivePanelDashboard')?.classList.add('hidden');try{showDashboard();}catch(e){document.getElementById('app')?.classList.add('hidden');document.getElementById('dashboard')?.classList.remove('hidden');}scrollTo(0,0);};
+window.coachGoGame=function(ev){if(ev){ev.preventDefault();ev.stopPropagation();}window.coachCloseMenu();try{showGameScreen();}catch(e){console.error(e);}};
+window.coachOpenSection=function(name,ev){if(ev){ev.preventDefault();ev.stopPropagation();}window.coachCloseMenu();try{if(name==='roster')openRosterManager();else if(name==='lines')openLines();else if(name==='playbook')openPlaybook();else if(name==='history')openAllGameHistory();else if(name==='settings')openTeamSettings();}catch(e){console.error(e);}};
+window.coachExpandField=function(ev){if(ev){ev.preventDefault();ev.stopPropagation();}window.coachCloseMenu();try{setFieldFullscreen(true);}catch(e){document.getElementById('fullscreenBtn')?.click();}};
+window.coachShowFivePanel=function(ev){if(ev){ev.preventDefault();ev.stopPropagation();}window.coachCloseMenu();try{if(typeof setFieldFullscreen==='function')setFieldFullscreen(false);}catch(e){}document.getElementById('fivePanelDashboard')?.classList.remove('hidden');};
+window.coachHideFivePanel=function(ev){if(ev){ev.preventDefault();ev.stopPropagation();}document.getElementById('fivePanelDashboard')?.classList.add('hidden');};
+window.coachOpenFivePanelSection=function(name,ev){if(ev){ev.preventDefault();ev.stopPropagation();}window.coachHideFivePanel();try{if(name==='field')setFieldFullscreen(true);else if(name==='players')openRosterManager();else if(name==='lines')openLines();else if(name==='stats')openStats();else if(name==='plays')openPlaybook();}catch(e){console.error(e);}};

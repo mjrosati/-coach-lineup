@@ -40,26 +40,26 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Coach Lineup">
-<link rel="manifest" href="manifest.webmanifest?v=97">
+<link rel="manifest" href="manifest.webmanifest?v=98">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="styles.css?v=97">
+<link rel="stylesheet" href="styles.css?v=98">
 <title>Coach Lineup</title>
 </head>
-<body><button id="accessMenuBtn" class="accessMenuBtn" type="button" aria-expanded="false" aria-label="Open navigation menu">☰ <span>MENU</span></button>
+<body><button id="accessMenuBtn" class="accessMenuBtn" type="button" aria-expanded="false" aria-label="Open navigation menu" onclick="window.coachOpenMenu(event)">☰ <span>MENU</span></button>
 <div id="accessNavBackdrop" class="accessNavBackdrop hidden"></div>
 <aside id="accessNav" class="accessNav" aria-label="Coach Lineup navigation">
-<div class="accessNavHead"><b>🏈 COACH <em>LINEUP</em></b><button id="accessNavClose">×</button></div>
+<div class="accessNavHead"><b>🏈 COACH <em>LINEUP</em></b><button id="accessNavClose" onclick="window.coachCloseMenu(event)">×</button></div>
 <div class="accessNavRule"><i></i><i></i><i></i></div>
-<button data-nav="dashboard">⌂ <span><b>DASHBOARD</b><small>Team home</small></span></button>
-<button data-nav="game">🏈 <span><b>GAME DAY</b><small>Return to the field</small></span></button>
-<button data-nav="roster">👥 <span><b>ROSTER</b><small>Players & availability</small></span></button>
-<button data-nav="lines">▤ <span><b>LINES</b><small>Offense & defense</small></span></button>
-<button data-nav="playbook">📘 <span><b>PLAYBOOK</b><small>Calls & attachments</small></span></button>
-<button data-nav="history">▥ <span><b>GAME HISTORY</b><small>Stats & reports</small></span></button>
-<button data-nav="settings">⚙ <span><b>TEAM SETTINGS</b><small>Team information</small></span></button>
-<div class="accessNavFoot"><button id="accessExpandBtn">⛶ <span><b>EXPAND FIELD</b><small>Full-screen Game Day</small></span></button></div>
+<button data-nav="dashboard" onclick="window.coachGoDashboard(event)">⌂ <span><b>DASHBOARD</b><small>Team home</small></span></button>
+<button data-nav="game" onclick="window.coachGoGame(event)">🏈 <span><b>GAME DAY</b><small>Return to the field</small></span></button>
+<button data-nav="roster" onclick="window.coachOpenSection('roster',event)">👥 <span><b>ROSTER</b><small>Players & availability</small></span></button>
+<button data-nav="lines" onclick="window.coachOpenSection('lines',event)">▤ <span><b>LINES</b><small>Offense & defense</small></span></button>
+<button data-nav="playbook" onclick="window.coachOpenSection('playbook',event)">📘 <span><b>PLAYBOOK</b><small>Calls & attachments</small></span></button>
+<button data-nav="history" onclick="window.coachOpenSection('history',event)">▥ <span><b>GAME HISTORY</b><small>Stats & reports</small></span></button>
+<button data-nav="settings" onclick="window.coachOpenSection('settings',event)">⚙ <span><b>TEAM SETTINGS</b><small>Team information</small></span></button>
+<div class="accessNavFoot"><button id="accessExpandBtn" onclick="window.coachExpandField(event)">⛶ <span><b>EXPAND FIELD</b><small>Full-screen Game Day</small></span></button></div>
 </aside>
 <div id="auth" class="screen">
   <div class="auth-card">
@@ -117,13 +117,13 @@
       <h2>COACH LINEUP DASHBOARD</h2>
     </div>
     <div class="fivePanelTopActions">
-      <button id="fivePanelBackMain" type="button">⌂ MAIN DASHBOARD</button>
-      <button id="fivePanelClose" type="button">RETURN TO FIELD</button>
+      <button id="fivePanelBackMain" type="button" onclick="window.coachGoDashboard(event)">⌂ MAIN DASHBOARD</button>
+      <button id="fivePanelClose" type="button" onclick="window.coachHideFivePanel(event)">RETURN TO FIELD</button>
     </div>
   </div>
 
   <div class="fivePanelGrid">
-    <button class="fivePanel fiveFieldPanel" data-panel="field" type="button">
+    <button class="fivePanel fiveFieldPanel" data-panel="field" type="button" onclick="window.coachOpenFivePanelSection('field',event)">
       <span class="fivePanelLabel"><b>FIELD</b><small>Live offense / defense</small></span>
       <div class="miniField">
         <div class="miniFieldMid"></div>
@@ -139,25 +139,25 @@
       <span class="expandHint">TAP TO EXPAND ⛶</span>
     </button>
 
-    <button class="fivePanel" data-panel="players" type="button">
+    <button class="fivePanel" data-panel="players" type="button" onclick="window.coachOpenFivePanelSection('players',event)">
       <span class="fivePanelLabel"><b>PLAYERS</b><small>Roster & availability</small></span>
       <div id="fivePlayersPreview" class="fivePreviewList"></div>
       <span class="expandHint">TAP TO EXPAND ⛶</span>
     </button>
 
-    <button class="fivePanel" data-panel="lines" type="button">
+    <button class="fivePanel" data-panel="lines" type="button" onclick="window.coachOpenFivePanelSection('lines',event)">
       <span class="fivePanelLabel"><b>PLAY LINES</b><small>Black / Blue / Green / Gold</small></span>
       <div id="fiveLinesPreview" class="fiveLinesPreview"></div>
       <span class="expandHint">TAP TO EXPAND ⛶</span>
     </button>
 
-    <button class="fivePanel" data-panel="stats" type="button">
+    <button class="fivePanel" data-panel="stats" type="button" onclick="window.coachOpenFivePanelSection('stats',event)">
       <span class="fivePanelLabel"><b>STATS</b><small>Playing time & percentages</small></span>
       <div id="fiveStatsPreview" class="fiveStatsPreview"></div>
       <span class="expandHint">TAP TO EXPAND ⛶</span>
     </button>
 
-    <button class="fivePanel" data-panel="plays" type="button">
+    <button class="fivePanel" data-panel="plays" type="button" onclick="window.coachOpenFivePanelSection('plays',event)">
       <span class="fivePanelLabel"><b>PLAYS</b><small>Playbook & calls</small></span>
       <div id="fivePlaysPreview" class="fivePreviewList"></div>
       <span class="expandHint">TAP TO EXPAND ⛶</span>
@@ -166,7 +166,7 @@
 </section>
 
   <header class="top">
-    <button class="iconBtn homeBtn" id="homeBtn">⌂ HOME</button><button class="iconBtn dashReturnBtn" id="dashReturnBtn">DASHBOARD</button><button class="iconBtn fivePanelBtn" id="fivePanelBtn">5-PANEL VIEW</button>
+    <button class="iconBtn homeBtn" id="homeBtn">⌂ HOME</button><button class="iconBtn dashReturnBtn" id="dashReturnBtn" type="button" onclick="window.coachGoDashboard(event)">DASHBOARD</button><button class="iconBtn fivePanelBtn" id="fivePanelBtn" type="button" onclick="window.coachShowFivePanel(event)">5-PANEL VIEW</button>
     <div class="brand">🏈 COACH <span>LINEUP</span></div>
     <select id="lineSelect"></select>
     <div class="spacer"></div>
@@ -283,8 +283,8 @@
 
 <div id="modal" class="modalWrap hidden"><div class="modal" id="modalBody"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=97"></script>
-<script src="app.js?v=97"></script>
+<script src="config.js?v=98"></script>
+<script src="app.js?v=98"></script>
 <div id="fullscreenPlayPanel" class="fullscreenPlayPanel hidden">
   <div class="fullscreenPlayInfo">
     <small>SELECTED PLAY</small>
@@ -298,5 +298,5 @@
     <button id="fullscreenTdBtn" class="tdPlayBtn">🏈 TD</button>
   </div>
 </div>
-<div id="buildBadge" class="buildBadge">v97 • FIVE PANEL DASHBOARD</div>
+<div id="buildBadge" class="buildBadge">v98 • TONKA COLORS + BUTTON FIX</div>
 </body></html>
