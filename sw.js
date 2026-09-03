@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v109-tap-expand-in-place";
+const CACHE="coach-lineup-v110-clean-tap-handlers";
 const CORE=[
   "./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest",
   "./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png"

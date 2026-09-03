@@ -6726,3 +6726,23 @@ body.v108ExpandedTool #modalBody h2{
 #fivePanelDashboard .v109-expanded-panel #fivePlaysPreview{overflow:auto!important;padding:8px!important}
 #fivePanelDashboard .v109-expanded-panel .v106Row{min-height:43px!important;padding:7px 10px!important;font-size:12px!important}
 #fivePanelDashboard .v109-expanded-panel .v106Mini{width:64px!important;min-height:45px!important}
+
+/* v110 tap affordance */
+.v109PanelTap::after{
+  content:"EXPAND ↗";
+  position:absolute;
+  right:7px;
+  bottom:7px;
+  padding:3px 6px;
+  border:1px solid rgba(255,255,255,.65);
+  border-radius:3px;
+  background:rgba(0,45,98,.82);
+  color:#fff;
+  font-size:7px;
+  font-weight:1000;
+  letter-spacing:.5px;
+  pointer-events:none;
+}
+.v109PanelTap:active{
+  background:rgba(255,255,255,.08)!important;
+}

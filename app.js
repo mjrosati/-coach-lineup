@@ -4930,112 +4930,38 @@ window.addEventListener('load',()=>{
   });
 });
 
-/* =========================================================
-   v108 RELIABLE PANEL OPENING
-   ========================================================= */
-window.coachOpenPanelV108=function(name,ev){
-  if(ev){
-    ev.preventDefault();
-    ev.stopPropagation();
-  }
+/* v108 interception handlers removed in v110 */
 
-  // Hide the five-panel hub before opening a tool.
-  const hub=document.getElementById('fivePanelDashboard');
-  if(hub){
-    hub.classList.add('hidden');
-    hub.style.display='';
-  }
-  document.body.classList.remove('five-panel-open');
 
-  try{
-    if(name==='field'){
-      // Use the app's known-working fullscreen control.
-      const btn=document.getElementById('fullscreenBtn');
-      if(btn){
-        btn.click();
-      }else if(typeof setFieldFullscreen==='function'){
-        setFieldFullscreen(true);
-      }
-      return false;
-    }
-
-    document.body.classList.add('v108ExpandedTool');
-
-    if(name==='players'){
-      if(typeof openRosterManager==='function') openRosterManager();
-      return false;
-    }
-
-    if(name==='lines'){
-      const btn=document.getElementById('linesBtn');
-      if(btn) btn.click();
-      else if(typeof openLines==='function') openLines();
-      return false;
-    }
-
-    if(name==='stats'){
-      const btn=document.getElementById('statsBtn');
-      if(btn) btn.click();
-      else if(typeof openStats==='function') openStats();
-      return false;
-    }
-
-    if(name==='plays'){
-      const btn=document.getElementById('playbookBtn');
-      if(btn) btn.click();
-      else if(typeof openPlaybook==='function') openPlaybook();
-      return false;
-    }
-  }catch(e){
-    console.error('v108 panel open failed',name,e);
-  }
-  return false;
-};
-
-// Clean up expanded styling whenever a modal closes.
-(function(){
-  const oldClose=window.closeModal;
-  if(typeof closeModal==='function'){
-    window.closeModal=function(){
-      document.body.classList.remove('v108ExpandedTool');
-      return oldClose ? oldClose() : document.getElementById('modal')?.classList.add('hidden');
-    };
-  }
-
-  // Capture taps before any nested child can swallow them on iPad Safari.
-  document.addEventListener('pointerup',function(ev){
-    const panel=ev.target?.closest?.('#fivePanelDashboard .fivePanel[data-panel]');
-    if(!panel) return;
-    ev.preventDefault();
-    ev.stopImmediatePropagation();
-    window.coachOpenPanelV108(panel.dataset.panel,ev);
-  },true);
-
-  document.addEventListener('touchend',function(ev){
-    const panel=ev.target?.closest?.('#fivePanelDashboard .fivePanel[data-panel]');
-    if(!panel) return;
-    ev.preventDefault();
-    ev.stopImmediatePropagation();
-    window.coachOpenPanelV108(panel.dataset.panel,ev);
-  },{capture:true,passive:false});
-})();
-
-window.expandFivePanelV109=function(name,ev){
+window._v110LastTap=0;
+window.expandFivePanelV110=function(name,ev){
   if(ev){ev.preventDefault();ev.stopPropagation();}
+  const now=Date.now();
+  if(now-window._v110LastTap<250) return false;
+  window._v110LastTap=now;
+
   const hub=document.getElementById('fivePanelDashboard');
   if(!hub) return false;
+
   hub.classList.add('v109-expanded-mode');
   document.querySelectorAll('#fivePanelDashboard .fivePanel[data-panel]').forEach(p=>{
-    p.classList.toggle('v109-expanded-panel',p.dataset.panel===name);
-    p.classList.toggle('v109-hidden-panel',p.dataset.panel!==name);
+    const selected=p.dataset.panel===name;
+    p.classList.toggle('v109-expanded-panel',selected);
+    p.classList.toggle('v109-hidden-panel',!selected);
   });
-  document.getElementById('v109BackToFive')?.classList.remove('hidden');
+
+  const back=document.getElementById('v109BackToFive');
+  if(back) back.classList.remove('hidden');
+
   try{ if(typeof renderFivePanelRealData==='function') renderFivePanelRealData(); }catch(e){}
   return false;
 };
-window.collapseFivePanelV109=function(ev){
+
+window.collapseFivePanelV110=function(ev){
   if(ev){ev.preventDefault();ev.stopPropagation();}
-  document.getElementById('fivePanelDashboard')?.classList.remove('v109-expanded-mode');
+  const hub=document.getElementById('fivePanelDashboard');
+  if(hub) hub.classList.remove('v109-expanded-mode');
+
   document.querySelectorAll('#fivePanelDashboard .fivePanel[data-panel]').forEach(p=>{
     p.classList.remove('v109-expanded-panel','v109-hidden-panel');
   });
@@ -5043,3 +4969,30 @@ window.collapseFivePanelV109=function(ev){
   try{ if(typeof renderFivePanelRealData==='function') renderFivePanelRealData(); }catch(e){}
   return false;
 };
+
+/* v110 cleanup: remove every stale per-panel listener installed by v97-v108.
+   Cloning preserves markup + the v110 overlay buttons, but drops JS listeners/properties. */
+window.addEventListener('load',()=>{
+  document.querySelectorAll('#fivePanelDashboard .fivePanel[data-panel]').forEach(panel=>{
+    const clean=panel.cloneNode(true);
+    clean.removeAttribute('onclick');
+    panel.replaceWith(clean);
+  });
+
+  // Re-point the back button after old handlers have finished registering.
+  const back=document.getElementById('v109BackToFive');
+  if(back) back.onclick=window.collapseFivePanelV110;
+});
+
+
+window.addEventListener('load',()=>{
+  document.querySelectorAll('#fivePanelDashboard .v109PanelTap').forEach(btn=>{
+    const panel=btn.closest('.fivePanel[data-panel]');
+    const name=panel?.dataset.panel;
+    if(!name) return;
+
+    btn.onclick=(ev)=>window.expandFivePanelV110(name,ev);
+    btn.onpointerup=(ev)=>window.expandFivePanelV110(name,ev);
+    btn.ontouchend=(ev)=>window.expandFivePanelV110(name,ev);
+  });
+});
