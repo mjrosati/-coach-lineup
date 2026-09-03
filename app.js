@@ -820,7 +820,7 @@ function showGameScreen(){
 
   setTimeout(function(){
     try{
-      if(typeof window.coachRenderFivePanelV102==='function') window.coachRenderFivePanelV102();
+      if(typeof window.coachRenderFivePanelV102==='function') window.coachRenderFivePanelV104();
       const panel=document.getElementById('fivePanelDashboard');
       if(panel){
         panel.classList.remove('hidden');
@@ -1115,7 +1115,7 @@ async function loadTeamData(){
     await loadAssignments();
     await loadCounts();
     renderAll();
-    try{ if(typeof window.coachRenderFivePanelV102==='function') window.coachRenderFivePanelV102(); }catch(e){}
+    try{ if(typeof window.coachRenderFivePanelV102==='function') window.coachRenderFivePanelV104(); }catch(e){}
     saveOfflineSnapshot();
     if(players.length===0 && roleCanEdit()) openRosterSetup();
   }catch(e){ alert(e.message||String(e)); }
@@ -1239,7 +1239,7 @@ function refreshDesktopAnalytics(){
 
 function renderAll(){
   renderLineSelect(); renderPlayers(); renderSpecialUnitSelect(); renderField(); renderSummary(); applyGameDaySettings(); refreshDesktopAnalytics();
-  try{ if(typeof window.coachRenderFivePanelV102==='function') window.coachRenderFivePanelV102(); }catch(e){}
+  try{ if(typeof window.coachRenderFivePanelV102==='function') window.coachRenderFivePanelV104(); }catch(e){}
 }
 
 function renderLineSelect(){
@@ -4463,7 +4463,7 @@ window.coachRenderFivePanelV101=function(){
 window.coachShowFivePanel=function(ev){
   if(ev){ev.preventDefault();ev.stopPropagation();}
   try{if(typeof setFieldFullscreen==='function')setFieldFullscreen(false);}catch(e){}
-  window.coachRenderFivePanelV101();
+  window.coachRenderFivePanelV104();
   const p=document.getElementById('fivePanelDashboard');
   if(p){p.classList.remove('hidden');p.style.display='grid';p.scrollTop=0;}
   document.body.classList.add('five-panel-open');
@@ -4637,14 +4637,14 @@ window.addEventListener('load',()=>{
     });
   });
 
-  try{ window.coachRenderFivePanelV102(); }catch(e){}
+  try{ window.coachRenderFivePanelV104(); }catch(e){}
 });
 
 // Keep dashboard fresh while it is visible.
 setInterval(()=>{
   const panel=document.getElementById('fivePanelDashboard');
   if(panel && !panel.classList.contains('hidden')){
-    try{ window.coachRenderFivePanelV102(); }catch(e){}
+    try{ window.coachRenderFivePanelV104(); }catch(e){}
   }
 },1500);
 
@@ -4653,7 +4653,7 @@ setInterval(()=>{
   function refreshV103(){
     try{
       if(typeof window.coachRenderFivePanelV102==='function'){
-        window.coachRenderFivePanelV102();
+        window.coachRenderFivePanelV104();
       }
     }catch(e){ console.warn('v103 refresh',e); }
   }
@@ -4671,4 +4671,103 @@ setInterval(()=>{
     setTimeout(refreshV103,50);
     setTimeout(refreshV103,500);
   };
+})();
+
+/* v104 resilient dashboard renderer */
+window.coachRenderFivePanelV104=function(){
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  // game strip
+  try{
+    const set=(id,t)=>{const e=document.getElementById(id);if(e)e.textContent=t};
+    set('v102GameOpponent',currentGame?.opponent?`VS ${currentGame.opponent}`:'GAME DAY');
+    set('v102GameQuarter',String(gameQuarter||'Q1'));
+    set('v102GameDrive',`DRIVE ${Number(driveNumber||1)}`);
+    set('v102GameDown',`${Number(gameDown||1)}${Number(gameDown||1)===1?'ST':Number(gameDown||1)===2?'ND':Number(gameDown||1)===3?'RD':'TH'} & ${Number(gameDistance??10)}`);
+    set('v102GamePlays',`${Number(playCount||0)} PLAYS`);
+  }catch(e){console.warn('v104 strip',e)}
+
+  // players
+  try{
+    const host=document.getElementById('fivePlayersPreview');
+    if(host){
+      const list=Array.isArray(players)?[...players]:[];
+      list.sort((a,b)=>Number(a.jersey_number??999)-Number(b.jersey_number??999));
+      host.innerHTML=list.slice(0,9).map(p=>{
+        const status=String(p.availability_status||'active').toUpperCase();
+        return `<div class="v104Row v104Roster"><span>#${esc(p.jersey_number)}</span><b>${esc(p.name)}</b><em>${status==='ACTIVE'?'OK':esc(status)}</em></div>`;
+      }).join('')||'<div class="v104Empty">No roster loaded</div>';
+    }
+  }catch(e){console.warn('v104 players',e)}
+
+  // lines
+  try{
+    const host=document.getElementById('fiveLinesPreview');
+    if(host){
+      const list=Array.isArray(lines)?lines:[];
+      host.innerHTML=list.slice(0,8).map((l,i)=>{
+        const active=i===Number(currentLine||0);
+        return `<div class="v104Row v104Line" style="border-left:4px solid ${esc(l.color||'#0b75d1')}"><span>${i+1}</span><b>${esc(l.name||`Line ${i+1}`)}</b><em>${active?'LIVE':''}</em></div>`;
+      }).join('')||'<div class="v104Empty">No lines loaded</div>';
+    }
+  }catch(e){console.warn('v104 lines',e)}
+
+  // stats
+  try{
+    const host=document.getElementById('fiveStatsPreview');
+    if(host){
+      const list=Array.isArray(players)?players:[];
+      const c=(typeof counts!=='undefined'&&counts)?counts:{};
+      const total=Number(playCount||0);
+      host.innerHTML=list.map(p=>({p,n:Number(c[p.id]||0)}))
+        .sort((a,b)=>b.n-a.n).slice(0,8).map(r=>{
+          const pct=total?Math.round(r.n/total*100):0;
+          return `<div class="v104Row v104Stat"><b>#${esc(r.p.jersey_number)} ${esc(r.p.name)}</b><span>${r.n}</span><em>${pct}%</em></div>`;
+        }).join('')||'<div class="v104Empty">Record plays to see stats</div>';
+    }
+  }catch(e){console.warn('v104 stats',e)}
+
+  // plays
+  try{
+    const host=document.getElementById('fivePlaysPreview');
+    if(host){
+      const list=(typeof playbookPlays!=='undefined'&&Array.isArray(playbookPlays))?playbookPlays:[];
+      host.innerHTML=list.slice(0,8).map(p=>`<div class="v104Row v104Play"><span>${esc(p.play_code||p.code||'PLAY')}</span><b>${esc(p.name||'Untitled')}</b></div>`).join('')||'<div class="v104Empty">No playbook plays loaded</div>';
+    }
+  }catch(e){console.warn('v104 plays',e)}
+
+  // field
+  try{
+    const mini=document.querySelector('#fivePanelDashboard .miniField');
+    if(mini){
+      mini.querySelectorAll('.v104Mini,.v102MiniPlayer').forEach(n=>n.remove());
+      const current=(Array.isArray(lines)?lines:[])[Number(currentLine||0)];
+      const asn=(Array.isArray(assignments)&&current)?assignments.filter(a=>String(a.line_id)===String(current.id)):[];
+      const roster=Array.isArray(players)?players:[];
+      const amap=new Map(asn.map(a=>[String(a.position_label_id),roster.find(p=>String(p.id)===String(a.player_id))]));
+      const posList=Array.isArray(positions)?positions.filter(p=>p.side==='offense'||p.side==='defense'):[];
+      posList.forEach(pos=>{
+        const pl=amap.get(String(pos.id));
+        const el=document.createElement('div');
+        el.className='v104Mini '+(pos.side==='defense'?'def':'off');
+        el.style.left=`${Number(pos.x_pct??50)}%`;
+        let y=Number(pos.y_pct??50);
+        try{ if(typeof displayYForRegular==='function')y=displayYForRegular(pos); }catch(e){}
+        el.style.top=`${y}%`;
+        el.innerHTML=`<b>${esc(pos.label||'')}</b><small>${pl?'#'+esc(pl.jersey_number):'OPEN'}</small>`;
+        mini.appendChild(el);
+      });
+    }
+  }catch(e){console.warn('v104 field',e)}
+};
+
+(function(){
+  const refresh=()=>{try{window.coachRenderFivePanelV104()}catch(e){}};
+  window.addEventListener('load',()=>{setTimeout(refresh,100);setTimeout(refresh,600);setTimeout(refresh,1400)});
+  const oldRenderAll=window.renderAll;
+  // regular interval while five-panel is open, low-cost and reliable
+  setInterval(()=>{
+    const p=document.getElementById('fivePanelDashboard');
+    if(p&&!p.classList.contains('hidden'))refresh();
+  },1000);
 })();
