@@ -4940,55 +4940,29 @@ window.addEventListener('load',()=>{
 
 /* v114 expansion uses native radio/label CSS; no JS needed. */
 
+
+/* v115 DOM-moving field workspace removed in v116. */
+
 /* =========================================================
-   v115 EXPANDED FIELD WORKSPACE
-   Reuses the actual Game Day .main DOM so every existing field manipulation remains live.
+   v116 SAFE EXPANDED FIELD
+   Keeps the real Game Day DOM in place and raises it above the dashboard.
    ========================================================= */
 (function(){
-  let mainNode=null;
-  let homeMarker=null;
-  let homeParent=null;
-
-  function ensureRefs(){
-    if(mainNode) return;
-    mainNode=document.querySelector('#app > .layout > .main');
-    if(!mainNode) return;
-    homeParent=mainNode.parentNode;
-    homeMarker=document.createComment('v115-main-home');
-    homeParent.insertBefore(homeMarker,mainNode);
-  }
-
-  function moveMainIntoField(){
-    ensureRefs();
-    const workspace=document.getElementById('v115FieldWorkspace');
-    if(!mainNode || !workspace) return;
-    if(mainNode.parentNode!==workspace){
-      workspace.appendChild(mainNode);
+  function syncV116Field(){
+    const fieldRadio=document.getElementById('v114Field');
+    if(fieldRadio?.checked){
+      document.body.classList.add('v116-field-expanded');
+      try{ renderField(); }catch(e){}
+    }else{
+      document.body.classList.remove('v116-field-expanded');
+      try{ renderField(); }catch(e){}
     }
-    document.body.classList.add('v115-field-workspace-open');
-    try{ renderField(); }catch(e){}
-  }
-
-  function restoreMain(){
-    if(!mainNode || !homeMarker || !homeMarker.parentNode) return;
-    if(mainNode.parentNode!==homeMarker.parentNode){
-      homeMarker.parentNode.insertBefore(mainNode,homeMarker.nextSibling);
-    }
-    document.body.classList.remove('v115-field-workspace-open');
-    try{ renderField(); }catch(e){}
-  }
-
-  function sync(){
-    const field=document.getElementById('v114Field');
-    if(field?.checked) moveMainIntoField();
-    else restoreMain();
   }
 
   window.addEventListener('load',()=>{
-    ensureRefs();
     document.querySelectorAll('input[name="v114PanelState"]').forEach(r=>{
-      r.addEventListener('change',sync);
+      r.addEventListener('change',syncV116Field);
     });
-    sync();
+    syncV116Field();
   });
 })();
