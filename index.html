@@ -5,7 +5,7 @@
 <script>
 (function(){
   try{
-    const key='coachLineupV89HardResetDone';
+    const key='coachLineupV107HardResetDone';
     if(sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key,'1');
 
@@ -24,12 +24,12 @@
       })
       .then(function(){
         const u=new URL(location.href);
-        if(u.searchParams.get('build')!=='89'){
-          u.searchParams.set('build','89');
+        if(u.searchParams.get('build')!=='107'){
+          u.searchParams.set('build','107');
           location.replace(u.toString());
         }
       })
-      .catch(function(e){ console.warn('v87 cache reset',e); });
+      .catch(function(e){ console.warn('v107 cache reset',e); });
   }catch(e){}
 })();
 </script>
@@ -40,14 +40,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Coach Lineup">
-<link rel="manifest" href="manifest.webmanifest?v=106">
+<link rel="manifest" href="manifest.webmanifest?v=107">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="styles.css?v=106">
+<link rel="stylesheet" href="styles.css?v=107">
 <title>Coach Lineup</title>
 </head>
-<body><button id="accessMenuBtn" class="accessMenuBtn" type="button" aria-expanded="false" aria-label="Open navigation menu" onclick="window.coachOpenMenu(event)">☰ <span>MENU</span></button>
+<body><div id="v107BootFlag" style="position:fixed;top:2px;right:2px;z-index:999999;background:#fff;color:#002d62;border:2px solid #0b75d1;padding:2px 5px;font:700 9px Arial;border-radius:3px">107</div><button id="accessMenuBtn" class="accessMenuBtn" type="button" aria-expanded="false" aria-label="Open navigation menu" onclick="window.coachOpenMenu(event)">☰ <span>MENU</span></button>
 <div id="accessNavBackdrop" class="accessNavBackdrop hidden"></div>
 <aside id="accessNav" class="accessNav" aria-label="Coach Lineup navigation">
 <div class="accessNavHead"><b>🏈 COACH <em>LINEUP</em></b><button id="accessNavClose" onclick="window.coachCloseMenu(event)">×</button></div>
@@ -290,8 +290,8 @@
 
 <div id="modal" class="modalWrap hidden"><div class="modal" id="modalBody"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=106"></script>
-<script src="app.js?v=106"></script>
+<script src="config.js?v=107"></script>
+<script src="app.js?v=107"></script>
 <div id="fullscreenPlayPanel" class="fullscreenPlayPanel hidden">
   <div class="fullscreenPlayInfo">
     <small>SELECTED PLAY</small>
@@ -305,5 +305,5 @@
     <button id="fullscreenTdBtn" class="tdPlayBtn">🏈 TD</button>
   </div>
 </div>
-<div id="buildBadge" class="buildBadge">v106 • REAL DATA FIX</div>
+<div id="buildBadge" class="buildBadge">v107 • FORCE REFRESH + REAL DATA</div>
 </body></html>
