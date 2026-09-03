@@ -6688,3 +6688,41 @@ body.v108ExpandedTool #modalBody h2{
   outline:3px solid #fff!important;
   outline-offset:-3px!important;
 }
+
+.fivePanel[data-panel]{position:relative!important}
+.v109PanelTap{
+  position:absolute!important;inset:0!important;z-index:100!important;
+  width:100%!important;height:100%!important;margin:0!important;padding:0!important;
+  border:0!important;background:transparent!important;touch-action:manipulation!important;
+  -webkit-appearance:none!important;appearance:none!important
+}
+.v109BackToFive{
+  position:absolute!important;top:8px!important;left:8px!important;z-index:10000!important;
+  min-height:38px!important;padding:6px 12px!important;border:2px solid #fff!important;
+  border-radius:4px!important;background:#0057b8!important;color:#fff!important;
+  font-size:9px!important;font-weight:1000!important
+}
+.v109BackToFive.hidden{display:none!important}
+#fivePanelDashboard.v109-expanded-mode{display:block!important;padding:6px!important;overflow:hidden!important}
+#fivePanelDashboard.v109-expanded-mode>.fivePanelTop,
+#fivePanelDashboard.v109-expanded-mode>.v102GameStrip{display:none!important}
+#fivePanelDashboard.v109-expanded-mode>.fivePanelGrid{
+  display:block!important;position:absolute!important;inset:6px!important;width:auto!important;height:auto!important;padding:0!important
+}
+#fivePanelDashboard .v109-hidden-panel{display:none!important}
+#fivePanelDashboard .v109-expanded-panel{
+  display:flex!important;position:absolute!important;inset:0!important;width:auto!important;height:auto!important;
+  max-width:none!important;max-height:none!important;min-width:0!important;min-height:0!important;
+  margin:0!important;z-index:500!important;border:2px solid #35a8ff!important;background:#061f42!important
+}
+#fivePanelDashboard .v109-expanded-panel>.v109PanelTap{display:none!important}
+#fivePanelDashboard .v109-expanded-panel .fivePanelLabel{min-height:48px!important;padding:9px 12px 9px 150px!important}
+#fivePanelDashboard .v109-expanded-panel .fivePanelLabel b{font-size:16px!important}
+#fivePanelDashboard .v109-expanded-panel .fivePanelLabel small{font-size:9px!important}
+#fivePanelDashboard .v109-expanded-panel .expandHint{display:none!important}
+#fivePanelDashboard .v109-expanded-panel #fivePlayersPreview,
+#fivePanelDashboard .v109-expanded-panel #fiveLinesPreview,
+#fivePanelDashboard .v109-expanded-panel #fiveStatsPreview,
+#fivePanelDashboard .v109-expanded-panel #fivePlaysPreview{overflow:auto!important;padding:8px!important}
+#fivePanelDashboard .v109-expanded-panel .v106Row{min-height:43px!important;padding:7px 10px!important;font-size:12px!important}
+#fivePanelDashboard .v109-expanded-panel .v106Mini{width:64px!important;min-height:45px!important}

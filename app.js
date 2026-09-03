@@ -5019,3 +5019,27 @@ window.coachOpenPanelV108=function(name,ev){
     window.coachOpenPanelV108(panel.dataset.panel,ev);
   },{capture:true,passive:false});
 })();
+
+window.expandFivePanelV109=function(name,ev){
+  if(ev){ev.preventDefault();ev.stopPropagation();}
+  const hub=document.getElementById('fivePanelDashboard');
+  if(!hub) return false;
+  hub.classList.add('v109-expanded-mode');
+  document.querySelectorAll('#fivePanelDashboard .fivePanel[data-panel]').forEach(p=>{
+    p.classList.toggle('v109-expanded-panel',p.dataset.panel===name);
+    p.classList.toggle('v109-hidden-panel',p.dataset.panel!==name);
+  });
+  document.getElementById('v109BackToFive')?.classList.remove('hidden');
+  try{ if(typeof renderFivePanelRealData==='function') renderFivePanelRealData(); }catch(e){}
+  return false;
+};
+window.collapseFivePanelV109=function(ev){
+  if(ev){ev.preventDefault();ev.stopPropagation();}
+  document.getElementById('fivePanelDashboard')?.classList.remove('v109-expanded-mode');
+  document.querySelectorAll('#fivePanelDashboard .fivePanel[data-panel]').forEach(p=>{
+    p.classList.remove('v109-expanded-panel','v109-hidden-panel');
+  });
+  document.getElementById('v109BackToFive')?.classList.add('hidden');
+  try{ if(typeof renderFivePanelRealData==='function') renderFivePanelRealData(); }catch(e){}
+  return false;
+};
