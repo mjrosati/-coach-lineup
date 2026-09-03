@@ -4937,4 +4937,5 @@ window.addEventListener('load',()=>{
 /* Legacy dashboard button handlers removed in v112. */
 
 
-/* v112 JS button layer removed; v113 uses direct HTML handlers only. */
+
+/* v114 expansion uses native radio/label CSS; no JS needed. */
