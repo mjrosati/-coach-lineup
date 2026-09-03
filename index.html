@@ -40,11 +40,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Coach Lineup">
-<link rel="manifest" href="manifest.webmanifest?v=104">
+<link rel="manifest" href="manifest.webmanifest?v=105">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="styles.css?v=104">
+<link rel="stylesheet" href="styles.css?v=105">
 <title>Coach Lineup</title>
 </head>
 <body><button id="accessMenuBtn" class="accessMenuBtn" type="button" aria-expanded="false" aria-label="Open navigation menu" onclick="window.coachOpenMenu(event)">☰ <span>MENU</span></button>
@@ -148,25 +148,25 @@
 
     <section class="fivePanel" data-panel="players" role="button" tabindex="0" aria-label="Open players">
       <span class="fivePanelLabel"><b>PLAYERS</b><small>Roster & availability</small></span>
-      <div id="fivePlayersPreview" class="fivePreviewList"></div>
+      <div id="fivePlayersPreview" class="fivePreviewList v105MirrorHost"></div>
       <span class="expandHint">TAP TO EXPAND ⛶</span>
     </section>
 
     <section class="fivePanel" data-panel="lines" role="button" tabindex="0" aria-label="Open lines">
       <span class="fivePanelLabel"><b>PLAY LINES</b><small>Current line rotation</small></span>
-      <div id="fiveLinesPreview" class="fiveLinesPreview"></div>
+      <div id="fiveLinesPreview" class="fiveLinesPreview v105MirrorHost"></div>
       <span class="expandHint">TAP TO EXPAND ⛶</span>
     </section>
 
     <section class="fivePanel" data-panel="stats" role="button" tabindex="0" aria-label="Open stats">
       <span class="fivePanelLabel"><b>STATS</b><small>Live participation</small></span>
-      <div id="fiveStatsPreview" class="fiveStatsPreview"></div>
+      <div id="fiveStatsPreview" class="fiveStatsPreview v105MirrorHost"></div>
       <span class="expandHint">TAP TO EXPAND ⛶</span>
     </section>
 
     <section class="fivePanel" data-panel="plays" role="button" tabindex="0" aria-label="Open plays">
       <span class="fivePanelLabel"><b>PLAYS</b><small>Quick play access</small></span>
-      <div id="fivePlaysPreview" class="fivePreviewList"></div>
+      <div id="fivePlaysPreview" class="fivePreviewList v105MirrorHost"></div>
       <span class="expandHint">TAP TO EXPAND ⛶</span>
     </section>
   </div>
@@ -290,8 +290,8 @@
 
 <div id="modal" class="modalWrap hidden"><div class="modal" id="modalBody"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=104"></script>
-<script src="app.js?v=104"></script>
+<script src="config.js?v=105"></script>
+<script src="app.js?v=105"></script>
 <div id="fullscreenPlayPanel" class="fullscreenPlayPanel hidden">
   <div class="fullscreenPlayInfo">
     <small>SELECTED PLAY</small>
@@ -305,5 +305,5 @@
     <button id="fullscreenTdBtn" class="tdPlayBtn">🏈 TD</button>
   </div>
 </div>
-<div id="buildBadge" class="buildBadge">v104 • HARD DASHBOARD FIX</div>
+<div id="buildBadge" class="buildBadge">v105 • LIVE DATA MIRROR</div>
 </body></html>

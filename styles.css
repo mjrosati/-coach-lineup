@@ -6525,3 +6525,82 @@ body.five-panel-open .accessMenuBtn{display:none!important}
     grid-template-rows:minmax(0,1fr) minmax(0,1fr)!important;
   }
 }
+
+/* =========================================================
+   v105 LIVE MIRROR STYLING
+   ========================================================= */
+.v105MirrorHost{
+  min-height:0!important;
+  overflow:hidden!important;
+  flex:1 1 auto!important;
+}
+.v105MirrorHost > *{
+  width:100%!important;
+  max-width:none!important;
+}
+.v105MirrorHost .sidebar,
+.v105MirrorHost .bottom,
+.v105MirrorHost .desktopAnalytics,
+.v105MirrorHost .summary,
+.v105MirrorHost .playbookPanel,
+.v105MirrorHost .selectedPlayCard{
+  position:static!important;
+  width:100%!important;
+  height:auto!important;
+  max-height:none!important;
+  min-height:0!important;
+  margin:0!important;
+  border:0!important;
+  box-shadow:none!important;
+  background:transparent!important;
+}
+.v105MirrorHost .player{
+  min-height:24px!important;
+  padding:3px 5px!important;
+  font-size:7px!important;
+}
+.v105MirrorHost .chip,
+.v105MirrorHost button{
+  min-height:26px!important;
+  font-size:7px!important;
+}
+.v105MirrorHost .desktopAnalytics{
+  display:block!important;
+}
+.v105MirrorHost .analyticsCard{
+  margin:0 0 5px!important;
+}
+.v105Empty{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-height:90px!important;
+  padding:10px!important;
+  color:#b9d6ef!important;
+  font-size:8px!important;
+  text-align:center!important;
+}
+
+/* Real field clone */
+#fivePanelDashboard .miniField{
+  padding:0!important;
+  overflow:hidden!important;
+  background:#0d7136!important;
+}
+#fivePanelDashboard .miniField > .v105FieldClone{
+  width:100%!important;
+  height:100%!important;
+  min-height:100%!important;
+  margin:0!important;
+  transform:none!important;
+  position:relative!important;
+  inset:auto!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+#fivePanelDashboard .miniField .playerCard,
+#fivePanelDashboard .miniField .slot,
+#fivePanelDashboard .miniField .fieldPlayer{
+  transform:scale(.78)!important;
+  transform-origin:center!important;
+}
