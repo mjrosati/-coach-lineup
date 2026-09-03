@@ -6604,3 +6604,41 @@ body.five-panel-open .accessMenuBtn{display:none!important}
   transform:scale(.78)!important;
   transform-origin:center!important;
 }
+
+/* v106 actual-data styling */
+.v106Row{
+  display:grid!important;
+  align-items:center!important;
+  gap:4px!important;
+  min-height:28px!important;
+  padding:4px 5px!important;
+  background:#0a376a!important;
+  border-bottom:1px solid rgba(255,255,255,.1)!important;
+  color:#fff!important;
+  font-size:7px!important;
+}
+.v106Row:nth-child(even){background:#0d407a!important}
+.v106Roster{grid-template-columns:30px minmax(0,1fr) 30px 28px!important}
+.v106Line{grid-template-columns:18px minmax(0,1fr) 35px 28px!important;border-left:4px solid #0b75d1!important}
+.v106Line.active{outline:1px solid #fff!important;background:#12518e!important}
+.v106Stat{grid-template-columns:minmax(0,1fr) 50px 18px 28px!important}
+.v106Play{grid-template-columns:36px minmax(0,1fr) 38px!important}
+.v106Row b{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.v106Row em{font-style:normal!important;color:#b8dcf8!important}
+.v106Row strong{text-align:right!important;font-size:6px!important}
+.v106Bar{height:7px!important;background:#00162f!important;border-radius:4px!important;overflow:hidden!important}
+.v106Bar i{display:block!important;height:100%!important;background:linear-gradient(90deg,#0b75d1,#33bfff)!important}
+.v106Empty{
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  min-height:80px!important;flex:1!important;color:#bad8ef!important;font-size:8px!important
+}
+.v106Mini{
+  position:absolute!important;transform:translate(-50%,-50%)!important;
+  width:46px!important;min-height:31px!important;padding:3px!important;
+  display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+  background:#111820!important;color:#fff!important;border-radius:4px!important;z-index:10!important;
+  box-shadow:0 1px 4px #0008!important
+}
+.v106Mini.off{border:2px solid #ff574f!important}
+.v106Mini.def{border:2px solid #18a4ff!important}
+.v106Mini b{font-size:6px!important}.v106Mini small{font-size:7px!important;font-weight:1000!important}

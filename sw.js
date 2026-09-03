@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v105-live-data-mirror";
+const CACHE="coach-lineup-v106-real-data-fix";
 const CORE=[
   "./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest",
   "./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png"

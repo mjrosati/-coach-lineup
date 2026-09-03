@@ -805,6 +805,117 @@ function showDashboard(){
     $('gameDaySub').textContent='Start a new game or open the field';
   }
 }
+
+/* =========================================================
+   v106 REAL DATA RENDERER
+   Defined before showGameScreen so it always exists when Game Day opens.
+   Uses the app's actual in-memory arrays directly.
+   ========================================================= */
+function renderFivePanelRealData(){
+  const esc2=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  // Players
+  try{
+    const host=document.getElementById('fivePlayersPreview');
+    if(host){
+      const list=[...players].sort((a,b)=>jerseyNumberValue(a.jersey_number)-jerseyNumberValue(b.jersey_number));
+      host.innerHTML=list.slice(0,9).map(p=>{
+        const st=compactAvailability(p);
+        return `<div class="v106Row v106Roster">
+          <span>#${esc2(p.jersey_number)}</span>
+          <b>${esc2(p.name)}</b>
+          <em>${esc2(rosterPositionBadge(p))}</em>
+          <strong class="${st.toLowerCase()}">${st}</strong>
+        </div>`;
+      }).join('') || '<div class="v106Empty">NO PLAYERS</div>';
+    }
+  }catch(e){ console.warn('v106 players',e); }
+
+  // Lines
+  try{
+    const host=document.getElementById('fiveLinesPreview');
+    if(host){
+      host.innerHTML=lines.slice(0,8).map((l,i)=>{
+        const active=i===currentLine;
+        const count=assignments.filter(a=>String(a.line_id)===String(l.id)).length;
+        return `<div class="v106Row v106Line ${active?'active':''}" style="border-left-color:${esc2(l.color||'#0b75d1')}">
+          <span>${i+1}</span>
+          <b>${esc2(l.name||`Line ${i+1}`)}</b>
+          <em>${count} POS</em>
+          <strong>${active?'LIVE':''}</strong>
+        </div>`;
+      }).join('') || '<div class="v106Empty">NO LINES</div>';
+    }
+  }catch(e){ console.warn('v106 lines',e); }
+
+  // Stats
+  try{
+    const host=document.getElementById('fiveStatsPreview');
+    if(host){
+      const rows=players.map(p=>({p,n:Number(counts[p.id]||0)}))
+        .sort((a,b)=>b.n-a.n||jerseyNumberValue(a.p.jersey_number)-jerseyNumberValue(b.p.jersey_number))
+        .slice(0,8);
+      host.innerHTML=rows.map(r=>{
+        const pct=playCount?Math.round((r.n/playCount)*100):0;
+        return `<div class="v106Row v106Stat">
+          <b>#${esc2(r.p.jersey_number)} ${esc2(r.p.name)}</b>
+          <span class="v106Bar"><i style="width:${Math.min(100,pct)}%"></i></span>
+          <em>${r.n}</em>
+          <strong>${pct}%</strong>
+        </div>`;
+      }).join('') || '<div class="v106Empty">NO STATS YET</div>';
+    }
+  }catch(e){ console.warn('v106 stats',e); }
+
+  // Plays
+  try{
+    const host=document.getElementById('fivePlaysPreview');
+    if(host){
+      host.innerHTML=playbookPlays.slice(0,8).map(p=>`
+        <div class="v106Row v106Play">
+          <span>${esc2(p.play_code||'PLAY')}</span>
+          <b>${esc2(p.name||'Untitled')}</b>
+          <em>${esc2(String(p.category||'').toUpperCase())}</em>
+        </div>`).join('') || '<div class="v106Empty">NO PLAYS</div>';
+    }
+  }catch(e){ console.warn('v106 plays',e); }
+
+  // Actual field from current assignments/positions
+  try{
+    const mini=document.querySelector('#fivePanelDashboard .miniField');
+    if(mini){
+      mini.querySelectorAll('.v106Mini,.v104Mini,.v102MiniPlayer,.v105FieldClone').forEach(n=>n.remove());
+      // Hide old placeholder markers but leave field yard lines/tags
+      mini.querySelectorAll(':scope > i').forEach(n=>n.style.display='none');
+
+      const amap=new Map(currentLineAssignments().map(a=>[
+        String(a.position_label_id),
+        players.find(p=>String(p.id)===String(a.player_id))
+      ]));
+
+      positions.filter(p=>p.side==='offense'||p.side==='defense').forEach(pos=>{
+        const pl=amap.get(String(pos.id));
+        const el=document.createElement('div');
+        el.className='v106Mini '+(pos.side==='defense'?'def':'off');
+        el.style.left=Number(pos.x_pct)+'%';
+        el.style.top=displayYForRegular(pos)+'%';
+        el.innerHTML=`<b>${esc2(pos.label)}</b><small>${pl?'#'+esc2(pl.jersey_number):'OPEN'}</small>`;
+        mini.appendChild(el);
+      });
+    }
+  }catch(e){ console.warn('v106 field',e); }
+
+  // Game strip
+  try{
+    const set=(id,t)=>{ const e=document.getElementById(id); if(e)e.textContent=t; };
+    set('v102GameOpponent',currentGame?.opponent?`VS ${currentGame.opponent}`:'GAME DAY');
+    set('v102GameQuarter',String(gameQuarter||'Q1'));
+    set('v102GameDrive',`DRIVE ${Number(driveNumber||1)}`);
+    set('v102GameDown',`${Number(gameDown||1)}${Number(gameDown||1)===1?'ST':Number(gameDown||1)===2?'ND':Number(gameDown||1)===3?'RD':'TH'} & ${Number(gameDistance??10)}`);
+    set('v102GamePlays',`${Number(playCount||0)} PLAYS`);
+  }catch(e){ console.warn('v106 strip',e); }
+}
+
 function showGameScreen(){
   // v101: render the normal Game Day data first, then open the populated five-panel hub.
   if(currentGame) loadGameState();
@@ -820,7 +931,7 @@ function showGameScreen(){
 
   setTimeout(function(){
     try{
-      if(typeof window.coachRenderFivePanelV102==='function') window.coachRenderFivePanelV105();
+      renderFivePanelRealData();
       const panel=document.getElementById('fivePanelDashboard');
       if(panel){
         panel.classList.remove('hidden');
@@ -828,7 +939,7 @@ function showGameScreen(){
         panel.scrollTop=0;
       }
       document.body.classList.add('five-panel-open');
-    }catch(e){ console.warn('v101 five-panel open',e); }
+    }catch(e){ console.warn('v106 five-panel open',e); }
   },80);
 }
 
@@ -1115,7 +1226,10 @@ async function loadTeamData(){
     await loadAssignments();
     await loadCounts();
     renderAll();
-    try{ if(typeof window.coachRenderFivePanelV102==='function') window.coachRenderFivePanelV105(); }catch(e){}
+    try{
+    const fp=document.getElementById('fivePanelDashboard');
+    if(fp && !fp.classList.contains('hidden')) renderFivePanelRealData();
+  }catch(e){}
     saveOfflineSnapshot();
     if(players.length===0 && roleCanEdit()) openRosterSetup();
   }catch(e){ alert(e.message||String(e)); }
@@ -1239,7 +1353,10 @@ function refreshDesktopAnalytics(){
 
 function renderAll(){
   renderLineSelect(); renderPlayers(); renderSpecialUnitSelect(); renderField(); renderSummary(); applyGameDaySettings(); refreshDesktopAnalytics();
-  try{ if(typeof window.coachRenderFivePanelV102==='function') window.coachRenderFivePanelV105(); }catch(e){}
+  try{
+    const fp=document.getElementById('fivePanelDashboard');
+    if(fp && !fp.classList.contains('hidden')) renderFivePanelRealData();
+  }catch(e){}
 }
 
 function renderLineSelect(){
@@ -4772,131 +4889,43 @@ window.coachRenderFivePanelV104=function(){
   },1000);
 })();
 
-/* =========================================================
-   v105 LIVE MIRROR DASHBOARD
-   Mirrors the same rendered Game Day DOM that is already proven to work.
-   ========================================================= */
-window.coachRenderFivePanelV105=function(){
-  const cloneInto=(host, source, fallback)=>{
-    if(!host) return;
-    host.innerHTML='';
-    if(source){
-      const clone=source.cloneNode(true);
-      clone.removeAttribute('id');
-      clone.querySelectorAll('[id]').forEach(n=>n.removeAttribute('id'));
-      clone.querySelectorAll('button,input,select,textarea,a').forEach(n=>{
-        n.setAttribute('tabindex','-1');
-        n.setAttribute('aria-hidden','true');
-      });
-      host.appendChild(clone);
-    }else{
-      host.innerHTML=`<div class="v105Empty">${fallback}</div>`;
-    }
-  };
 
-  // Players: mirror the working left roster list.
-  try{
-    const host=document.getElementById('fivePlayersPreview');
-    const source=
-      document.querySelector('#playerList') ||
-      document.querySelector('.playerList') ||
-      document.querySelector('.sidebar .players') ||
-      document.querySelector('.sidebar');
-    cloneInto(host,source,'Roster not available');
-  }catch(e){console.warn('v105 players mirror',e)}
+/* v105 mirror renderer removed in v106. */
 
-  // Play Lines: mirror the working bottom line chips/selector area.
-  try{
-    const host=document.getElementById('fiveLinesPreview');
-    const source=
-      document.querySelector('#lineChips') ||
-      document.querySelector('.bottom') ||
-      document.querySelector('.lineChips') ||
-      document.querySelector('#lineSelect')?.parentElement;
-    cloneInto(host,source,'Line rotation not available');
-  }catch(e){console.warn('v105 lines mirror',e)}
-
-  // Stats: mirror the existing desktop analytics first; otherwise use summary if visible.
-  try{
-    const host=document.getElementById('fiveStatsPreview');
-    const source=
-      document.querySelector('.desktopAnalytics') ||
-      document.querySelector('#summary') ||
-      document.querySelector('.summary');
-    cloneInto(host,source,'Stats not available yet');
-  }catch(e){console.warn('v105 stats mirror',e)}
-
-  // Plays: mirror the visible playbook / play suggestion UI if present.
-  try{
-    const host=document.getElementById('fivePlaysPreview');
-    const source=
-      document.querySelector('#playbookPanel') ||
-      document.querySelector('.playbookPanel') ||
-      document.querySelector('#selectedPlayCard') ||
-      document.querySelector('.selectedPlayCard');
-    cloneInto(host,source,'Open Playbook to view plays');
-  }catch(e){console.warn('v105 plays mirror',e)}
-
-  // FIELD: mirror the real rendered field itself.
-  try{
-    const fieldPanel=document.querySelector('#fivePanelDashboard .miniField');
-    const realField=document.querySelector('#field') || document.querySelector('.field');
-    if(fieldPanel && realField){
-      fieldPanel.innerHTML='';
-      const clone=realField.cloneNode(true);
-      clone.removeAttribute('id');
-      clone.classList.add('v105FieldClone');
-      clone.querySelectorAll('[id]').forEach(n=>n.removeAttribute('id'));
-      clone.querySelectorAll('button,input,select,textarea,a').forEach(n=>{
-        n.setAttribute('tabindex','-1');
-        n.setAttribute('aria-hidden','true');
-      });
-      fieldPanel.appendChild(clone);
-    }
-  }catch(e){console.warn('v105 field mirror',e)}
-
-  // Status strip mirrors the working controls/state.
-  try{
-    const text=(sel,fallback='')=>{
-      const el=document.querySelector(sel);
-      return (el?.value ?? el?.textContent ?? fallback).toString().trim();
-    };
-    const set=(id,val)=>{const el=document.getElementById(id); if(el) el.textContent=val};
-
-    set('v102GameOpponent', text('#opponentInput','GAME DAY') || 'GAME DAY');
-    set('v102GameQuarter', text('#quarterSelect','Q1') || 'Q1');
-    set('v102GameDrive', text('#driveNumber','DRIVE 1') || 'DRIVE 1');
-
-    const d=text('#downSelect','');
-    const dist=text('#distanceInput','');
-    set('v102GameDown', (d||dist) ? `${d||''}${d&&dist?' & ':''}${dist||''}` : '1ST & 10');
-
-    const pc=(typeof playCount!=='undefined')?Number(playCount||0):0;
-    set('v102GamePlays',`${pc} PLAY${pc===1?'':'S'}`);
-  }catch(e){console.warn('v105 strip mirror',e)}
+window.coachHideFivePanel=function(ev){
+  if(ev){ev.preventDefault();ev.stopPropagation();}
+  const p=document.getElementById('fivePanelDashboard');
+  if(p){p.classList.add('hidden');p.style.display='';}
+  document.body.classList.remove('five-panel-open');
 };
-
-(function(){
-  const refresh=()=>{try{window.coachRenderFivePanelV105()}catch(e){}};
-
-  window.addEventListener('load',()=>{
-    setTimeout(refresh,150);
-    setTimeout(refresh,500);
-    setTimeout(refresh,1000);
+window.coachOpenFivePanelSection=function(name,ev){
+  if(ev){ev.preventDefault();ev.stopPropagation();}
+  window.coachHideFivePanel();
+  try{
+    if(name==='field'){
+      if(typeof setFieldFullscreen==='function') setFieldFullscreen(true);
+      else document.getElementById('fullscreenBtn')?.click();
+    }else if(name==='players') openRosterManager();
+    else if(name==='lines') openLines();
+    else if(name==='stats') openStats();
+    else if(name==='plays') openPlaybook();
+  }catch(e){console.error('v106 panel open',name,e);}
+};
+window.coachGoDashboard=function(ev){
+  if(ev){ev.preventDefault();ev.stopPropagation();}
+  window.coachHideFivePanel();
+  try{if(typeof setFieldFullscreen==='function')setFieldFullscreen(false);}catch(e){}
+  showDashboard();
+};
+window.coachShowFivePanel=function(ev){
+  if(ev){ev.preventDefault();ev.stopPropagation();}
+  renderFivePanelRealData();
+  const p=document.getElementById('fivePanelDashboard');
+  if(p){p.classList.remove('hidden');p.style.display='grid';}
+  document.body.classList.add('five-panel-open');
+};
+window.addEventListener('load',()=>{
+  document.querySelectorAll('#fivePanelDashboard [data-panel]').forEach(panel=>{
+    panel.onclick=(ev)=>window.coachOpenFivePanelSection(panel.dataset.panel,ev);
   });
-
-  // Refresh after normal Game Day renders.
-  const mo=new MutationObserver(()=>{
-    const panel=document.getElementById('fivePanelDashboard');
-    if(panel && !panel.classList.contains('hidden')) refresh();
-  });
-  window.addEventListener('load',()=>{
-    const app=document.getElementById('app');
-    if(app) mo.observe(app,{subtree:true,childList:true,characterData:true,attributes:true});
-  });
-
-  setInterval(()=>{
-    const panel=document.getElementById('fivePanelDashboard');
-    if(panel && !panel.classList.contains('hidden')) refresh();
-  },1200);
-})();
+});
