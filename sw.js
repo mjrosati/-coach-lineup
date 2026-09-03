@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v114-pure-css-section-expand";
+const CACHE="coach-lineup-v115-live-field-workspace";
 const CORE=[
   "./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest",
   "./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png"

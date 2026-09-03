@@ -7026,3 +7026,183 @@ body.v108ExpandedTool #modalBody h2{
 
 /* Fully retire prior tap systems */
 .v109PanelTap,.v112ActionBtn{display:none!important;pointer-events:none!important}
+
+/* =========================================================
+   v115 REAL FOOTBALL FIELD + FULL MANIPULATION WORKSPACE
+   ========================================================= */
+
+/* Football field visual treatment */
+#field.field{
+  position:relative!important;
+  overflow:hidden!important;
+  border:3px solid #fff!important;
+  background:
+    /* sideline-to-sideline yard lines */
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,.90) 0 2px,
+      transparent 2px 10%
+    ),
+    /* turf striping */
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,.035) 0 5%,
+      rgba(0,0,0,.025) 5% 10%
+    ),
+    linear-gradient(180deg,#168641 0%,#0f7a38 50%,#168641 100%)!important;
+  box-shadow:
+    inset 0 0 0 2px rgba(255,255,255,.15),
+    inset 0 0 40px rgba(0,0,0,.18)!important;
+}
+
+/* midfield stripe */
+#field.field .mid{
+  position:absolute!important;
+  left:0!important;
+  right:0!important;
+  top:50%!important;
+  width:auto!important;
+  height:4px!important;
+  background:#fff!important;
+  opacity:.95!important;
+}
+
+/* hash marks down both sides of the center */
+#field.field::before,
+#field.field::after{
+  content:""!important;
+  position:absolute!important;
+  top:0!important;
+  bottom:0!important;
+  width:34px!important;
+  opacity:.65!important;
+  pointer-events:none!important;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 4.25%,
+      rgba(255,255,255,.95) 4.25% 4.75%,
+      transparent 4.75% 5%
+    )!important;
+  z-index:1!important;
+}
+#field.field::before{left:31%!important}
+#field.field::after{right:31%!important}
+
+/* offense / defense labels remain clear */
+#field.field .tag{
+  z-index:8!important;
+  padding:4px 9px!important;
+  border:1px solid #fff!important;
+  box-shadow:0 1px 2px rgba(0,0,0,.45)!important;
+  font-weight:1000!important;
+  letter-spacing:.5px!important;
+}
+
+/* FIELD preview stays as the dashboard preview in 5-panel mode */
+.v115FieldTools,
+.v115FieldWorkspace{
+  display:none!important;
+}
+
+/* When FIELD is expanded, show the actual Game Day workspace */
+#v114Field:checked ~ .fivePanelGrid .fivePanel[data-panel="field"]{
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr)!important;
+}
+#v114Field:checked ~ .fivePanelGrid .fivePanel[data-panel="field"] > .miniField,
+#v114Field:checked ~ .fivePanelGrid .fivePanel[data-panel="field"] > .expandHint{
+  display:none!important;
+}
+#v114Field:checked ~ .fivePanelGrid .v115FieldTools{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  gap:6px!important;
+  padding:7px!important;
+  background:#001a3d!important;
+  border-bottom:1px solid #2f75ae!important;
+  min-height:48px!important;
+}
+#v114Field:checked ~ .fivePanelGrid .v115FieldTools button{
+  min-height:38px!important;
+  padding:6px 10px!important;
+  border:1px solid #4e91cd!important;
+  border-radius:4px!important;
+  background:#0a376a!important;
+  color:#fff!important;
+  font-size:8px!important;
+  font-weight:1000!important;
+  touch-action:manipulation!important;
+}
+#v114Field:checked ~ .fivePanelGrid .v115FieldTools button:active{
+  background:#0b75d1!important;
+}
+#v114Field:checked ~ .fivePanelGrid .v115FieldWorkspace{
+  display:block!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  padding:0!important;
+}
+
+/* The actual .main becomes the expanded FIELD section */
+body.v115-field-workspace-open #v115FieldWorkspace > .main{
+  display:grid!important;
+  grid-template-rows:auto auto auto minmax(0,1fr) auto!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  background:#03162f!important;
+  border:0!important;
+  overflow:hidden!important;
+}
+body.v115-field-workspace-open #v115FieldWorkspace > .main .gameToolbar{
+  min-height:44px!important;
+  padding:5px 7px!important;
+}
+body.v115-field-workspace-open #v115FieldWorkspace > .main .gameStrip{
+  padding:5px!important;
+  gap:4px!important;
+}
+body.v115-field-workspace-open #v115FieldWorkspace > .main .gameStrip > *{
+  min-height:34px!important;
+  font-size:8px!important;
+}
+body.v115-field-workspace-open #v115FieldWorkspace > .main .fieldArea{
+  min-height:0!important;
+  height:auto!important;
+  padding:5px!important;
+  overflow:hidden!important;
+}
+body.v115-field-workspace-open #v115FieldWorkspace > .main #field{
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+}
+body.v115-field-workspace-open #v115FieldWorkspace > .main .bottom{
+  min-height:44px!important;
+  padding:5px!important;
+  gap:5px!important;
+}
+
+/* Larger player cards in expanded FIELD while preserving taps/substitution behavior */
+body.v115-field-workspace-open #field .slot,
+body.v115-field-workspace-open #field .fieldPlayer,
+body.v115-field-workspace-open #field .playerCard{
+  min-width:58px!important;
+  min-height:44px!important;
+}
+
+/* Make existing field controls easier to hit on iPad */
+body.v115-field-workspace-open #editFieldBtn,
+body.v115-field-workspace-open #bothTab,
+body.v115-field-workspace-open #specialTab,
+body.v115-field-workspace-open #prevBtn,
+body.v115-field-workspace-open #nextBtn{
+  min-height:38px!important;
+  touch-action:manipulation!important;
+}
+
+/* Keep modal tools on top of the expanded workspace */
+body.v115-field-workspace-open #modal{
+  z-index:20000!important;
+}
