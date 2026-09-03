@@ -4238,3 +4238,103 @@ window.addEventListener('load', function(){
   bind('#accessExpandBtn',expand);
   bind('#dashReturnBtn',dashboard);
 });
+
+/* v97 Five-panel Game Day dashboard */
+(function(){
+  const $p=id=>document.getElementById(id);
+
+  function safeText(v){ return String(v??''); }
+
+  function renderFivePanelPreviews(){
+    const playersHost=$p('fivePlayersPreview');
+    if(playersHost && Array.isArray(players)){
+      playersHost.innerHTML=players.slice(0,6).map(p=>{
+        const st=(p.availability_status||'active').toUpperCase();
+        return `<span><b>#${safeText(p.jersey_number)} ${safeText(p.name)}</b><em>${st==='ACTIVE'?'OK':st}</em></span>`;
+      }).join('') || '<span>No players yet</span>';
+    }
+
+    const linesHost=$p('fiveLinesPreview');
+    if(linesHost && Array.isArray(lines)){
+      linesHost.innerHTML=lines.slice(0,5).map((l,i)=>
+        `<span style="border-left-color:${safeText(l.color||'#1688f8')}"><b>${i+1}</b>${safeText(l.name)}</span>`
+      ).join('') || '<span>No lines yet</span>';
+    }
+
+    const statsHost=$p('fiveStatsPreview');
+    if(statsHost && Array.isArray(players)){
+      const total=Number(playCount||0);
+      const rows=players.map(p=>({p,n:Number(counts?.[p.id]||0)}))
+        .sort((a,b)=>b.n-a.n).slice(0,5);
+      statsHost.innerHTML=rows.map(r=>{
+        const pct=total?Math.round(r.n/total*100):0;
+        return `<div><span>#${safeText(r.p.jersey_number)} ${safeText(r.p.name)}</span><i><b style="width:${Math.min(100,pct)}%"></b></i><strong>${pct}%</strong></div>`;
+      }).join('') || '<div>No recorded plays yet</div>';
+    }
+
+    const playsHost=$p('fivePlaysPreview');
+    if(playsHost){
+      const list=Array.isArray(playbookPlays)?playbookPlays:[];
+      playsHost.innerHTML=list.slice(0,6).map(p=>
+        `<span><b>${safeText(p.play_code||'')} ${safeText(p.name)}</b><em>${safeText(p.category||'PLAY').toUpperCase()}</em></span>`
+      ).join('') || '<span>Open Playbook to add plays</span>';
+    }
+  }
+
+  function showFivePanel(){
+    try{ if(typeof setFieldFullscreen==='function') setFieldFullscreen(false); }catch(e){}
+    renderFivePanelPreviews();
+    $p('fivePanelDashboard')?.classList.remove('hidden');
+    $p('fivePanelDashboard')?.scrollIntoView({block:'start'});
+  }
+  function hideFivePanel(){
+    $p('fivePanelDashboard')?.classList.add('hidden');
+  }
+  function mainDashboard(){
+    hideFivePanel();
+    try{ if(typeof showDashboard==='function') showDashboard(); }
+    catch(e){
+      $p('app')?.classList.add('hidden');
+      $p('dashboard')?.classList.remove('hidden');
+    }
+    window.scrollTo(0,0);
+  }
+
+  function openPanel(name){
+    hideFivePanel();
+
+    if(name==='field'){
+      try{ if(typeof setFieldFullscreen==='function') setFieldFullscreen(true); }
+      catch(e){ $p('fullscreenBtn')?.click(); }
+      return;
+    }
+    if(name==='players'){
+      if(typeof openRosterManager==='function') openRosterManager();
+      else $p('rosterBtn')?.click();
+      return;
+    }
+    if(name==='lines'){
+      if(typeof openLines==='function') openLines();
+      else $p('linesBtn')?.click();
+      return;
+    }
+    if(name==='stats'){
+      if(typeof openStats==='function') openStats();
+      else $p('statsBtn')?.click();
+      return;
+    }
+    if(name==='plays'){
+      if(typeof openPlaybook==='function') openPlaybook();
+      else $p('playbookBtn')?.click();
+    }
+  }
+
+  window.addEventListener('load',()=>{
+    $p('fivePanelBtn')?.addEventListener('click',showFivePanel);
+    $p('fivePanelClose')?.addEventListener('click',hideFivePanel);
+    $p('fivePanelBackMain')?.addEventListener('click',mainDashboard);
+    document.querySelectorAll('#fivePanelDashboard [data-panel]').forEach(btn=>{
+      btn.addEventListener('click',()=>openPanel(btn.dataset.panel));
+    });
+  });
+})();
