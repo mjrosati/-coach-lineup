@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v99-resume-five-panel";
+const CACHE="coach-lineup-v100-five-panel-home";
 const CORE=[
   "./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest",
   "./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png"

@@ -5935,3 +5935,33 @@ body,.dashScreen,.dashWrap,#app>.layout{background:var(--tonka-black)!important}
 #app .rightRail:before,#app .sidebar:before{border-bottom-color:var(--tonka-bright)!important}
 #app .bottom .chip.active,#app .bottom .chip[aria-current=true]{border-color:#fff!important;box-shadow:inset 0 -3px 0 #fff!important}
 #fivePanelClose{background:var(--tonka-blue)!important;color:#fff!important;border-color:#fff!important}
+
+/* =========================================================
+   v100 PRIMARY GAME DAY = FIVE PANEL DASHBOARD
+   ========================================================= */
+#fivePanelDashboard{
+  display:grid;
+  grid-template-rows:auto 1fr;
+}
+#fivePanelDashboard.hidden{
+  display:none!important;
+}
+
+/* Treat the five-panel view as the Game Day home screen */
+#fivePanelDashboard .fivePanelGrid{
+  flex:1;
+}
+#fivePanelDashboard .fiveFieldPanel{
+  min-height:0!important;
+}
+
+/* Make "RETURN TO FIELD" visually clear as the way into the traditional field screen */
+#fivePanelClose{
+  font-weight:1000!important;
+  letter-spacing:.25px!important;
+}
+
+/* Reduce emphasis of old top navigation because five-panel is now the default Game Day hub */
+#fivePanelBtn{
+  display:none!important;
+}

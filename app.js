@@ -806,6 +806,22 @@ function showDashboard(){
   }
 }
 function showGameScreen(){
+  // v100: Game Day's primary destination is the 5-panel dashboard.
+  // The normal game screen still renders underneath so all existing field/game logic stays available.
+  setTimeout(function(){
+    try{
+      if(typeof setFieldFullscreen==='function') setFieldFullscreen(false);
+    }catch(e){}
+    try{
+      const panel=document.getElementById('fivePanelDashboard');
+      if(panel){
+        panel.classList.remove('hidden');
+        panel.style.display='grid';
+        panel.scrollTop=0;
+      }
+    }catch(e){ console.warn('v100 five-panel open',e); }
+  },120);
+
   if(currentGame) loadGameState();
   $('dashboard').classList.add('hidden');
   $('app').classList.remove('hidden');
