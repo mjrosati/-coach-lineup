@@ -6746,3 +6746,39 @@ body.v108ExpandedTool #modalBody h2{
 .v109PanelTap:active{
   background:rgba(255,255,255,.08)!important;
 }
+
+.v111LineActions{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:6px!important;
+  padding:7px!important;
+  margin-top:auto!important;
+  border-top:1px solid #2c73af!important;
+  background:#001b3d!important;
+  position:relative!important;
+  z-index:160!important;
+}
+.v111LineActions button{
+  min-height:38px!important;
+  padding:6px 8px!important;
+  border-radius:4px!important;
+  border:1px solid #4e91cd!important;
+  background:#0a376a!important;
+  color:#fff!important;
+  font-size:8px!important;
+  font-weight:1000!important;
+  letter-spacing:.3px!important;
+  touch-action:manipulation!important;
+}
+#v111NextLineBtn{
+  background:#0057b8!important;
+  border-color:#fff!important;
+}
+#v111UndoPlayBtn{
+  background:#0b2b52!important;
+}
+#undoPlayBtn,#nextLineBtn{display:none!important;}
+.fivePanel[data-panel="lines"] .v109PanelTap{pointer-events:none!important;}
+.fivePanel[data-panel="lines"] .v111LineActions,
+.fivePanel[data-panel="lines"] .v111LineActions *{pointer-events:auto!important;}
+#fiveLinesPreview{flex:1 1 auto!important;min-height:0!important;overflow:auto!important;}

@@ -4996,3 +4996,37 @@ window.addEventListener('load',()=>{
     btn.ontouchend=(ev)=>window.expandFivePanelV110(name,ev);
   });
 });
+
+window.v111UndoPlay=function(ev){
+  if(ev){ev.preventDefault();ev.stopPropagation();}
+  try{
+    const original=document.getElementById('undoPlayBtn');
+    if(original){
+      original.click();
+      if(typeof renderFivePanelRealData==='function') setTimeout(renderFivePanelRealData,50);
+      return false;
+    }
+    if(typeof undoLastPlay==='function'){
+      undoLastPlay();
+      if(typeof renderFivePanelRealData==='function') setTimeout(renderFivePanelRealData,50);
+    }
+  }catch(e){ console.error('v111 undo failed',e); }
+  return false;
+};
+
+window.v111NextLine=function(ev){
+  if(ev){ev.preventDefault();ev.stopPropagation();}
+  try{
+    const original=document.getElementById('nextLineBtn');
+    if(original){
+      original.click();
+      if(typeof renderFivePanelRealData==='function') setTimeout(renderFivePanelRealData,50);
+      return false;
+    }
+    if(typeof nextLine==='function'){
+      nextLine();
+      if(typeof renderFivePanelRealData==='function') setTimeout(renderFivePanelRealData,50);
+    }
+  }catch(e){ console.error('v111 next line failed',e); }
+  return false;
+};

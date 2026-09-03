@@ -5,7 +5,7 @@
 <script>
 (function(){
   try{
-    const key='coachLineupV110HardResetDone';
+    const key='coachLineupV111HardResetDone';
     if(sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key,'1');
 
@@ -24,8 +24,8 @@
       })
       .then(function(){
         const u=new URL(location.href);
-        if(u.searchParams.get('build')!=='110'){
-          u.searchParams.set('build','110');
+        if(u.searchParams.get('build')!=='111'){
+          u.searchParams.set('build','111');
           location.replace(u.toString());
         }
       })
@@ -40,14 +40,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Coach Lineup">
-<link rel="manifest" href="manifest.webmanifest?v=110">
+<link rel="manifest" href="manifest.webmanifest?v=111">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="styles.css?v=110">
+<link rel="stylesheet" href="styles.css?v=111">
 <title>Coach Lineup</title>
 </head>
-<body><div id="v107BootFlag" style="position:fixed;top:2px;right:2px;z-index:999999;background:#fff;color:#002d62;border:2px solid #0b75d1;padding:2px 5px;font:700 9px Arial;border-radius:3px">110</div><button id="accessMenuBtn" class="accessMenuBtn" type="button" aria-expanded="false" aria-label="Open navigation menu" onclick="window.coachOpenMenu(event)">☰ <span>MENU</span></button>
+<body><div id="v107BootFlag" style="position:fixed;top:2px;right:2px;z-index:999999;background:#fff;color:#002d62;border:2px solid #0b75d1;padding:2px 5px;font:700 9px Arial;border-radius:3px">111</div><button id="accessMenuBtn" class="accessMenuBtn" type="button" aria-expanded="false" aria-label="Open navigation menu" onclick="window.coachOpenMenu(event)">☰ <span>MENU</span></button>
 <div id="accessNavBackdrop" class="accessNavBackdrop hidden"></div>
 <aside id="accessNav" class="accessNav" aria-label="Coach Lineup navigation">
 <div class="accessNavHead"><b>🏈 COACH <em>LINEUP</em></b><button id="accessNavClose" onclick="window.coachCloseMenu(event)">×</button></div>
@@ -155,6 +155,11 @@
     <section class="fivePanel" data-panel="lines" role="button" tabindex="0" aria-label="Open lines"><button type="button" class="v109PanelTap" aria-label="Expand lines" title="Expand Play Lines" onclick="window.expandFivePanelV110('lines',event)"></button>
       <span class="fivePanelLabel"><b>PLAY LINES</b><small>Current line rotation</small></span>
       <div id="fiveLinesPreview" class="fiveLinesPreview v105MirrorHost"></div>
+      <div class="v111LineActions" aria-label="Play line controls">
+        <button type="button" id="v111UndoPlayBtn" onclick="window.v111UndoPlay(event)">↶ UNDO PLAY</button>
+        <button type="button" id="v111NextLineBtn" onclick="window.v111NextLine(event)">NEXT LINE ›</button>
+      </div>
+
       <span class="expandHint">TAP TO EXPAND ⛶</span>
     </section>
 
@@ -290,8 +295,8 @@
 
 <div id="modal" class="modalWrap hidden"><div class="modal" id="modalBody"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=110"></script>
-<script src="app.js?v=110"></script>
+<script src="config.js?v=111"></script>
+<script src="app.js?v=111"></script>
 <div id="fullscreenPlayPanel" class="fullscreenPlayPanel hidden">
   <div class="fullscreenPlayInfo">
     <small>SELECTED PLAY</small>
@@ -305,5 +310,5 @@
     <button id="fullscreenTdBtn" class="tdPlayBtn">🏈 TD</button>
   </div>
 </div>
-<div id="buildBadge" class="buildBadge">v110 • CLEAN TAP HANDLERS</div>
+<div id="buildBadge" class="buildBadge">v111 • PLAY LINE CONTROLS</div>
 </body></html>
