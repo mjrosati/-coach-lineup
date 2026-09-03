@@ -6842,3 +6842,22 @@ body.v108ExpandedTool #modalBody h2{
 
 /* Keep original bottom controls hidden but present as functional fallbacks */
 #undoPlayBtn,#nextLineBtn{display:none!important}
+
+/* v113 direct native tap controls */
+.v112ActionBtn,
+.v112LineActions button,
+#fivePanelBackMain{
+  pointer-events:auto!important;
+  cursor:pointer!important;
+  touch-action:manipulation!important;
+  -webkit-tap-highlight-color:rgba(255,255,255,.22)!important;
+  position:relative!important;
+  z-index:999!important;
+}
+.v112ActionBtn:active,
+.v112LineActions button:active,
+#fivePanelBackMain:active{
+  transform:scale(.96)!important;
+  filter:brightness(1.25)!important;
+}
+.fivePanel[data-panel]{touch-action:manipulation!important}

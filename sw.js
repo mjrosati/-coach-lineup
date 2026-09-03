@@ -1,4 +1,4 @@
-const CACHE="coach-lineup-v112-button-reset";
+const CACHE="coach-lineup-v113-direct-button-fix";
 const CORE=[
   "./","./index.html","./styles.css","./app.js","./config.js","./manifest.webmanifest",
   "./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png"

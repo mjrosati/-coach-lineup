@@ -5,7 +5,7 @@
 <script>
 (function(){
   try{
-    const key='coachLineupV112HardResetDone';
+    const key='coachLineupV113HardResetDone';
     if(sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key,'1');
 
@@ -24,8 +24,8 @@
       })
       .then(function(){
         const u=new URL(location.href);
-        if(u.searchParams.get('build')!=='112'){
-          u.searchParams.set('build','112');
+        if(u.searchParams.get('build')!=='113'){
+          u.searchParams.set('build','113');
           location.replace(u.toString());
         }
       })
@@ -40,14 +40,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Coach Lineup">
-<link rel="manifest" href="manifest.webmanifest?v=112">
+<link rel="manifest" href="manifest.webmanifest?v=113">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="styles.css?v=112">
+<link rel="stylesheet" href="styles.css?v=113">
 <title>Coach Lineup</title>
 </head>
-<body><div id="v107BootFlag" style="position:fixed;top:2px;right:2px;z-index:999999;background:#fff;color:#002d62;border:2px solid #0b75d1;padding:2px 5px;font:700 9px Arial;border-radius:3px">112</div><button id="accessMenuBtn" class="accessMenuBtn" type="button" aria-expanded="false" aria-label="Open navigation menu" onclick="window.coachOpenMenu(event)">☰ <span>MENU</span></button>
+<body><div id="v107BootFlag" style="position:fixed;top:2px;right:2px;z-index:999999;background:#fff;color:#002d62;border:2px solid #0b75d1;padding:2px 5px;font:700 9px Arial;border-radius:3px">113</div><button id="accessMenuBtn" class="accessMenuBtn" type="button" aria-expanded="false" aria-label="Open navigation menu" onclick="window.coachOpenMenu(event)">☰ <span>MENU</span></button>
 <div id="accessNavBackdrop" class="accessNavBackdrop hidden"></div>
 <aside id="accessNav" class="accessNav" aria-label="Coach Lineup navigation">
 <div class="accessNavHead"><b>🏈 COACH <em>LINEUP</em></b><button id="accessNavClose" onclick="window.coachCloseMenu(event)">×</button></div>
@@ -117,7 +117,7 @@
       <h2>TONKA GAME DAY</h2>
     </div>
     <div class="fivePanelTopActions">
-      <button id="fivePanelBackMain" type="button" >⌂ MAIN DASHBOARD</button>
+      <button id="fivePanelBackMain" type="button"  onclick="event.preventDefault();event.stopPropagation();document.getElementById('fivePanelDashboard').classList.add('hidden');document.body.classList.remove('five-panel-open');showDashboard();return false;">⌂ MAIN DASHBOARD</button>
       <button id="fivePanelClose" type="button">FULL FIELD</button>
     </div>
   </div>
@@ -130,8 +130,8 @@
       <span id="v102GamePlays">0 PLAYS</span>
     </div>
   <button id="v109BackToFive" type="button" class="v109BackToFive hidden" onclick="window.collapseFivePanelV110(event)">← ALL 5 PANELS</button><div class="fivePanelGrid">
-    <section class="fivePanel fiveFieldPanel" data-panel="field" role="button" tabindex="0" aria-label="Open field">
-      <span class="fivePanelLabel"><b>FIELD</b><small>Live offense / defense</small><button type="button" class="v112ActionBtn" id="v112FieldBtn">OPEN</button></span>
+    <section class="fivePanel fiveFieldPanel" data-panel="field" role="button" tabindex="0" aria-label="Open field" onclick="if(event.target.tagName!=='BUTTON'){document.getElementById('v112FieldBtn').click();}">
+      <span class="fivePanelLabel"><b>FIELD</b><small>Live offense / defense</small><button type="button" class="v112ActionBtn" id="v112FieldBtn" onclick="event.preventDefault();event.stopPropagation();document.getElementById('fivePanelDashboard').classList.add('hidden');document.body.classList.remove('five-panel-open');setFieldFullscreen(true);return false;">OPEN</button></span>
       <div class="miniField">
         <div class="miniFieldMid"></div>
         <span class="miniOffense">OFFENSE</span>
@@ -146,31 +146,31 @@
       <span class="expandHint">TAP TO EXPAND ⛶</span>
     </section>
 
-    <section class="fivePanel" data-panel="players" role="button" tabindex="0" aria-label="Open players">
-      <span class="fivePanelLabel"><b>PLAYERS</b><small>Roster & availability</small><button type="button" class="v112ActionBtn" id="v112PlayersBtn">OPEN</button></span>
+    <section class="fivePanel" data-panel="players" role="button" tabindex="0" aria-label="Open players" onclick="if(event.target.tagName!=='BUTTON'){document.getElementById('v112PlayersBtn').click();}">
+      <span class="fivePanelLabel"><b>PLAYERS</b><small>Roster & availability</small><button type="button" class="v112ActionBtn" id="v112PlayersBtn" onclick="event.preventDefault();event.stopPropagation();document.getElementById('fivePanelDashboard').classList.add('hidden');document.body.classList.remove('five-panel-open');openRosterManager();return false;">OPEN</button></span>
       <div id="fivePlayersPreview" class="fivePreviewList v105MirrorHost"></div>
       <span class="expandHint">TAP TO EXPAND ⛶</span>
     </section>
 
-    <section class="fivePanel" data-panel="lines" role="button" tabindex="0" aria-label="Open lines">
-      <span class="fivePanelLabel"><b>PLAY LINES</b><small>Current line rotation</small><button type="button" class="v112ActionBtn" id="v112LinesBtn">OPEN</button></span>
+    <section class="fivePanel" data-panel="lines" role="button" tabindex="0" aria-label="Open lines" onclick="if(event.target.tagName!=='BUTTON'){document.getElementById('v112LinesBtn').click();}">
+      <span class="fivePanelLabel"><b>PLAY LINES</b><small>Current line rotation</small><button type="button" class="v112ActionBtn" id="v112LinesBtn" onclick="event.preventDefault();event.stopPropagation();document.getElementById('fivePanelDashboard').classList.add('hidden');document.body.classList.remove('five-panel-open');document.getElementById('linesBtn').click();return false;">OPEN</button></span>
       <div id="fiveLinesPreview" class="fiveLinesPreview v105MirrorHost"></div>
       <div class="v112LineActions" aria-label="Play line controls">
-        <button type="button" id="v112UndoPlayBtn">↶ UNDO PLAY</button>
-        <button type="button" id="v112NextLineBtn">NEXT LINE ›</button>
+        <button type="button" id="v112UndoPlayBtn" onclick="event.preventDefault();event.stopPropagation();document.getElementById('prevBtn').click();setTimeout(function(){if(typeof renderFivePanelRealData==='function')renderFivePanelRealData();},75);return false;">↶ UNDO PLAY</button>
+        <button type="button" id="v112NextLineBtn" onclick="event.preventDefault();event.stopPropagation();document.getElementById('nextBtn').click();setTimeout(function(){if(typeof renderFivePanelRealData==='function')renderFivePanelRealData();},75);return false;">NEXT LINE ›</button>
       </div>
 
       <span class="expandHint">TAP TO EXPAND ⛶</span>
     </section>
 
-    <section class="fivePanel" data-panel="stats" role="button" tabindex="0" aria-label="Open stats">
-      <span class="fivePanelLabel"><b>STATS</b><small>Live participation</small><button type="button" class="v112ActionBtn" id="v112StatsBtn">OPEN</button></span>
+    <section class="fivePanel" data-panel="stats" role="button" tabindex="0" aria-label="Open stats" onclick="if(event.target.tagName!=='BUTTON'){document.getElementById('v112StatsBtn').click();}">
+      <span class="fivePanelLabel"><b>STATS</b><small>Live participation</small><button type="button" class="v112ActionBtn" id="v112StatsBtn" onclick="event.preventDefault();event.stopPropagation();document.getElementById('fivePanelDashboard').classList.add('hidden');document.body.classList.remove('five-panel-open');document.getElementById('statsBtn').click();return false;">OPEN</button></span>
       <div id="fiveStatsPreview" class="fiveStatsPreview v105MirrorHost"></div>
       <span class="expandHint">TAP TO EXPAND ⛶</span>
     </section>
 
-    <section class="fivePanel" data-panel="plays" role="button" tabindex="0" aria-label="Open plays">
-      <span class="fivePanelLabel"><b>PLAYS</b><small>Quick play access</small><button type="button" class="v112ActionBtn" id="v112PlaysBtn">OPEN</button></span>
+    <section class="fivePanel" data-panel="plays" role="button" tabindex="0" aria-label="Open plays" onclick="if(event.target.tagName!=='BUTTON'){document.getElementById('v112PlaysBtn').click();}">
+      <span class="fivePanelLabel"><b>PLAYS</b><small>Quick play access</small><button type="button" class="v112ActionBtn" id="v112PlaysBtn" onclick="event.preventDefault();event.stopPropagation();document.getElementById('fivePanelDashboard').classList.add('hidden');document.body.classList.remove('five-panel-open');document.getElementById('playbookBtn').click();return false;">OPEN</button></span>
       <div id="fivePlaysPreview" class="fivePreviewList v105MirrorHost"></div>
       <span class="expandHint">TAP TO EXPAND ⛶</span>
     </section>
@@ -295,8 +295,8 @@
 
 <div id="modal" class="modalWrap hidden"><div class="modal" id="modalBody"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=112"></script>
-<script src="app.js?v=112"></script>
+<script src="config.js?v=113"></script>
+<script src="app.js?v=113"></script>
 <div id="fullscreenPlayPanel" class="fullscreenPlayPanel hidden">
   <div class="fullscreenPlayInfo">
     <small>SELECTED PLAY</small>
@@ -310,5 +310,5 @@
     <button id="fullscreenTdBtn" class="tdPlayBtn">🏈 TD</button>
   </div>
 </div>
-<div id="buildBadge" class="buildBadge">v112 • BUTTON RESET</div>
+<div id="buildBadge" class="buildBadge">v113 • DIRECT BUTTON FIX</div>
 </body></html>
