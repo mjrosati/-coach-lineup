@@ -4647,3 +4647,28 @@ setInterval(()=>{
     try{ window.coachRenderFivePanelV102(); }catch(e){}
   }
 },1500);
+
+/* v103: force dashboard refresh after async Game Day data settles */
+(function(){
+  function refreshV103(){
+    try{
+      if(typeof window.coachRenderFivePanelV102==='function'){
+        window.coachRenderFivePanelV102();
+      }
+    }catch(e){ console.warn('v103 refresh',e); }
+  }
+
+  window.addEventListener('load',function(){
+    setTimeout(refreshV103,250);
+    setTimeout(refreshV103,800);
+    setTimeout(refreshV103,1600);
+  });
+
+  // Refresh whenever the dashboard becomes visible.
+  const originalShow=window.coachShowFivePanel;
+  window.coachShowFivePanel=function(ev){
+    if(typeof originalShow==='function') originalShow(ev);
+    setTimeout(refreshV103,50);
+    setTimeout(refreshV103,500);
+  };
+})();

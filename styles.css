@@ -6311,3 +6311,124 @@ body.five-panel-open .accessMenuBtn{display:none!important}
     grid-template-columns:minmax(170px,.76fr) minmax(500px,2.2fr) minmax(170px,.76fr)!important;
   }
 }
+
+/* =========================================================
+   v103 CRITICAL LAYOUT FIX
+   The dashboard has THREE vertical children:
+   header / game strip / five-panel grid.
+   v102 only reserved two grid rows, which caused the panel grid to collapse.
+   ========================================================= */
+
+#fivePanelDashboard{
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr)!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  align-content:stretch!important;
+  overflow:hidden!important;
+}
+
+#fivePanelDashboard > .fivePanelTop{
+  grid-row:1!important;
+}
+#fivePanelDashboard > .v102GameStrip{
+  grid-row:2!important;
+}
+#fivePanelDashboard > .fivePanelGrid{
+  grid-row:3!important;
+  min-height:0!important;
+  height:auto!important;
+  overflow:hidden!important;
+}
+
+/* Keep the center field dominant and eliminate the empty lower area */
+.fivePanelGrid{
+  grid-template-columns:minmax(170px,.72fr) minmax(520px,2.25fr) minmax(170px,.72fr)!important;
+  grid-template-rows:minmax(0,1fr) minmax(0,1fr)!important;
+  height:100%!important;
+}
+.fiveFieldPanel{
+  min-height:0!important;
+  height:100%!important;
+}
+.fiveFieldPanel .miniField{
+  min-height:0!important;
+  height:auto!important;
+  flex:1 1 auto!important;
+}
+
+/* Side panels should fully use their half of the screen */
+.fivePanel[data-panel="players"],
+.fivePanel[data-panel="stats"],
+.fivePanel[data-panel="lines"],
+.fivePanel[data-panel="plays"]{
+  min-height:0!important;
+  height:100%!important;
+}
+
+/* Let lists scroll internally instead of forcing the entire layout taller */
+#fivePlayersPreview,
+#fiveLinesPreview,
+#fiveStatsPreview,
+#fivePlaysPreview{
+  min-height:0!important;
+  overflow:auto!important;
+  flex:1 1 auto!important;
+}
+
+/* Compact the header/strip slightly on iPad so the field gets more room */
+@media(min-width:768px) and (orientation:landscape){
+  #fivePanelDashboard{
+    padding:6px!important;
+  }
+  .fivePanelTop{
+    min-height:42px!important;
+    padding:4px 6px 6px!important;
+  }
+  .fivePanelTop h2{
+    font-size:15px!important;
+  }
+  .fivePanelTopActions button{
+    min-height:36px!important;
+    min-width:125px!important;
+    padding:5px 8px!important;
+  }
+  .v102GameStrip{
+    margin-top:5px!important;
+  }
+  .v102GameStrip span{
+    min-height:26px!important;
+    padding:3px 5px!important;
+    font-size:7px!important;
+  }
+  .fivePanelGrid{
+    padding-top:5px!important;
+    gap:5px!important;
+  }
+  .fivePanelLabel{
+    min-height:34px!important;
+    padding:5px 7px!important;
+  }
+  .expandHint{
+    padding:4px 6px!important;
+  }
+}
+
+/* Keep preview content clearly visible */
+.v102RosterRow,
+.v102LineRow,
+.v102StatRow,
+.v102PlayRow{
+  opacity:1!important;
+  visibility:visible!important;
+}
+
+/* Slight visual cleanup */
+.fivePanel{
+  border-radius:4px!important;
+}
+.fiveFieldPanel{
+  border:2px solid #2f87cc!important;
+}
+.fiveFieldPanel .fivePanelLabel{
+  background:linear-gradient(90deg,#002d62,#07539b)!important;
+}
