@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.2 — Play Lines readability only
+   v118.3 — Play Lines open editable full field
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.2";
+window.COACH_UPDATE_VERSION = "118.3";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-1182-style";
+  const STYLE_ID = "coach-update-1183-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -536,6 +536,31 @@ window.COACH_UPDATE_VERSION = "118.2";
         padding:5px 8px!important;
       }
 
+
+
+      .coach1182LineRow{
+        width:100%!important;
+        text-align:left!important;
+        appearance:none!important;
+        -webkit-appearance:none!important;
+        font-family:inherit!important;
+      }
+
+      /* ---------- 118.3: remove duplicate lower line cards ---------- */
+      #fivePanelDashboard .fivePanel[data-panel="lines"] .coachReadableLines{
+        display:none!important;
+      }
+
+      /* Make the readable rows obviously tappable. */
+      .coach1182LineRow{
+        cursor:pointer!important;
+        touch-action:manipulation!important;
+      }
+      .coach1182LineRow:active{
+        transform:scale(.992)!important;
+        filter:brightness(1.12)!important;
+      }
+
       /* ---------- STATS ---------- */
       #v114Stats:checked ~ .fivePanelGrid .fivePanel[data-panel="stats"]{
         display:flex!important;
@@ -956,6 +981,51 @@ window.COACH_UPDATE_VERSION = "118.2";
 
 
   /* ---------- 118.2: readable line rows ---------- */
+
+  function coach1183NormalizeLineName(name) {
+    return String(name || "").replace(/\s+/g, " ").trim().toUpperCase();
+  }
+
+  function coach1183SelectLine(lineName) {
+    const wanted = coach1183NormalizeLineName(lineName);
+    const candidates = Array.from(document.querySelectorAll("button,[role='button'],label"));
+
+    let target = candidates.find(function (el) {
+      const txt = coach1183NormalizeLineName(el.innerText || el.textContent || "");
+      return txt === wanted;
+    });
+
+    if (!target) {
+      target = candidates.find(function (el) {
+        const txt = coach1183NormalizeLineName(el.innerText || el.textContent || "");
+        return txt.indexOf(wanted) >= 0 && txt.length <= wanted.length + 6;
+      });
+    }
+
+    if (target) {
+      target.click();
+      return true;
+    }
+    return false;
+  }
+
+  function coach1183OpenLineField(lineName) {
+    coach1183SelectLine(lineName);
+
+    /* Open the real Game Day field so player taps/substitutions keep working. */
+    openFullField();
+
+    /* Then use the app's existing FULL SCREEN mode when available. */
+    setTimeout(function () {
+      const buttons = Array.from(document.querySelectorAll("button,[role='button']"));
+      const full = buttons.find(function (el) {
+        const txt = String(el.innerText || el.textContent || "").replace(/\s+/g, " ").trim().toUpperCase();
+        return txt === "FULL SCREEN" || txt === "FULL FIELD";
+      });
+      if (full) full.click();
+    }, 180);
+  }
+
   function build1182ReadableLines() {
     const panel = document.querySelector('#fivePanelDashboard .fivePanel[data-panel="lines"]');
     const preview = document.getElementById("fiveLinesPreview");
@@ -1010,9 +1080,16 @@ window.COACH_UPDATE_VERSION = "118.2";
     }
 
     host.replaceChildren(...source.map(function(item) {
-      const row = document.createElement("div");
+      const row = document.createElement("button");
+      row.type = "button";
       row.className = "coach1182LineRow" + (item.live ? " live" : "");
       row.style.setProperty("--coach-line-color", item.color);
+      row.setAttribute("aria-label", "Open " + item.name + " on full field");
+      row.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        coach1183OpenLineField(item.name);
+      });
 
       const bar = document.createElement("div");
       bar.className = "coach1182Bar";
