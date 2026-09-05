@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.12 — Editable expanded line field
+   v118.13 — Expanded line switching
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.12";
+window.COACH_UPDATE_VERSION = "118.13";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11812-style";
+  const STYLE_ID = "coach-update-11813-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -762,6 +762,23 @@ window.COACH_UPDATE_VERSION = "118.12";
         white-space:nowrap!important;
       }
 
+
+      /* ---------- 118.13: switch lines without leaving expanded editor ---------- */
+      #coach1189LineOverlay .coach11813LineTabs{
+        display:flex!important; gap:6px!important; margin-left:12px!important;
+        align-items:center!important; flex-wrap:nowrap!important;
+      }
+      #coach1189LineOverlay .coach11813LineTab{
+        min-height:34px!important; padding:7px 11px!important;
+        border:1px solid #4d8bc7!important; border-radius:6px!important;
+        background:#071c3c!important; color:#eaf5ff!important;
+        font-size:10px!important; font-weight:900!important;
+        pointer-events:auto!important; touch-action:manipulation!important;
+      }
+      #coach1189LineOverlay .coach11813LineTab.active{
+        background:#1689e8!important; border-color:#a9dbff!important; color:#fff!important;
+      }
+
       /* ---------- STATS ---------- */
       #v114Stats:checked ~ .fivePanelGrid .fivePanel[data-panel="stats"]{
         display:flex!important;
@@ -1278,10 +1295,61 @@ window.COACH_UPDATE_VERSION = "118.12";
           console.warn("118.12 overlay refresh:", error);
         }
         coach11812RefreshEditableField();
+        coach11813RenderLineTabs();
       });
     }, 70);
   }
 
+
+
+  function coach11813RenderLineTabs(){
+    const overlay=document.getElementById("coach1189LineOverlay");
+    if(!overlay || overlay.classList.contains("hidden") || !Array.isArray(lines)) return;
+    const head=overlay.querySelector(".coach1189Head");
+    if(!head) return;
+
+    let tabs=head.querySelector(".coach11813LineTabs");
+    if(!tabs){
+      tabs=document.createElement("div");
+      tabs.className="coach11813LineTabs";
+      const title=head.querySelector("h2");
+      if(title) title.insertAdjacentElement("afterend",tabs);
+      else head.appendChild(tabs);
+    }
+
+    tabs.innerHTML=lines.map((line,index)=>{
+      const name=String(line?.name||`LINE ${index+1}`).toUpperCase();
+      return `<button type="button" class="coach11813LineTab ${index===currentLine?'active':''}" data-index="${index}">${name}</button>`;
+    }).join("");
+
+    tabs.querySelectorAll(".coach11813LineTab").forEach(btn=>{
+      btn.onclick=(event)=>{
+        event.preventDefault();
+        event.stopPropagation();
+        coach11813SwitchLine(Number(btn.dataset.index));
+      };
+    });
+  }
+
+  function coach11813SwitchLine(index){
+    if(!Number.isInteger(index) || !lines[index]) return;
+    const select=document.getElementById("lineSelect");
+    if(select){
+      select.selectedIndex=index;
+      select.dispatchEvent(new Event("change",{bubbles:true}));
+    }else{
+      currentLine=index;
+      if(typeof renderAll==="function") renderAll();
+      else if(typeof renderField==="function") renderField();
+    }
+
+    setTimeout(()=>{
+      const title=document.getElementById("coach1189LineTitle");
+      if(title) title.textContent=String(lines[currentLine]?.name||"LINE").toUpperCase();
+      coach11813RenderLineTabs();
+      coach11812RefreshEditableField();
+    },80);
+  }
 
   function coach11812WirePlayerTaps() {
     const overlay = document.getElementById("coach1189LineOverlay");
