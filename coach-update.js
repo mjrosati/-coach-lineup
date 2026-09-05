@@ -1,14 +1,13 @@
 /* Coach Lineup live update layer
-   v118.8 — Stable field rollback
+   v118.9 — Isolated editable line field
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.8";
+window.COACH_UPDATE_VERSION = "118.9";
 
 (function () {
-  console.info("Coach Lineup 118.8: stable field rollback; line expansion deferred");
   "use strict";
 
-  const STYLE_ID = "coach-update-1188-style";
+  const STYLE_ID = "coach-update-1189-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -538,6 +537,74 @@ window.COACH_UPDATE_VERSION = "118.8";
       }
 
 
+      /* ---------- 118.9: isolated editable line field ---------- */
+      .coach1189LineOverlay{
+        position:fixed!important;
+        inset:0!important;
+        z-index:999990!important;
+        display:flex!important;
+        flex-direction:column!important;
+        background:#04152f!important;
+        color:#fff!important;
+      }
+      .coach1189LineOverlay.hidden{display:none!important}
+
+      .coach1189LineHeader{
+        flex:0 0 auto!important;
+        min-height:58px!important;
+        display:flex!important;
+        align-items:center!important;
+        gap:12px!important;
+        padding:8px 12px!important;
+        background:#082650!important;
+        border-bottom:1px solid #2b6fa9!important;
+      }
+      .coach1189LineHeader button{
+        min-height:42px!important;
+        padding:8px 14px!important;
+        border:2px solid #fff!important;
+        border-radius:6px!important;
+        background:#0057b8!important;
+        color:#fff!important;
+        font-weight:900!important;
+      }
+      .coach1189LineHeader b{
+        font-size:18px!important;
+        letter-spacing:.5px!important;
+      }
+      .coach1189LineHeader small{
+        margin-left:auto!important;
+        color:#b9d5ef!important;
+        font-weight:800!important;
+      }
+
+      .coach1189FieldHost{
+        flex:1 1 auto!important;
+        min-height:0!important;
+        display:flex!important;
+        align-items:center!important;
+        justify-content:center!important;
+        padding:10px!important;
+        overflow:hidden!important;
+        background:#06160d!important;
+      }
+
+      .coach1189FieldHost #field.field{
+        position:relative!important;
+        width:min(1180px,98vw)!important;
+        height:auto!important;
+        max-width:98vw!important;
+        max-height:calc(100dvh - 82px)!important;
+        aspect-ratio:1.78!important;
+        margin:auto!important;
+        overflow:hidden!important;
+        border:3px solid #e7eee2!important;
+      }
+
+      .coach1189FieldHost #field .slot{
+        position:absolute!important;
+        transform:translate(-50%,-50%)!important;
+      }
 
       .coach1182LineRow{
         width:100%!important;
@@ -545,40 +612,25 @@ window.COACH_UPDATE_VERSION = "118.8";
         appearance:none!important;
         -webkit-appearance:none!important;
         font-family:inherit!important;
-      }
-
-      /* ---------- 118.3: remove duplicate lower line cards ---------- */
-      #fivePanelDashboard .fivePanel[data-panel="lines"] .coachReadableLines{
-        display:none!important;
-      }
-
-      /* Make the readable rows obviously tappable. */
-      .coach1182LineRow{
         cursor:pointer!important;
         touch-action:manipulation!important;
       }
       .coach1182LineRow:active{
         transform:scale(.992)!important;
-        filter:brightness(1.12)!important;
+        filter:brightness(1.10)!important;
       }
 
-
-      /* ---------- 118.5: let Undo Play / Next Line receive the tap ---------- */
-      #fivePanelDashboard .fivePanel[data-panel="lines"] .v114TapLayer{
-        pointer-events:none!important;
-      }
-
-      #fivePanelDashboard .fivePanel[data-panel="lines"] .v112LineActions{
-        position:relative!important;
-        z-index:50!important;
-        pointer-events:auto!important;
-      }
-
-      #fivePanelDashboard .fivePanel[data-panel="lines"] .v112LineActions button{
-        position:relative!important;
-        z-index:51!important;
-        pointer-events:auto!important;
-        touch-action:manipulation!important;
+      @media (orientation:landscape) and (max-height:700px){
+        .coach1189LineHeader{min-height:48px!important}
+        .coach1189LineHeader b{font-size:15px!important}
+        .coach1189FieldHost{padding:4px!important}
+        .coach1189FieldHost #field.field{
+          width:auto!important;
+          height:calc(100dvh - 56px)!important;
+          max-width:98vw!important;
+          max-height:calc(100dvh - 56px)!important;
+          aspect-ratio:1.78!important;
+        }
       }
 
       /* ---------- STATS ---------- */
@@ -827,7 +879,10 @@ window.COACH_UPDATE_VERSION = "118.8";
       const raw = (row.textContent || "").replace(/\s+/g, " ").trim();
       const nameMatch = raw.match(/(BLACK|BLUE|GREEN|GOLD)\s*LINE/i);
       const posMatch = raw.match(/(\d+)\s*POS/i);
-      const live = /\bLIVE\b/i.test(raw) || index === 0;
+      const selectedText = String(
+        document.querySelector("#lineSelect option:checked")?.textContent || ""
+      ).toUpperCase();
+      const live = selectedText.indexOf(key) >= 0;
       const key = nameMatch ? nameMatch[1].toUpperCase() : ("LINE " + (index + 1));
 
       cards.push({
@@ -1002,48 +1057,122 @@ window.COACH_UPDATE_VERSION = "118.8";
 
   /* ---------- 118.2: readable line rows ---------- */
 
-  function coach1183NormalizeLineName(name) {
-    return String(name || "").replace(/\s+/g, " ").trim().toUpperCase();
+  let coach1189FieldHome = null;
+  let coach1189FieldNext = null;
+
+  function coach1189SelectedLineText() {
+    return String(
+      document.querySelector("#lineSelect option:checked")?.textContent || ""
+    ).replace(/\s+/g, " ").trim();
   }
 
-  function coach1183SelectLine(lineName) {
-    const wanted = coach1183NormalizeLineName(lineName);
-    const candidates = Array.from(document.querySelectorAll("button,[role='button'],label"));
+  function coach1189SelectLine(lineName) {
+    const select = document.getElementById("lineSelect");
+    if (!select) return false;
 
-    let target = candidates.find(function (el) {
-      const txt = coach1183NormalizeLineName(el.innerText || el.textContent || "");
-      return txt === wanted;
+    const wanted = String(lineName || "").replace(/\s+/g, " ").trim().toUpperCase();
+    const options = Array.from(select.options || []);
+    const option = options.find(function(opt) {
+      return String(opt.textContent || opt.label || "").replace(/\s+/g, " ").trim().toUpperCase() === wanted;
+    }) || options.find(function(opt) {
+      return String(opt.textContent || opt.label || "").toUpperCase().indexOf(wanted) >= 0;
     });
 
-    if (!target) {
-      target = candidates.find(function (el) {
-        const txt = coach1183NormalizeLineName(el.innerText || el.textContent || "");
-        return txt.indexOf(wanted) >= 0 && txt.length <= wanted.length + 6;
-      });
-    }
+    if (!option) return false;
 
-    if (target) {
-      target.click();
-      return true;
-    }
-    return false;
+    select.value = option.value;
+    select.dispatchEvent(new Event("change", { bubbles:true }));
+    return true;
   }
 
-  function coach1183OpenLineField(lineName) {
-    coach1183SelectLine(lineName);
+  function coach1189EnsureOverlay() {
+    let overlay = document.getElementById("coach1189LineOverlay");
+    if (overlay) return overlay;
 
-    /* Open the real Game Day field so player taps/substitutions keep working. */
-    openFullField();
+    overlay = document.createElement("div");
+    overlay.id = "coach1189LineOverlay";
+    overlay.className = "coach1189LineOverlay hidden";
+    overlay.innerHTML =
+      '<div class="coach1189LineHeader">' +
+        '<button type="button" id="coach1189Back">← PLAY LINES</button>' +
+        '<b id="coach1189Title">LINE</b>' +
+        '<small>Tap a player to change the lineup</small>' +
+      '</div>' +
+      '<div class="coach1189FieldHost" id="coach1189FieldHost"></div>';
 
-    /* Then use the app's existing FULL SCREEN mode when available. */
-    setTimeout(function () {
-      const buttons = Array.from(document.querySelectorAll("button,[role='button']"));
-      const full = buttons.find(function (el) {
-        const txt = String(el.innerText || el.textContent || "").replace(/\s+/g, " ").trim().toUpperCase();
-        return txt === "FULL SCREEN" || txt === "FULL FIELD";
+    document.body.appendChild(overlay);
+
+    overlay.querySelector("#coach1189Back").addEventListener("click", function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      coach1189CloseLineField();
+    });
+
+    return overlay;
+  }
+
+  function coach1189OpenLineField(lineName) {
+    const field = document.getElementById("field");
+    if (!field) return;
+
+    coach1189SelectLine(lineName);
+
+    setTimeout(function() {
+      try {
+        if (typeof renderAll === "function") renderAll();
+        else if (typeof renderField === "function") renderField();
+      } catch (error) {
+        console.warn("118.9 line render:", error);
+      }
+
+      const liveField = document.getElementById("field");
+      if (!liveField) return;
+
+      const overlay = coach1189EnsureOverlay();
+      const host = overlay.querySelector("#coach1189FieldHost");
+
+      if (!coach1189FieldHome) {
+        coach1189FieldHome = liveField.parentNode;
+        coach1189FieldNext = liveField.nextSibling;
+      }
+
+      overlay.querySelector("#coach1189Title").textContent =
+        coach1189SelectedLineText() || lineName || "LINE";
+
+      host.appendChild(liveField);
+      overlay.classList.remove("hidden");
+
+      requestAnimationFrame(function() {
+        try {
+          if (typeof renderField === "function") renderField();
+        } catch (error) {
+          console.warn("118.9 overlay refresh:", error);
+        }
       });
-      if (full) full.click();
-    }, 180);
+    }, 70);
+  }
+
+  function coach1189CloseLineField() {
+    const overlay = document.getElementById("coach1189LineOverlay");
+    const field = document.getElementById("field");
+
+    if (field && coach1189FieldHome) {
+      if (coach1189FieldNext && coach1189FieldNext.parentNode === coach1189FieldHome) {
+        coach1189FieldHome.insertBefore(field, coach1189FieldNext);
+      } else {
+        coach1189FieldHome.appendChild(field);
+      }
+    }
+
+    if (overlay) overlay.classList.add("hidden");
+
+    try {
+      if (typeof renderAll === "function") renderAll();
+    } catch (error) {
+      console.warn("118.9 restore:", error);
+    }
+
+    setTimeout(build1182ReadableLines, 60);
   }
 
   function build1182ReadableLines() {
@@ -1078,7 +1207,10 @@ window.COACH_UPDATE_VERSION = "118.8";
       }
 
       const pos = raw.match(/(\d+)\s*POS/i);
-      const live = /\bLIVE\b/i.test(raw) || index === 0;
+      const selectedText = String(
+        document.querySelector("#lineSelect option:checked")?.textContent || ""
+      ).toUpperCase();
+      const live = selectedText.indexOf(key) >= 0;
 
       return {
         name: key + (key.indexOf("LINE ") === 0 ? "" : " LINE"),
@@ -1089,12 +1221,15 @@ window.COACH_UPDATE_VERSION = "118.8";
     });
 
     if (!source.length) {
-      ["BLACK","BLUE","GREEN","GOLD"].forEach(function(key, index) {
+      const selectedText = String(
+        document.querySelector("#lineSelect option:checked")?.textContent || ""
+      ).toUpperCase();
+      ["BLACK","BLUE","GREEN","GOLD"].forEach(function(key) {
         source.push({
           name: key + " LINE",
           color: colors[key],
           positions: "",
-          live: index === 0
+          live: selectedText.indexOf(key) >= 0
         });
       });
     }
@@ -1104,11 +1239,11 @@ window.COACH_UPDATE_VERSION = "118.8";
       row.type = "button";
       row.className = "coach1182LineRow" + (item.live ? " live" : "");
       row.style.setProperty("--coach-line-color", item.color);
-      row.setAttribute("aria-label", "Open " + item.name + " on full field");
-      row.addEventListener("click", function (event) {
+      row.setAttribute("aria-label", "Open " + item.name + " field");
+      row.addEventListener("click", function(event) {
         event.preventDefault();
         event.stopPropagation();
-        coach1183OpenLineField(item.name);
+        coach1189OpenLineField(item.name);
       });
 
       const bar = document.createElement("div");
@@ -1133,43 +1268,6 @@ window.COACH_UPDATE_VERSION = "118.8";
       row.append(bar, textWrap, status);
       return row;
     }));
-  }
-
-
-  /* ---------- 118.4: keep Undo Play / Next Line from expanding Play Lines ---------- */
-  function bind1184LineControlButtons() {
-    const panel = document.querySelector('#fivePanelDashboard .fivePanel[data-panel="lines"]');
-    if (!panel) return;
-
-    const buttons = Array.from(panel.querySelectorAll("button"));
-    buttons.forEach(function(button) {
-      const label = String(button.innerText || button.textContent || "")
-        .replace(/\s+/g, " ")
-        .trim()
-        .toUpperCase();
-
-      const isUndo = label.indexOf("UNDO PLAY") >= 0;
-      const isNext = label.indexOf("NEXT LINE") >= 0;
-
-      if ((!isUndo && !isNext) || button.dataset.coach1184Bound === "1") return;
-
-      button.dataset.coach1184Bound = "1";
-
-      /* Let the button's existing action run, but stop the click from
-         bubbling into the panel's Expand handler. */
-      button.addEventListener("click", function(event) {
-        event.stopPropagation();
-      });
-
-      /* iPad Safari can promote touch/pointer events to the parent label.
-         Stop those from bubbling too, without cancelling the button itself. */
-      button.addEventListener("pointerup", function(event) {
-        event.stopPropagation();
-      });
-      button.addEventListener("touchend", function(event) {
-        event.stopPropagation();
-      }, { passive: true });
-    });
   }
 
   function bindDashboardSections() {
@@ -1225,7 +1323,6 @@ window.COACH_UPDATE_VERSION = "118.8";
     ensureBackButton();
     ensureSectionFooters();
     bindDashboardSections();
-    bind1184LineControlButtons();
     buildReadableLines();
     build1182ReadableLines();
     mirrorDashboardField();
@@ -1234,7 +1331,6 @@ window.COACH_UPDATE_VERSION = "118.8";
       refreshTimer = setInterval(function () {
         buildReadableLines();
         build1182ReadableLines();
-        bind1184LineControlButtons();
         mirrorDashboardField();
       }, 1400);
     }
