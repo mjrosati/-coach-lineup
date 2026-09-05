@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.11 — Play Lines controls fix
+   v118.12 — Editable expanded line field
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.11";
+window.COACH_UPDATE_VERSION = "118.12";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11811-style";
+  const STYLE_ID = "coach-update-11812-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -712,6 +712,56 @@ window.COACH_UPDATE_VERSION = "118.11";
         touch-action:manipulation!important;
       }
 
+
+      /* ---------- 118.12: editable expanded line field ---------- */
+      /* The expanded line overlay sits above the app, so its player picker
+         must sit above the overlay too. */
+      body.coach11812-line-editing #modal{
+        z-index:1000010!important;
+        pointer-events:auto!important;
+      }
+
+      body.coach11812-line-editing #modal:not(.hidden){
+        display:flex!important;
+        position:fixed!important;
+        inset:0!important;
+        align-items:center!important;
+        justify-content:center!important;
+        padding:14px!important;
+        background:rgba(1,10,28,.84)!important;
+      }
+
+      body.coach11812-line-editing #modalBody{
+        width:min(940px,92vw)!important;
+        max-width:940px!important;
+        max-height:88dvh!important;
+        overflow:auto!important;
+        margin:auto!important;
+        border:2px solid #2d85cf!important;
+        border-radius:9px!important;
+        background:#061b3a!important;
+        box-shadow:0 16px 48px rgba(0,0,0,.55)!important;
+      }
+
+      #coach1189LineOverlay #field .slot{
+        pointer-events:auto!important;
+        cursor:pointer!important;
+        touch-action:manipulation!important;
+      }
+
+      #coach1189LineOverlay #field .slot *{
+        pointer-events:none!important;
+      }
+
+      #coach1189LineOverlay .coach11812TapHint{
+        margin-left:auto!important;
+        color:#d9ecff!important;
+        font-size:11px!important;
+        font-weight:900!important;
+        letter-spacing:.3px!important;
+        white-space:nowrap!important;
+      }
+
       /* ---------- STATS ---------- */
       #v114Stats:checked ~ .fivePanelGrid .fivePanel[data-panel="stats"]{
         display:flex!important;
@@ -1175,7 +1225,7 @@ window.COACH_UPDATE_VERSION = "118.11";
       '<div class="coach1189LineHeader">' +
         '<button type="button" id="coach1189Back">← PLAY LINES</button>' +
         '<b id="coach1189Title">LINE</b>' +
-        '<small>Tap a player to change the lineup</small>' +
+        '<span class="coach11812TapHint">TAP ANY PLAYER TO REPLACE</span>' +
       '</div>' +
       '<div class="coach1189FieldHost" id="coach1189FieldHost"></div>';
 
@@ -1225,10 +1275,60 @@ window.COACH_UPDATE_VERSION = "118.11";
         try {
           if (typeof renderField === "function") renderField();
         } catch (error) {
-          console.warn("118.9 overlay refresh:", error);
+          console.warn("118.12 overlay refresh:", error);
         }
+        coach11812RefreshEditableField();
       });
     }, 70);
+  }
+
+
+  function coach11812WirePlayerTaps() {
+    const overlay = document.getElementById("coach1189LineOverlay");
+    const field = document.getElementById("field");
+    if (!overlay || overlay.classList.contains("hidden") || !field) return;
+
+    document.body.classList.add("coach11812-line-editing");
+
+    const regularPositions =
+      (typeof positions !== "undefined" && Array.isArray(positions))
+        ? positions.filter(function(pos) {
+            return pos && (pos.side === "offense" || pos.side === "defense");
+          })
+        : [];
+
+    const slots = Array.from(field.querySelectorAll(".slot"));
+    slots.forEach(function(slot, index) {
+      const pos = regularPositions[index];
+      if (!pos || !pos.id) return;
+
+      slot.dataset.coach11812PositionId = String(pos.id);
+      slot.dataset.coach11812Side = String(pos.side || "");
+
+      slot.onclick = function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        try {
+          if (typeof openReplacePlayerModal !== "function") return;
+
+          /* openReplacePlayerModal reads activeView to decide offense/defense.
+             Use the tapped position's real side while the picker is built. */
+          const priorView = (typeof activeView !== "undefined") ? activeView : "offense";
+          activeView = pos.side;
+          openReplacePlayerModal(pos.id);
+          activeView = priorView;
+        } catch (error) {
+          console.warn("118.12 player replace:", error);
+        }
+      };
+    });
+  }
+
+  function coach11812RefreshEditableField() {
+    coach11812WirePlayerTaps();
+    setTimeout(coach11812WirePlayerTaps, 40);
+    setTimeout(coach11812WirePlayerTaps, 140);
   }
 
   function coach1189CloseLineField() {
@@ -1244,6 +1344,7 @@ window.COACH_UPDATE_VERSION = "118.11";
     }
 
     if (overlay) overlay.classList.add("hidden");
+    document.body.classList.remove("coach11812-line-editing");
 
     try {
       if (typeof renderAll === "function") renderAll();
@@ -1440,6 +1541,7 @@ window.COACH_UPDATE_VERSION = "118.11";
         buildReadableLines();
         build1182ReadableLines();
         bind11811LineControls();
+        coach11812WirePlayerTaps();
         mirrorDashboardField();
       }, 1400);
     }
