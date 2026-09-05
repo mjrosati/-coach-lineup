@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.5 — Play Lines control overlay fix
+   v118.6 — Correct live line + restore field layout
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.5";
+window.COACH_UPDATE_VERSION = "118.6";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-1185-style";
+  const STYLE_ID = "coach-update-1186-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -580,6 +580,40 @@ window.COACH_UPDATE_VERSION = "118.5";
         touch-action:manipulation!important;
       }
 
+
+      /* ---------- 118.6: restore native field geometry when a line is opened ---------- */
+      body.coach-field-expanded .fieldArea{
+        display:flex!important;
+        align-items:center!important;
+        justify-content:center!important;
+        overflow:hidden!important;
+      }
+
+      body.coach-field-expanded #field.field{
+        position:relative!important;
+        width:min(1100px,96%)!important;
+        height:auto!important;
+        max-height:calc(100dvh - 175px)!important;
+        aspect-ratio:1.78!important;
+        min-width:0!important;
+        margin:auto!important;
+        overflow:hidden!important;
+      }
+
+      body.coach-field-expanded #field .slot{
+        position:absolute!important;
+        transform:translate(-50%,-50%)!important;
+      }
+
+      @media (orientation:landscape) and (max-height:700px){
+        body.coach-field-expanded #field.field{
+          width:96%!important;
+          height:auto!important;
+          aspect-ratio:1.78!important;
+          max-height:calc(100dvh - 135px)!important;
+        }
+      }
+
       /* ---------- STATS ---------- */
       #v114Stats:checked ~ .fivePanelGrid .fivePanel[data-panel="stats"]{
         display:flex!important;
@@ -769,6 +803,9 @@ window.COACH_UPDATE_VERSION = "118.5";
     } catch (error) {
       console.warn("Field refresh:", error);
     }
+
+    setTimeout(coach1186RefreshOpenedField, 80);
+    setTimeout(coach1186RefreshOpenedField, 240);
   }
 
   function closeFullField() {
@@ -826,7 +863,7 @@ window.COACH_UPDATE_VERSION = "118.5";
       const raw = (row.textContent || "").replace(/\s+/g, " ").trim();
       const nameMatch = raw.match(/(BLACK|BLUE|GREEN|GOLD)\s*LINE/i);
       const posMatch = raw.match(/(\d+)\s*POS/i);
-      const live = /\bLIVE\b/i.test(raw) || index === 0;
+      const live = /\bLIVE\b/i.test(raw);
       const key = nameMatch ? nameMatch[1].toUpperCase() : ("LINE " + (index + 1));
 
       cards.push({
@@ -1077,7 +1114,7 @@ window.COACH_UPDATE_VERSION = "118.5";
       }
 
       const pos = raw.match(/(\d+)\s*POS/i);
-      const live = /\bLIVE\b/i.test(raw) || index === 0;
+      const live = /\bLIVE\b/i.test(raw);
 
       return {
         name: key + (key.indexOf("LINE ") === 0 ? "" : " LINE"),
@@ -1088,12 +1125,15 @@ window.COACH_UPDATE_VERSION = "118.5";
     });
 
     if (!source.length) {
-      ["BLACK","BLUE","GREEN","GOLD"].forEach(function(key, index) {
+      const selectedText = String(
+        document.querySelector("#lineSelect option:checked")?.textContent || ""
+      ).toUpperCase();
+      ["BLACK","BLUE","GREEN","GOLD"].forEach(function(key) {
         source.push({
           name: key + " LINE",
           color: colors[key],
           positions: "",
-          live: index === 0
+          live: selectedText.indexOf(key) >= 0
         });
       });
     }
@@ -1169,6 +1209,16 @@ window.COACH_UPDATE_VERSION = "118.5";
         event.stopPropagation();
       }, { passive: true });
     });
+  }
+
+
+  function coach1186RefreshOpenedField() {
+    if (!document.body.classList.contains("coach-field-expanded")) return;
+    try {
+      if (typeof renderField === "function") renderField();
+    } catch (error) {
+      console.warn("118.6 field refresh:", error);
+    }
   }
 
   function bindDashboardSections() {
