@@ -1,13 +1,14 @@
 /* Coach Lineup live update layer
-   v118.7 — Native line selection + field open fix
+   v118.8 — Stable field rollback
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.7";
+window.COACH_UPDATE_VERSION = "118.8";
 
 (function () {
+  console.info("Coach Lineup 118.8: stable field rollback; line expansion deferred");
   "use strict";
 
-  const STYLE_ID = "coach-update-1187-style";
+  const STYLE_ID = "coach-update-1188-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -580,51 +581,6 @@ window.COACH_UPDATE_VERSION = "118.7";
         touch-action:manipulation!important;
       }
 
-
-      /* ---------- 118.6: restore native field geometry when a line is opened ---------- */
-      body.coach-field-expanded .fieldArea{
-        display:flex!important;
-        align-items:center!important;
-        justify-content:center!important;
-        overflow:hidden!important;
-      }
-
-      body.coach-field-expanded #field.field{
-        position:relative!important;
-        width:min(1100px,96%)!important;
-        height:auto!important;
-        max-height:calc(100dvh - 175px)!important;
-        aspect-ratio:1.78!important;
-        min-width:0!important;
-        margin:auto!important;
-        overflow:hidden!important;
-      }
-
-      body.coach-field-expanded #field .slot{
-        position:absolute!important;
-        transform:translate(-50%,-50%)!important;
-      }
-
-      @media (orientation:landscape) and (max-height:700px){
-        body.coach-field-expanded #field.field{
-          width:96%!important;
-          height:auto!important;
-          aspect-ratio:1.78!important;
-          max-height:calc(100dvh - 135px)!important;
-        }
-      }
-
-
-      /* ---------- 118.7: do not reshape the native Game Day field ---------- */
-      body:not(.coach-field-expanded) #field.field{
-        height:auto;
-      }
-
-      /* Line cards should show exactly one LIVE line: the line selected in lineSelect. */
-      .coach1182LineRow.live{
-        border-color:#fff!important;
-      }
-
       /* ---------- STATS ---------- */
       #v114Stats:checked ~ .fivePanelGrid .fivePanel[data-panel="stats"]{
         display:flex!important;
@@ -814,9 +770,6 @@ window.COACH_UPDATE_VERSION = "118.7";
     } catch (error) {
       console.warn("Field refresh:", error);
     }
-
-    setTimeout(coach1186RefreshOpenedField, 80);
-    setTimeout(coach1186RefreshOpenedField, 240);
   }
 
   function closeFullField() {
@@ -874,10 +827,7 @@ window.COACH_UPDATE_VERSION = "118.7";
       const raw = (row.textContent || "").replace(/\s+/g, " ").trim();
       const nameMatch = raw.match(/(BLACK|BLUE|GREEN|GOLD)\s*LINE/i);
       const posMatch = raw.match(/(\d+)\s*POS/i);
-      const selectedText = String(
-        document.querySelector("#lineSelect option:checked")?.textContent || ""
-      ).toUpperCase();
-      const live = selectedText.indexOf(key) >= 0;
+      const live = /\bLIVE\b/i.test(raw) || index === 0;
       const key = nameMatch ? nameMatch[1].toUpperCase() : ("LINE " + (index + 1));
 
       cards.push({
@@ -1058,52 +1008,42 @@ window.COACH_UPDATE_VERSION = "118.7";
 
   function coach1183SelectLine(lineName) {
     const wanted = coach1183NormalizeLineName(lineName);
-    const select = document.getElementById("lineSelect");
+    const candidates = Array.from(document.querySelectorAll("button,[role='button'],label"));
 
-    if (select) {
-      const options = Array.from(select.options || []);
-      const match = options.find(function (option) {
-        return coach1183NormalizeLineName(option.textContent || option.label || "") === wanted;
-      }) || options.find(function (option) {
-        return coach1183NormalizeLineName(option.textContent || option.label || "").indexOf(wanted) >= 0;
+    let target = candidates.find(function (el) {
+      const txt = coach1183NormalizeLineName(el.innerText || el.textContent || "");
+      return txt === wanted;
+    });
+
+    if (!target) {
+      target = candidates.find(function (el) {
+        const txt = coach1183NormalizeLineName(el.innerText || el.textContent || "");
+        return txt.indexOf(wanted) >= 0 && txt.length <= wanted.length + 6;
       });
-
-      if (match) {
-        select.value = match.value;
-        select.dispatchEvent(new Event("change", { bubbles:true }));
-        return true;
-      }
     }
 
+    if (target) {
+      target.click();
+      return true;
+    }
     return false;
   }
 
   function coach1183OpenLineField(lineName) {
     coach1183SelectLine(lineName);
 
-    /* Use the app's own FULL FIELD button instead of forcing our field/fullscreen CSS.
-       This preserves the field/player geometry and existing player-edit behavior. */
-    setTimeout(function () {
-      const fullField = document.getElementById("fivePanelClose");
-      if (fullField) {
-        fullField.click();
-        return;
-      }
+    /* Open the real Game Day field so player taps/substitutions keep working. */
+    openFullField();
 
-      /* Fallback only if the native button is missing. */
-      const dashboard = document.getElementById("fivePanelDashboard");
-      if (dashboard) {
-        dashboard.classList.add("hidden");
-        dashboard.style.display = "none";
-      }
-      document.body.classList.remove("five-panel-open","coach-field-expanded");
-      try {
-        if (typeof renderAll === "function") renderAll();
-        else if (typeof renderField === "function") renderField();
-      } catch (error) {
-        console.warn("118.7 native field fallback:", error);
-      }
-    }, 60);
+    /* Then use the app's existing FULL SCREEN mode when available. */
+    setTimeout(function () {
+      const buttons = Array.from(document.querySelectorAll("button,[role='button']"));
+      const full = buttons.find(function (el) {
+        const txt = String(el.innerText || el.textContent || "").replace(/\s+/g, " ").trim().toUpperCase();
+        return txt === "FULL SCREEN" || txt === "FULL FIELD";
+      });
+      if (full) full.click();
+    }, 180);
   }
 
   function build1182ReadableLines() {
@@ -1138,7 +1078,7 @@ window.COACH_UPDATE_VERSION = "118.7";
       }
 
       const pos = raw.match(/(\d+)\s*POS/i);
-      const live = /\bLIVE\b/i.test(raw);
+      const live = /\bLIVE\b/i.test(raw) || index === 0;
 
       return {
         name: key + (key.indexOf("LINE ") === 0 ? "" : " LINE"),
@@ -1149,15 +1089,12 @@ window.COACH_UPDATE_VERSION = "118.7";
     });
 
     if (!source.length) {
-      const selectedText = String(
-        document.querySelector("#lineSelect option:checked")?.textContent || ""
-      ).toUpperCase();
-      ["BLACK","BLUE","GREEN","GOLD"].forEach(function(key) {
+      ["BLACK","BLUE","GREEN","GOLD"].forEach(function(key, index) {
         source.push({
           name: key + " LINE",
           color: colors[key],
           positions: "",
-          live: selectedText.indexOf(key) >= 0
+          live: index === 0
         });
       });
     }
@@ -1233,16 +1170,6 @@ window.COACH_UPDATE_VERSION = "118.7";
         event.stopPropagation();
       }, { passive: true });
     });
-  }
-
-
-  function coach1186RefreshOpenedField() {
-    if (!document.body.classList.contains("coach-field-expanded")) return;
-    try {
-      if (typeof renderField === "function") renderField();
-    } catch (error) {
-      console.warn("118.6 field refresh:", error);
-    }
   }
 
   function bindDashboardSections() {
