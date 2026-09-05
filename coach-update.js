@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.4 — Play Lines button tap fix
+   v118.5 — Play Lines control overlay fix
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.4";
+window.COACH_UPDATE_VERSION = "118.5";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-1184-style";
+  const STYLE_ID = "coach-update-1185-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -559,6 +559,25 @@ window.COACH_UPDATE_VERSION = "118.4";
       .coach1182LineRow:active{
         transform:scale(.992)!important;
         filter:brightness(1.12)!important;
+      }
+
+
+      /* ---------- 118.5: let Undo Play / Next Line receive the tap ---------- */
+      #fivePanelDashboard .fivePanel[data-panel="lines"] .v114TapLayer{
+        pointer-events:none!important;
+      }
+
+      #fivePanelDashboard .fivePanel[data-panel="lines"] .v112LineActions{
+        position:relative!important;
+        z-index:50!important;
+        pointer-events:auto!important;
+      }
+
+      #fivePanelDashboard .fivePanel[data-panel="lines"] .v112LineActions button{
+        position:relative!important;
+        z-index:51!important;
+        pointer-events:auto!important;
+        touch-action:manipulation!important;
       }
 
       /* ---------- STATS ---------- */
