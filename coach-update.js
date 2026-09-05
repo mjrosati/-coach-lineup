@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.3 — Play Lines open editable full field
+   v118.4 — Play Lines button tap fix
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.3";
+window.COACH_UPDATE_VERSION = "118.4";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-1183-style";
+  const STYLE_ID = "coach-update-1184-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -1115,6 +1115,43 @@ window.COACH_UPDATE_VERSION = "118.3";
     }));
   }
 
+
+  /* ---------- 118.4: keep Undo Play / Next Line from expanding Play Lines ---------- */
+  function bind1184LineControlButtons() {
+    const panel = document.querySelector('#fivePanelDashboard .fivePanel[data-panel="lines"]');
+    if (!panel) return;
+
+    const buttons = Array.from(panel.querySelectorAll("button"));
+    buttons.forEach(function(button) {
+      const label = String(button.innerText || button.textContent || "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toUpperCase();
+
+      const isUndo = label.indexOf("UNDO PLAY") >= 0;
+      const isNext = label.indexOf("NEXT LINE") >= 0;
+
+      if ((!isUndo && !isNext) || button.dataset.coach1184Bound === "1") return;
+
+      button.dataset.coach1184Bound = "1";
+
+      /* Let the button's existing action run, but stop the click from
+         bubbling into the panel's Expand handler. */
+      button.addEventListener("click", function(event) {
+        event.stopPropagation();
+      });
+
+      /* iPad Safari can promote touch/pointer events to the parent label.
+         Stop those from bubbling too, without cancelling the button itself. */
+      button.addEventListener("pointerup", function(event) {
+        event.stopPropagation();
+      });
+      button.addEventListener("touchend", function(event) {
+        event.stopPropagation();
+      }, { passive: true });
+    });
+  }
+
   function bindDashboardSections() {
     const fieldRadio = document.getElementById("v114Field");
 
@@ -1168,6 +1205,7 @@ window.COACH_UPDATE_VERSION = "118.3";
     ensureBackButton();
     ensureSectionFooters();
     bindDashboardSections();
+    bind1184LineControlButtons();
     buildReadableLines();
     build1182ReadableLines();
     mirrorDashboardField();
@@ -1176,6 +1214,7 @@ window.COACH_UPDATE_VERSION = "118.3";
       refreshTimer = setInterval(function () {
         buildReadableLines();
         build1182ReadableLines();
+        bind1184LineControlButtons();
         mirrorDashboardField();
       }, 1400);
     }
