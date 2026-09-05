@@ -1,15 +1,24 @@
 /* Coach Lineup live update layer
-   v117.8 — Clean readable Play Lines
+   v118.0 — UI cleanup + consistency pass
+   This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "117.8";
+window.COACH_UPDATE_VERSION = "118.0";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-1178-style";
+  const STYLE_ID = "coach-update-1180-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
-  let mirrorTimer = null;
+  const TOOL_MODE_CLASS = "coach-tool-modal-open";
+  let refreshTimer = null;
+
+  const LINE_COLORS = {
+    BLACK: "#111111",
+    BLUE: "#1593ff",
+    GREEN: "#20c763",
+    GOLD: "#f2c230"
+  };
 
   function installStyles() {
     if (document.getElementById(STYLE_ID)) return;
@@ -17,7 +26,79 @@ window.COACH_UPDATE_VERSION = "117.8";
     const style = document.createElement("style");
     style.id = STYLE_ID;
     style.textContent = `
-      /* ===== visible live-update version ===== */
+      :root{
+        --coach-bg:#04152f;
+        --coach-panel:#082650;
+        --coach-panel2:#0b3263;
+        --coach-border:#2b6fa9;
+        --coach-text:#ffffff;
+        --coach-muted:#9cc2e7;
+        --coach-blue:#0b78d0;
+        --coach-cyan:#25a6ff;
+        --coach-red:#ff4969;
+        --coach-green:#24c76a;
+        --coach-gold:#f2c230;
+      }
+
+      /* ---------- GENERAL CLEANUP ---------- */
+      #fivePanelDashboard{
+        background:linear-gradient(180deg,#051a38 0%,#03142d 100%)!important;
+      }
+
+      #fivePanelDashboard .fivePanel{
+        border:1px solid var(--coach-border)!important;
+        border-radius:8px!important;
+        overflow:hidden!important;
+        background:var(--coach-panel)!important;
+        box-shadow:none!important;
+      }
+
+      #fivePanelDashboard .fivePanelLabel{
+        min-height:42px!important;
+        padding:8px 10px!important;
+        background:linear-gradient(180deg,#0b376d,#082a57)!important;
+        border-bottom:1px solid rgba(255,255,255,.14)!important;
+      }
+
+      #fivePanelDashboard .fivePanelLabel b{
+        color:#fff!important;
+        font-weight:1000!important;
+        letter-spacing:.45px!important;
+      }
+
+      #fivePanelDashboard .fivePanelLabel small{
+        color:#b9d5ef!important;
+        font-weight:700!important;
+      }
+
+      /* The whole card is already tappable. Remove repetitive tiny instructions. */
+      #fivePanelDashboard .expandHint{
+        opacity:.48!important;
+        font-size:6px!important;
+        letter-spacing:.4px!important;
+      }
+
+      #fivePanelDashboard button,
+      #fivePanelDashboard label[for]{
+        touch-action:manipulation!important;
+      }
+
+      #fivePanelDashboard button:focus-visible,
+      #fivePanelDashboard label[for]:focus-visible,
+      #${BACK_ID}:focus-visible{
+        outline:3px solid #fff!important;
+        outline-offset:2px!important;
+      }
+
+      /* Clean the game-status strip. */
+      #fivePanelDashboard .v102GameStrip > *{
+        min-height:40px!important;
+        font-size:9px!important;
+        font-weight:900!important;
+        letter-spacing:.3px!important;
+      }
+
+      /* ---------- UPDATE BADGE ---------- */
       #${BADGE_ID}{
         position:fixed!important;
         right:max(8px,env(safe-area-inset-right))!important;
@@ -25,27 +106,38 @@ window.COACH_UPDATE_VERSION = "117.8";
         z-index:999999!important;
         padding:5px 8px!important;
         border:1px solid rgba(255,255,255,.75)!important;
-        border-radius:4px!important;
-        background:rgba(0,45,98,.94)!important;
+        border-radius:5px!important;
+        background:rgba(0,45,98,.95)!important;
         color:#fff!important;
         font:900 9px -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif!important;
-        letter-spacing:.35px!important;
+        letter-spacing:.4px!important;
         pointer-events:none!important;
       }
 
-      /* ===== dashboard FIELD mirrors full Game Day field ===== */
+      #buildBadge{
+        opacity:.28!important;
+        font-size:6px!important;
+      }
+
+      /* ---------- DASHBOARD FIELD ---------- */
       #fivePanelDashboard .fivePanel[data-panel="field"] .miniField{
         position:relative!important;
         overflow:hidden!important;
-        margin:5px!important;
-        border:2px solid #fff!important;
+        margin:6px!important;
+        border:2px solid rgba(255,255,255,.85)!important;
+        border-radius:5px!important;
         background:
           repeating-linear-gradient(
             to bottom,
             transparent 0 calc(10% - 2px),
-            rgba(255,255,255,.80) calc(10% - 2px) 10%
+            rgba(255,255,255,.72) calc(10% - 2px) 10%
           ),
-          linear-gradient(180deg,#168a43 0%,#0e7536 50%,#168a43 100%)!important;
+          repeating-linear-gradient(
+            to bottom,
+            rgba(255,255,255,.03) 0 5%,
+            rgba(0,0,0,.025) 5% 10%
+          ),
+          linear-gradient(180deg,#188946,#0e7438)!important;
       }
 
       #fivePanelDashboard .miniField.coach-live-mirror > .miniFieldMid,
@@ -60,9 +152,9 @@ window.COACH_UPDATE_VERSION = "117.8";
 
       #fivePanelDashboard .coachFieldMirror{
         position:absolute!important;
-        inset:0!important;
-        width:100%!important;
-        height:100%!important;
+        inset:2%!important;
+        width:96%!important;
+        height:96%!important;
         overflow:hidden!important;
         pointer-events:none!important;
       }
@@ -82,14 +174,33 @@ window.COACH_UPDATE_VERSION = "117.8";
         transform:none!important;
       }
 
-      #fivePanelDashboard .coachFieldMirror .slot{
-        min-width:46px!important;
-        padding:3px!important;
-        font-size:7px!important;
-        border-width:2px!important;
+      #fivePanelDashboard .coachFieldMirror .field::before,
+      #fivePanelDashboard .coachFieldMirror .field::after{
+        display:none!important;
       }
 
-      /* ===== FIELD section opens the real full Game Day screen ===== */
+      #fivePanelDashboard .coachFieldMirror .slot{
+        min-width:42px!important;
+        min-height:30px!important;
+        padding:2px 4px!important;
+        border-width:2px!important;
+        border-radius:5px!important;
+        font-size:7px!important;
+        line-height:1.05!important;
+      }
+
+      #fivePanelDashboard .coachFieldMirror .slot b,
+      #fivePanelDashboard .coachFieldMirror .slot small{
+        font-size:7px!important;
+        line-height:1!important;
+      }
+
+      #fivePanelDashboard .coachFieldMirror .tag{
+        padding:2px 6px!important;
+        font-size:6px!important;
+      }
+
+      /* ---------- FULL FIELD ---------- */
       body.coach-field-expanded #fivePanelDashboard{display:none!important}
       body.coach-field-expanded #app{display:block!important}
       body.coach-field-expanded #app > .top{
@@ -106,15 +217,25 @@ window.COACH_UPDATE_VERSION = "117.8";
         min-width:0!important;
       }
       body.coach-field-expanded .fieldArea{
+        display:flex!important;
+        align-items:stretch!important;
+        justify-content:center!important;
         min-height:0!important;
         overflow:hidden!important;
-        padding:5px!important;
+        padding:6px!important;
+        background:#06160d!important;
       }
       body.coach-field-expanded #field.field{
         width:100%!important;
         height:100%!important;
         min-width:0!important;
+        max-width:100%!important;
+        margin:auto!important;
         aspect-ratio:auto!important;
+        border:2px solid rgba(255,255,255,.9)!important;
+      }
+      body.coach-field-expanded #field .slot{
+        z-index:5!important;
       }
 
       #${BACK_ID}{
@@ -125,81 +246,67 @@ window.COACH_UPDATE_VERSION = "117.8";
         min-height:42px!important;
         padding:7px 12px!important;
         border:2px solid #fff!important;
-        border-radius:5px!important;
+        border-radius:6px!important;
         background:#0057b8!important;
         color:#fff!important;
         font:900 10px -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif!important;
+        letter-spacing:.35px!important;
         touch-action:manipulation!important;
       }
 
-      /* ===== PLAYERS full workspace =====
-         Keep the roster-manager functions, but center the entire player workspace. */
-      body.coach-players-expanded #modal{
+      /* ---------- PLAYERS / ROSTER ---------- */
+      #v114Players:checked ~ .fivePanelGrid .fivePanel[data-panel="players"] #fivePlayersPreview{
+        padding:10px!important;
+        gap:6px!important;
+      }
+
+      #v114Players:checked ~ .fivePanelGrid .fivePanel[data-panel="players"] #fivePlayersPreview > *{
+        min-height:44px!important;
+        font-size:12px!important;
+      }
+
+      body.coach-players-expanded #modal,
+      body.${TOOL_MODE_CLASS} #modal{
         position:fixed!important;
         inset:0!important;
         z-index:200000!important;
         display:flex!important;
         align-items:center!important;
         justify-content:center!important;
-        padding:18px!important;
-        background:rgba(1,10,28,.78)!important;
+        padding:14px!important;
+        background:rgba(1,10,28,.80)!important;
       }
 
-      body.coach-players-expanded #modal.hidden{
+      body.coach-players-expanded #modal.hidden,
+      body.${TOOL_MODE_CLASS} #modal.hidden{
         display:none!important;
       }
 
-      body.coach-players-expanded #modalBody{
-        position:relative!important;
-        width:min(900px,82vw)!important;
-        max-width:900px!important;
-        height:min(620px,84vh)!important;
-        max-height:84vh!important;
+      body.coach-players-expanded #modalBody,
+      body.${TOOL_MODE_CLASS} #modalBody{
+        width:min(940px,88vw)!important;
+        max-width:940px!important;
+        max-height:88vh!important;
         margin:auto!important;
         overflow:auto!important;
         border:2px solid #2d85cf!important;
-        border-radius:8px!important;
+        border-radius:9px!important;
         background:#061b3a!important;
-        box-shadow:0 18px 55px rgba(0,0,0,.55)!important;
+        box-shadow:0 16px 48px rgba(0,0,0,.52)!important;
       }
 
-      /* Center roster content itself rather than pinning it to the left. */
-      body.coach-players-expanded #modalBody > *{
+      body.coach-players-expanded #modalBody > *,
+      body.${TOOL_MODE_CLASS} #modalBody > *{
         margin-left:auto!important;
         margin-right:auto!important;
       }
 
-      body.coach-players-expanded #modalBody .rosterCards,
-      body.coach-players-expanded #modalBody .rosterGrid,
-      body.coach-players-expanded #modalBody .playerCards{
-        width:100%!important;
-        max-width:820px!important;
-        margin-left:auto!important;
-        margin-right:auto!important;
-      }
-
-      body.coach-players-expanded #modalBody h2,
-      body.coach-players-expanded #modalBody h3{
-        text-align:left!important;
-      }
-
-
-      /* ===== PLAY LINES clean readable expanded section ===== */
+      /* ---------- PLAY LINES ---------- */
       #v114Lines:checked ~ .fivePanelGrid .fivePanel[data-panel="lines"]{
         display:flex!important;
         flex-direction:column!important;
         overflow:hidden!important;
         background:#071b38!important;
-      }
-      #v114Lines:checked ~ .fivePanelGrid .fivePanel[data-panel="lines"] .fivePanelLabel{
-        min-height:62px!important;
-        padding:14px 20px 12px 150px!important;
-        background:#0a2f5d!important;
-        border-bottom:1px solid #2e6ea9!important;
-      }
-      #v114Lines:checked ~ .fivePanelGrid .fivePanel[data-panel="lines"] .fivePanelLabel b{
-        font-size:20px!important;
-        letter-spacing:.5px!important;
       }
 
       #v114Lines:checked ~ .fivePanelGrid #fiveLinesPreview{
@@ -207,113 +314,193 @@ window.COACH_UPDATE_VERSION = "117.8";
       }
 
       .coachReadableLines{display:none}
+
       #v114Lines:checked ~ .fivePanelGrid .coachReadableLines{
         display:grid!important;
         grid-template-columns:1fr 1fr!important;
-        gap:14px!important;
+        gap:12px!important;
         flex:1 1 auto!important;
         min-height:0!important;
         overflow:auto!important;
-        padding:18px!important;
+        padding:16px!important;
         align-content:start!important;
       }
 
       .coachLineCard{
-        min-height:96px!important;
+        min-height:90px!important;
         display:grid!important;
-        grid-template-columns:18px minmax(0,1fr) auto!important;
+        grid-template-columns:16px minmax(0,1fr) auto!important;
         grid-template-rows:auto auto!important;
         align-items:center!important;
-        column-gap:14px!important;
+        column-gap:12px!important;
         row-gap:5px!important;
-        padding:14px 18px!important;
-        border:2px solid rgba(255,255,255,.26)!important;
-        border-radius:9px!important;
+        padding:13px 16px!important;
+        border:2px solid rgba(255,255,255,.24)!important;
+        border-radius:8px!important;
         background:#0d3261!important;
         color:#fff!important;
         overflow:hidden!important;
       }
+
       .coachLineCard.live{
         border-color:#fff!important;
         background:#123b6d!important;
       }
+
       .coachLineSwatch{
         grid-row:1 / span 2!important;
         width:14px!important;
-        height:58px!important;
+        height:54px!important;
         border-radius:5px!important;
         background:var(--line-color)!important;
         box-shadow:0 0 0 1px rgba(255,255,255,.3)!important;
       }
+
       .coachLineName{
         min-width:0!important;
-        font-size:20px!important;
+        color:#fff!important;
+        font-size:18px!important;
         line-height:1.1!important;
         font-weight:1000!important;
         white-space:nowrap!important;
         overflow:hidden!important;
         text-overflow:ellipsis!important;
       }
+
       .coachLineMeta{
-        min-width:0!important;
-        font-size:12px!important;
-        line-height:1.2!important;
+        color:#acd0ed!important;
+        font-size:11px!important;
         font-weight:800!important;
-        opacity:.78!important;
       }
+
       .coachLineStatus{
         grid-column:3!important;
         grid-row:1 / span 2!important;
-        align-self:center!important;
         padding:6px 9px!important;
         border:1px solid rgba(255,255,255,.55)!important;
         border-radius:999px!important;
-        font-size:10px!important;
+        color:#fff!important;
+        font-size:9px!important;
         font-weight:1000!important;
-        letter-spacing:.4px!important;
         white-space:nowrap!important;
       }
+
       .coachLineStatus.live{
         background:#fff!important;
         color:#071b38!important;
       }
 
-      .coachLinesFooter{display:none}
-      #v114Lines:checked ~ .fivePanelGrid .coachLinesFooter{
+      .coachSectionFooter{
+        display:none;
+      }
+
+      #v114Lines:checked ~ .fivePanelGrid .coachLinesFooter,
+      #v114Stats:checked ~ .fivePanelGrid .coachStatsFooter,
+      #v114Plays:checked ~ .fivePanelGrid .coachPlaysFooter{
         display:flex!important;
         flex:0 0 auto!important;
         justify-content:center!important;
-        padding:14px 16px 18px!important;
+        padding:12px 14px 15px!important;
         border-top:1px solid #2c73af!important;
         background:#04152f!important;
       }
-      .coachManageLinesBtn{
-        width:min(460px,92%)!important;
-        min-height:54px!important;
+
+      .coachSectionAction{
+        width:min(440px,92%)!important;
+        min-height:50px!important;
         border:2px solid #fff!important;
         border-radius:7px!important;
         background:#0057b8!important;
         color:#fff!important;
-        font-size:15px!important;
+        font-size:14px!important;
         font-weight:1000!important;
-        letter-spacing:.5px!important;
+        letter-spacing:.45px!important;
         touch-action:manipulation!important;
       }
 
+      .coachSectionAction:active{
+        transform:scale(.985)!important;
+        filter:brightness(1.12)!important;
+      }
+
+      /* ---------- STATS ---------- */
+      #v114Stats:checked ~ .fivePanelGrid .fivePanel[data-panel="stats"]{
+        display:flex!important;
+        flex-direction:column!important;
+        overflow:hidden!important;
+      }
+
+      #v114Stats:checked ~ .fivePanelGrid #fiveStatsPreview{
+        flex:1 1 auto!important;
+        min-height:0!important;
+        overflow:auto!important;
+        display:grid!important;
+        grid-template-columns:1fr 1fr!important;
+        gap:8px!important;
+        padding:14px!important;
+        align-content:start!important;
+      }
+
+      #v114Stats:checked ~ .fivePanelGrid #fiveStatsPreview > *{
+        min-height:58px!important;
+        padding:10px 12px!important;
+        border:1px solid rgba(255,255,255,.20)!important;
+        border-radius:6px!important;
+        background:#0b3263!important;
+        color:#fff!important;
+        font-size:12px!important;
+      }
+
+      /* ---------- PLAYS ---------- */
+      #v114Plays:checked ~ .fivePanelGrid .fivePanel[data-panel="plays"]{
+        display:flex!important;
+        flex-direction:column!important;
+        overflow:hidden!important;
+      }
+
+      #v114Plays:checked ~ .fivePanelGrid #fivePlaysPreview{
+        flex:1 1 auto!important;
+        min-height:0!important;
+        overflow:auto!important;
+        display:grid!important;
+        grid-template-columns:1fr 1fr!important;
+        gap:8px!important;
+        padding:14px!important;
+        align-content:start!important;
+      }
+
+      #v114Plays:checked ~ .fivePanelGrid #fivePlaysPreview > *{
+        min-height:52px!important;
+        padding:10px 12px!important;
+        border:1px solid rgba(255,255,255,.20)!important;
+        border-radius:6px!important;
+        background:#0b3263!important;
+        color:#fff!important;
+        font-size:12px!important;
+      }
+
+      /* ---------- SMALL TABLET LANDSCAPE ---------- */
       @media (orientation:landscape) and (max-height:700px){
         body.coach-field-expanded #app > .top{height:48px!important}
         body.coach-field-expanded #app > .layout{height:calc(100dvh - 48px)!important}
 
-        body.coach-players-expanded #modal{
-          padding:8px!important;
+        #v114Lines:checked ~ .fivePanelGrid .coachReadableLines,
+        #v114Stats:checked ~ .fivePanelGrid #fiveStatsPreview,
+        #v114Plays:checked ~ .fivePanelGrid #fivePlaysPreview{
+          gap:8px!important;
+          padding:10px!important;
         }
-        body.coach-players-expanded #modalBody{
-          width:min(920px,88vw)!important;
-          height:88vh!important;
-          max-height:88vh!important;
+
+        .coachLineCard{
+          min-height:72px!important;
+          padding:10px 12px!important;
         }
+
+        .coachLineName{font-size:15px!important}
+        .coachLineSwatch{height:44px!important}
       }
     `;
+
     document.head.appendChild(style);
   }
 
@@ -336,13 +523,43 @@ window.COACH_UPDATE_VERSION = "117.8";
     button.type = "button";
     button.textContent = "← ALL 5 SECTIONS";
     button.hidden = true;
+
     button.addEventListener("click", function (event) {
       event.preventDefault();
       event.stopPropagation();
       closeFullField();
     });
+
     document.body.appendChild(button);
     return button;
+  }
+
+  function resetDashboardToAll() {
+    const all = document.getElementById("v114All");
+    if (all) all.checked = true;
+  }
+
+  function showFivePanelDashboard() {
+    const dashboard = document.getElementById("fivePanelDashboard");
+    if (!dashboard) return;
+
+    resetDashboardToAll();
+    dashboard.classList.remove("hidden");
+    dashboard.style.display = "grid";
+    dashboard.scrollTop = 0;
+    document.body.classList.remove(
+      "coach-field-expanded",
+      "coach-players-expanded",
+      TOOL_MODE_CLASS
+    );
+
+    const back = document.getElementById(BACK_ID);
+    if (back) back.hidden = true;
+
+    setTimeout(function () {
+      mirrorDashboardField();
+      buildReadableLines();
+    }, 50);
   }
 
   function mirrorDashboardField() {
@@ -364,9 +581,11 @@ window.COACH_UPDATE_VERSION = "117.8";
 
     const clone = realField.cloneNode(true);
     clone.removeAttribute("id");
+
     clone.querySelectorAll("[id]").forEach(function (node) {
       node.removeAttribute("id");
     });
+
     clone.querySelectorAll("button,input,select,textarea,a").forEach(function (node) {
       node.setAttribute("tabindex", "-1");
       node.setAttribute("aria-hidden", "true");
@@ -379,7 +598,7 @@ window.COACH_UPDATE_VERSION = "117.8";
     const dashboard = document.getElementById("fivePanelDashboard");
     if (!dashboard) return;
 
-    document.body.classList.remove("coach-players-expanded");
+    document.body.classList.remove("coach-players-expanded", TOOL_MODE_CLASS);
     document.body.classList.add("coach-field-expanded");
 
     dashboard.classList.add("hidden");
@@ -391,37 +610,22 @@ window.COACH_UPDATE_VERSION = "117.8";
       if (typeof renderAll === "function") renderAll();
       else if (typeof renderField === "function") renderField();
     } catch (error) {
-      console.warn("Coach field render:", error);
+      console.warn("Field refresh:", error);
     }
   }
 
   function closeFullField() {
-    const dashboard = document.getElementById("fivePanelDashboard");
-    const all = document.getElementById("v114All");
-
-    document.body.classList.remove("coach-field-expanded");
-    if (all) all.checked = true;
-
-    if (dashboard) {
-      dashboard.classList.remove("hidden");
-      dashboard.style.display = "grid";
-      dashboard.scrollTop = 0;
-    }
-
-    const back = document.getElementById(BACK_ID);
-    if (back) back.hidden = true;
-
-    setTimeout(mirrorDashboardField, 50);
+    showFivePanelDashboard();
   }
 
   function openPlayersRosterStatus() {
     const dashboard = document.getElementById("fivePanelDashboard");
-    const all = document.getElementById("v114All");
 
-    document.body.classList.remove("coach-field-expanded");
+    document.body.classList.remove("coach-field-expanded", TOOL_MODE_CLASS);
     document.body.classList.add("coach-players-expanded");
 
-    if (all) all.checked = true;
+    resetDashboardToAll();
+
     if (dashboard) {
       dashboard.classList.add("hidden");
       dashboard.style.display = "none";
@@ -433,19 +637,16 @@ window.COACH_UPDATE_VERSION = "117.8";
         return;
       }
 
-      const rosterBtn =
+      const target =
         document.getElementById("rosterManageBtn") ||
         document.getElementById("manageRosterBtn") ||
         document.querySelector("[data-open-roster]");
 
-      if (rosterBtn) rosterBtn.click();
+      if (target) target.click();
     } catch (error) {
-      console.warn("Coach roster/status:", error);
+      console.warn("Roster/status:", error);
     }
   }
-
-
-
 
   function buildReadableLines() {
     const panel = document.querySelector('#fivePanelDashboard .fivePanel[data-panel="lines"]');
@@ -456,150 +657,234 @@ window.COACH_UPDATE_VERSION = "117.8";
     if (!host) {
       host = document.createElement("div");
       host.className = "coachReadableLines";
+
       const footer = panel.querySelector(".coachLinesFooter");
       panel.insertBefore(host, footer || null);
     }
 
-    const colors = {
-      BLACK:"#111111",
-      BLUE:"#1593ff",
-      GREEN:"#20c763",
-      GOLD:"#f2c230"
-    };
-
     const sourceRows = Array.from(preview.children);
     const cards = [];
 
-    sourceRows.forEach(function(row, index){
-      const raw = (row.textContent || "").replace(/\s+/g," ").trim();
+    sourceRows.forEach(function (row, index) {
+      const raw = (row.textContent || "").replace(/\s+/g, " ").trim();
       const nameMatch = raw.match(/(BLACK|BLUE|GREEN|GOLD)\s*LINE/i);
       const posMatch = raw.match(/(\d+)\s*POS/i);
       const live = /\bLIVE\b/i.test(raw) || index === 0;
-      const key = nameMatch ? nameMatch[1].toUpperCase() : ("LINE " + (index+1));
-      const displayName = nameMatch ? (key + " LINE") : key;
+      const key = nameMatch ? nameMatch[1].toUpperCase() : ("LINE " + (index + 1));
+
       cards.push({
-        name: displayName,
-        color: colors[key] || "#3aa7ff",
+        name: nameMatch ? key + " LINE" : key,
+        color: LINE_COLORS[key] || "#3aa7ff",
         positions: posMatch ? posMatch[1] : "",
         live: live
       });
     });
 
     if (!cards.length) {
-      ["BLACK","BLUE","GREEN","GOLD"].forEach(function(key,index){
-        cards.push({name:key+" LINE",color:colors[key],positions:"",live:index===0});
+      ["BLACK","BLUE","GREEN","GOLD"].forEach(function (key, index) {
+        cards.push({
+          name: key + " LINE",
+          color: LINE_COLORS[key],
+          positions: "",
+          live: index === 0
+        });
       });
     }
 
-    host.replaceChildren(...cards.map(function(item){
-      const card=document.createElement("div");
-      card.className="coachLineCard"+(item.live?" live":"");
-      card.style.setProperty("--line-color",item.color);
+    const nodes = cards.map(function (item) {
+      const card = document.createElement("div");
+      card.className = "coachLineCard" + (item.live ? " live" : "");
+      card.style.setProperty("--line-color", item.color);
 
-      const swatch=document.createElement("div");
-      swatch.className="coachLineSwatch";
+      const swatch = document.createElement("div");
+      swatch.className = "coachLineSwatch";
 
-      const name=document.createElement("div");
-      name.className="coachLineName";
-      name.textContent=item.name;
+      const name = document.createElement("div");
+      name.className = "coachLineName";
+      name.textContent = item.name;
 
-      const meta=document.createElement("div");
-      meta.className="coachLineMeta";
-      meta.textContent=item.positions ? item.positions+" POSITIONS" : "LINE ROTATION";
+      const meta = document.createElement("div");
+      meta.className = "coachLineMeta";
+      meta.textContent = item.positions
+        ? item.positions + " POSITIONS"
+        : "LINE ROTATION";
 
-      const status=document.createElement("div");
-      status.className="coachLineStatus"+(item.live?" live":"");
-      status.textContent=item.live ? "LIVE" : "READY";
+      const status = document.createElement("div");
+      status.className = "coachLineStatus" + (item.live ? " live" : "");
+      status.textContent = item.live ? "LIVE" : "READY";
 
-      card.append(swatch,name,meta,status);
+      card.append(swatch, name, meta, status);
       return card;
-    }));
+    });
+
+    host.replaceChildren(...nodes);
   }
 
-  function openManageLines() {
+  function clickExistingControl(candidates) {
+    for (const candidate of candidates) {
+      let target = null;
+
+      if (candidate.startsWith("#")) {
+        target = document.querySelector(candidate);
+      } else {
+        target = document.getElementById(candidate);
+      }
+
+      if (target) {
+        target.click();
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function openTool(kind) {
     const dashboard = document.getElementById("fivePanelDashboard");
-    const all = document.getElementById("v114All");
-    if (all) all.checked = true;
+
+    resetDashboardToAll();
+
     if (dashboard) {
       dashboard.classList.add("hidden");
       dashboard.style.display = "none";
     }
 
-    try {
+    document.body.classList.remove("coach-field-expanded", "coach-players-expanded");
+    document.body.classList.add(TOOL_MODE_CLASS);
+
+    let opened = false;
+
+    if (kind === "lines") {
       if (typeof window.coachOpenSection === "function") {
-        window.coachOpenSection("lines");
-        return;
+        try {
+          window.coachOpenSection("lines");
+          opened = true;
+        } catch {}
       }
-      const target =
-        document.getElementById("linesCard") ||
-        document.getElementById("linesBtn") ||
-        document.querySelector("[data-nav='lines']");
-      if (target) target.click();
-    } catch (error) {
-      console.warn("Manage Lines:", error);
+
+      if (!opened) {
+        opened = clickExistingControl([
+          "linesCard",
+          "linesBtn",
+          "#dashboard .card[data-view='lines']",
+          "[data-nav='lines']"
+        ]);
+      }
+    }
+
+    if (kind === "stats") {
+      opened = clickExistingControl([
+        "statsBtn",
+        "allPlayerStatsBtn",
+        "[data-open-stats]"
+      ]);
+    }
+
+    if (kind === "plays") {
+      opened = clickExistingControl([
+        "playbookBtn",
+        "[data-open-playbook]"
+      ]);
+    }
+
+    if (!opened) {
+      document.body.classList.remove(TOOL_MODE_CLASS);
+      showFivePanelDashboard();
     }
   }
 
-  function ensureLinesFooter() {
-    const panel = document.querySelector('#fivePanelDashboard .fivePanel[data-panel="lines"]');
-    if (!panel || panel.querySelector(".coachLinesFooter")) return;
+  function ensureSectionFooter(panelName, className, label, action) {
+    const panel = document.querySelector(
+      '#fivePanelDashboard .fivePanel[data-panel="' + panelName + '"]'
+    );
+
+    if (!panel || panel.querySelector("." + className)) return;
 
     const footer = document.createElement("div");
-    footer.className = "coachLinesFooter";
+    footer.className = "coachSectionFooter " + className;
 
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "coachManageLinesBtn";
-    button.textContent = "MANAGE LINES";
-    button.addEventListener("click", function(event){
+    button.className = "coachSectionAction";
+    button.textContent = label;
+
+    button.addEventListener("click", function (event) {
       event.preventDefault();
       event.stopPropagation();
-      openManageLines();
+      action();
     });
 
     footer.appendChild(button);
     panel.appendChild(footer);
   }
 
+  function ensureSectionFooters() {
+    ensureSectionFooter(
+      "lines",
+      "coachLinesFooter",
+      "MANAGE LINES",
+      function () { openTool("lines"); }
+    );
+
+    ensureSectionFooter(
+      "stats",
+      "coachStatsFooter",
+      "FULL PLAYER STATS",
+      function () { openTool("stats"); }
+    );
+
+    ensureSectionFooter(
+      "plays",
+      "coachPlaysFooter",
+      "OPEN PLAYBOOK",
+      function () { openTool("plays"); }
+    );
+  }
+
   function bindDashboardSections() {
     const fieldRadio = document.getElementById("v114Field");
-    if (fieldRadio && fieldRadio.dataset.coach1178 !== "1") {
-      fieldRadio.dataset.coach1178 = "1";
+
+    if (fieldRadio && fieldRadio.dataset.coach118 !== "1") {
+      fieldRadio.dataset.coach118 = "1";
+
       fieldRadio.addEventListener("change", function () {
-        if (fieldRadio.checked) requestAnimationFrame(openFullField);
+        if (fieldRadio.checked) {
+          requestAnimationFrame(openFullField);
+        }
       });
     }
 
     const playersRadio = document.getElementById("v114Players");
-    if (playersRadio && playersRadio.dataset.coach1178 !== "1") {
-      playersRadio.dataset.coach1178 = "1";
+
+    if (playersRadio && playersRadio.dataset.coach118 !== "1") {
+      playersRadio.dataset.coach118 = "1";
+
       playersRadio.addEventListener("change", function () {
-        if (playersRadio.checked) requestAnimationFrame(openPlayersRosterStatus);
+        if (playersRadio.checked) {
+          requestAnimationFrame(openPlayersRosterStatus);
+        }
       });
     }
 
-
-    /* When the roster modal closes, return to the five-section dashboard. */
     const modal = document.getElementById("modal");
-    if (modal && modal.dataset.coach1178 !== "1") {
-      modal.dataset.coach1178 = "1";
+
+    if (modal && modal.dataset.coach118 !== "1") {
+      modal.dataset.coach118 = "1";
+
       const observer = new MutationObserver(function () {
-        if (
-          document.body.classList.contains("coach-players-expanded") &&
-          modal.classList.contains("hidden")
-        ) {
-          document.body.classList.remove("coach-players-expanded");
-          const dashboard = document.getElementById("fivePanelDashboard");
-          const all = document.getElementById("v114All");
-          if (all) all.checked = true;
-          if (dashboard) {
-            dashboard.classList.remove("hidden");
-            dashboard.style.display = "grid";
-          }
-          setTimeout(mirrorDashboardField, 50);
+        const appManagedModal =
+          document.body.classList.contains("coach-players-expanded") ||
+          document.body.classList.contains(TOOL_MODE_CLASS);
+
+        if (appManagedModal && modal.classList.contains("hidden")) {
+          showFivePanelDashboard();
         }
       });
-      observer.observe(modal, { attributes: true, attributeFilter: ["class"] });
+
+      observer.observe(modal, {
+        attributes: true,
+        attributeFilter: ["class"]
+      });
     }
   }
 
@@ -607,16 +892,16 @@ window.COACH_UPDATE_VERSION = "117.8";
     installStyles();
     ensureUpdateBadge();
     ensureBackButton();
+    ensureSectionFooters();
     bindDashboardSections();
-    ensureLinesFooter();
     buildReadableLines();
     mirrorDashboardField();
 
-    if (!mirrorTimer) {
-      mirrorTimer = setInterval(function(){
-        mirrorDashboardField();
+    if (!refreshTimer) {
+      refreshTimer = setInterval(function () {
         buildReadableLines();
-      }, 1200);
+        mirrorDashboardField();
+      }, 1400);
     }
   }
 
