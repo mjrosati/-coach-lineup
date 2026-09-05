@@ -1,12 +1,12 @@
 /* Coach Lineup live update layer
-   v117.5 — Centered Players + Play Lines workspaces
+   v117.6 — Readable Play Lines + Manage Lines
 */
-window.COACH_UPDATE_VERSION = "117.5";
+window.COACH_UPDATE_VERSION = "117.6";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-1175-style";
+  const STYLE_ID = "coach-update-1176-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   let mirrorTimer = null;
@@ -184,49 +184,84 @@ window.COACH_UPDATE_VERSION = "117.5";
       }
 
 
-      /* ===== PLAY LINES full workspace =====
-         Use the real Lines manager and center it just like Players. */
-      body.coach-lines-expanded #modal{
-        position:fixed!important;
-        inset:0!important;
-        z-index:200000!important;
+      /* ===== PLAY LINES readable expanded section ===== */
+      #v114Lines:checked ~ .fivePanelGrid .fivePanel[data-panel="lines"]{
+        display:flex!important;
+        flex-direction:column!important;
+        overflow:hidden!important;
+        background:#061b3a!important;
+      }
+      #v114Lines:checked ~ .fivePanelGrid .fivePanel[data-panel="lines"] .fivePanelLabel{
+        min-height:58px!important;
+        padding:12px 18px 10px 150px!important;
+      }
+      #v114Lines:checked ~ .fivePanelGrid .fivePanel[data-panel="lines"] .fivePanelLabel b{
+        font-size:18px!important;
+      }
+      #v114Lines:checked ~ .fivePanelGrid #fiveLinesPreview{
+        display:flex!important;
+        flex-direction:column!important;
+        gap:10px!important;
+        flex:1 1 auto!important;
+        min-height:0!important;
+        overflow:auto!important;
+        padding:14px!important;
+      }
+      #v114Lines:checked ~ .fivePanelGrid #fiveLinesPreview > *{
+        min-height:68px!important;
+        padding:12px 16px!important;
+        font-size:15px!important;
+        line-height:1.25!important;
+        white-space:normal!important;
+        overflow:visible!important;
+        text-overflow:clip!important;
+        border:2px solid rgba(255,255,255,.35)!important;
+        border-left-width:10px!important;
+        border-radius:6px!important;
+        background:#0b3263!important;
+        color:#fff!important;
         display:flex!important;
         align-items:center!important;
+        gap:12px!important;
+      }
+      #v114Lines:checked ~ .fivePanelGrid #fiveLinesPreview > *:nth-child(1){
+        border-left-color:#111!important;
+      }
+      #v114Lines:checked ~ .fivePanelGrid #fiveLinesPreview > *:nth-child(2){
+        border-left-color:#1593ff!important;
+      }
+      #v114Lines:checked ~ .fivePanelGrid #fiveLinesPreview > *:nth-child(3){
+        border-left-color:#20c763!important;
+      }
+      #v114Lines:checked ~ .fivePanelGrid #fiveLinesPreview > *:nth-child(4){
+        border-left-color:#f2c230!important;
+      }
+      #v114Lines:checked ~ .fivePanelGrid #fiveLinesPreview *{
+        font-size:inherit!important;
+        max-width:none!important;
+        overflow:visible!important;
+        text-overflow:clip!important;
+      }
+      .coachLinesFooter{display:none}
+      #v114Lines:checked ~ .fivePanelGrid .coachLinesFooter{
+        display:flex!important;
+        flex:0 0 auto!important;
         justify-content:center!important;
-        padding:18px!important;
-        background:rgba(1,10,28,.78)!important;
+        padding:12px 14px 16px!important;
+        border-top:1px solid #2c73af!important;
+        background:#04152f!important;
       }
-
-      body.coach-lines-expanded #modal.hidden{
-        display:none!important;
-      }
-
-      body.coach-lines-expanded #modalBody{
-        position:relative!important;
-        width:min(940px,86vw)!important;
-        max-width:940px!important;
-        height:min(650px,86vh)!important;
-        max-height:86vh!important;
-        margin:auto!important;
-        overflow:auto!important;
-        border:2px solid #ff4d6d!important;
-        border-radius:8px!important;
-        background:#061b3a!important;
-        box-shadow:0 18px 55px rgba(0,0,0,.55)!important;
-      }
-
-      body.coach-lines-expanded #modalBody > *{
-        margin-left:auto!important;
-        margin-right:auto!important;
-      }
-
-      body.coach-lines-expanded #modalBody .lineCards,
-      body.coach-lines-expanded #modalBody .linesGrid,
-      body.coach-lines-expanded #modalBody .lineManager{
-        width:100%!important;
-        max-width:860px!important;
-        margin-left:auto!important;
-        margin-right:auto!important;
+      .coachManageLinesBtn{
+        width:min(420px,90%)!important;
+        min-height:52px!important;
+        border:2px solid #fff!important;
+        border-radius:6px!important;
+        background:#0057b8!important;
+        color:#fff!important;
+        font-size:14px!important;
+        font-weight:1000!important;
+        letter-spacing:.5px!important;
+        touch-action:manipulation!important;
       }
 
       @media (orientation:landscape) and (max-height:700px){
@@ -308,7 +343,7 @@ window.COACH_UPDATE_VERSION = "117.5";
     const dashboard = document.getElementById("fivePanelDashboard");
     if (!dashboard) return;
 
-    document.body.classList.remove("coach-players-expanded","coach-lines-expanded");
+    document.body.classList.remove("coach-players-expanded");
     document.body.classList.add("coach-field-expanded");
 
     dashboard.classList.add("hidden");
@@ -347,7 +382,7 @@ window.COACH_UPDATE_VERSION = "117.5";
     const dashboard = document.getElementById("fivePanelDashboard");
     const all = document.getElementById("v114All");
 
-    document.body.classList.remove("coach-field-expanded","coach-lines-expanded");
+    document.body.classList.remove("coach-field-expanded");
     document.body.classList.add("coach-players-expanded");
 
     if (all) all.checked = true;
@@ -374,13 +409,10 @@ window.COACH_UPDATE_VERSION = "117.5";
   }
 
 
-  function openPlayLinesManager() {
+
+  function openManageLines() {
     const dashboard = document.getElementById("fivePanelDashboard");
     const all = document.getElementById("v114All");
-
-    document.body.classList.remove("coach-field-expanded","coach-players-expanded");
-    document.body.classList.add("coach-lines-expanded");
-
     if (all) all.checked = true;
     if (dashboard) {
       dashboard.classList.add("hidden");
@@ -392,54 +424,65 @@ window.COACH_UPDATE_VERSION = "117.5";
         window.coachOpenSection("lines");
         return;
       }
-
-      const linesBtn =
+      const target =
         document.getElementById("linesCard") ||
         document.getElementById("linesBtn") ||
         document.querySelector("[data-nav='lines']");
-
-      if (linesBtn) linesBtn.click();
+      if (target) target.click();
     } catch (error) {
-      console.warn("Coach play lines:", error);
+      console.warn("Manage Lines:", error);
     }
+  }
+
+  function ensureLinesFooter() {
+    const panel = document.querySelector('#fivePanelDashboard .fivePanel[data-panel="lines"]');
+    if (!panel || panel.querySelector(".coachLinesFooter")) return;
+
+    const footer = document.createElement("div");
+    footer.className = "coachLinesFooter";
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "coachManageLinesBtn";
+    button.textContent = "MANAGE LINES";
+    button.addEventListener("click", function(event){
+      event.preventDefault();
+      event.stopPropagation();
+      openManageLines();
+    });
+
+    footer.appendChild(button);
+    panel.appendChild(footer);
   }
 
   function bindDashboardSections() {
     const fieldRadio = document.getElementById("v114Field");
-    if (fieldRadio && fieldRadio.dataset.coach1175 !== "1") {
-      fieldRadio.dataset.coach1175 = "1";
+    if (fieldRadio && fieldRadio.dataset.coach1176 !== "1") {
+      fieldRadio.dataset.coach1176 = "1";
       fieldRadio.addEventListener("change", function () {
         if (fieldRadio.checked) requestAnimationFrame(openFullField);
       });
     }
 
     const playersRadio = document.getElementById("v114Players");
-    if (playersRadio && playersRadio.dataset.coach1175 !== "1") {
-      playersRadio.dataset.coach1175 = "1";
+    if (playersRadio && playersRadio.dataset.coach1176 !== "1") {
+      playersRadio.dataset.coach1176 = "1";
       playersRadio.addEventListener("change", function () {
         if (playersRadio.checked) requestAnimationFrame(openPlayersRosterStatus);
       });
     }
 
-    const linesRadio = document.getElementById("v114Lines");
-    if (linesRadio && linesRadio.dataset.coach1175 !== "1") {
-      linesRadio.dataset.coach1175 = "1";
-      linesRadio.addEventListener("change", function () {
-        if (linesRadio.checked) requestAnimationFrame(openPlayLinesManager);
-      });
-    }
 
     /* When the roster modal closes, return to the five-section dashboard. */
     const modal = document.getElementById("modal");
-    if (modal && modal.dataset.coach1175 !== "1") {
-      modal.dataset.coach1175 = "1";
+    if (modal && modal.dataset.coach1176 !== "1") {
+      modal.dataset.coach1176 = "1";
       const observer = new MutationObserver(function () {
         if (
-          (document.body.classList.contains("coach-players-expanded") ||
-           document.body.classList.contains("coach-lines-expanded")) &&
+          document.body.classList.contains("coach-players-expanded") &&
           modal.classList.contains("hidden")
         ) {
-          document.body.classList.remove("coach-players-expanded","coach-lines-expanded");
+          document.body.classList.remove("coach-players-expanded");
           const dashboard = document.getElementById("fivePanelDashboard");
           const all = document.getElementById("v114All");
           if (all) all.checked = true;
@@ -459,6 +502,7 @@ window.COACH_UPDATE_VERSION = "117.5";
     ensureUpdateBadge();
     ensureBackButton();
     bindDashboardSections();
+    ensureLinesFooter();
     mirrorDashboardField();
 
     if (!mirrorTimer) {
