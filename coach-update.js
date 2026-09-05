@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.6 — Correct live line + restore field layout
+   v118.7 — Native line selection + field open fix
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.6";
+window.COACH_UPDATE_VERSION = "118.7";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-1186-style";
+  const STYLE_ID = "coach-update-1187-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -614,6 +614,17 @@ window.COACH_UPDATE_VERSION = "118.6";
         }
       }
 
+
+      /* ---------- 118.7: do not reshape the native Game Day field ---------- */
+      body:not(.coach-field-expanded) #field.field{
+        height:auto;
+      }
+
+      /* Line cards should show exactly one LIVE line: the line selected in lineSelect. */
+      .coach1182LineRow.live{
+        border-color:#fff!important;
+      }
+
       /* ---------- STATS ---------- */
       #v114Stats:checked ~ .fivePanelGrid .fivePanel[data-panel="stats"]{
         display:flex!important;
@@ -863,7 +874,10 @@ window.COACH_UPDATE_VERSION = "118.6";
       const raw = (row.textContent || "").replace(/\s+/g, " ").trim();
       const nameMatch = raw.match(/(BLACK|BLUE|GREEN|GOLD)\s*LINE/i);
       const posMatch = raw.match(/(\d+)\s*POS/i);
-      const live = /\bLIVE\b/i.test(raw);
+      const selectedText = String(
+        document.querySelector("#lineSelect option:checked")?.textContent || ""
+      ).toUpperCase();
+      const live = selectedText.indexOf(key) >= 0;
       const key = nameMatch ? nameMatch[1].toUpperCase() : ("LINE " + (index + 1));
 
       cards.push({
@@ -1044,42 +1058,52 @@ window.COACH_UPDATE_VERSION = "118.6";
 
   function coach1183SelectLine(lineName) {
     const wanted = coach1183NormalizeLineName(lineName);
-    const candidates = Array.from(document.querySelectorAll("button,[role='button'],label"));
+    const select = document.getElementById("lineSelect");
 
-    let target = candidates.find(function (el) {
-      const txt = coach1183NormalizeLineName(el.innerText || el.textContent || "");
-      return txt === wanted;
-    });
-
-    if (!target) {
-      target = candidates.find(function (el) {
-        const txt = coach1183NormalizeLineName(el.innerText || el.textContent || "");
-        return txt.indexOf(wanted) >= 0 && txt.length <= wanted.length + 6;
+    if (select) {
+      const options = Array.from(select.options || []);
+      const match = options.find(function (option) {
+        return coach1183NormalizeLineName(option.textContent || option.label || "") === wanted;
+      }) || options.find(function (option) {
+        return coach1183NormalizeLineName(option.textContent || option.label || "").indexOf(wanted) >= 0;
       });
+
+      if (match) {
+        select.value = match.value;
+        select.dispatchEvent(new Event("change", { bubbles:true }));
+        return true;
+      }
     }
 
-    if (target) {
-      target.click();
-      return true;
-    }
     return false;
   }
 
   function coach1183OpenLineField(lineName) {
     coach1183SelectLine(lineName);
 
-    /* Open the real Game Day field so player taps/substitutions keep working. */
-    openFullField();
-
-    /* Then use the app's existing FULL SCREEN mode when available. */
+    /* Use the app's own FULL FIELD button instead of forcing our field/fullscreen CSS.
+       This preserves the field/player geometry and existing player-edit behavior. */
     setTimeout(function () {
-      const buttons = Array.from(document.querySelectorAll("button,[role='button']"));
-      const full = buttons.find(function (el) {
-        const txt = String(el.innerText || el.textContent || "").replace(/\s+/g, " ").trim().toUpperCase();
-        return txt === "FULL SCREEN" || txt === "FULL FIELD";
-      });
-      if (full) full.click();
-    }, 180);
+      const fullField = document.getElementById("fivePanelClose");
+      if (fullField) {
+        fullField.click();
+        return;
+      }
+
+      /* Fallback only if the native button is missing. */
+      const dashboard = document.getElementById("fivePanelDashboard");
+      if (dashboard) {
+        dashboard.classList.add("hidden");
+        dashboard.style.display = "none";
+      }
+      document.body.classList.remove("five-panel-open","coach-field-expanded");
+      try {
+        if (typeof renderAll === "function") renderAll();
+        else if (typeof renderField === "function") renderField();
+      } catch (error) {
+        console.warn("118.7 native field fallback:", error);
+      }
+    }, 60);
   }
 
   function build1182ReadableLines() {
