@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.10 — Clean Play Lines expansion
+   v118.11 — Play Lines controls fix
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.10";
+window.COACH_UPDATE_VERSION = "118.11";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11810-style";
+  const STYLE_ID = "coach-update-11811-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -688,6 +688,30 @@ window.COACH_UPDATE_VERSION = "118.10";
         margin-top:auto!important;
       }
 
+
+      /* ---------- 118.11: make Undo Play / Next Line truly tappable ---------- */
+      #fivePanelDashboard .fivePanel[data-panel="lines"]{
+        position:relative!important;
+      }
+
+      #fivePanelDashboard .fivePanel[data-panel="lines"] > .v114TapLayer{
+        pointer-events:none!important;
+        z-index:1!important;
+      }
+
+      #fivePanelDashboard .fivePanel[data-panel="lines"] .v112LineActions{
+        position:relative!important;
+        z-index:100!important;
+        pointer-events:auto!important;
+      }
+
+      #fivePanelDashboard .fivePanel[data-panel="lines"] .v112LineActions button{
+        position:relative!important;
+        z-index:101!important;
+        pointer-events:auto!important;
+        touch-action:manipulation!important;
+      }
+
       /* ---------- STATS ---------- */
       #v114Stats:checked ~ .fivePanelGrid .fivePanel[data-panel="stats"]{
         display:flex!important;
@@ -1325,6 +1349,34 @@ window.COACH_UPDATE_VERSION = "118.10";
     }));
   }
 
+
+  function bind11811LineControls() {
+    const undo = document.getElementById("v112UndoPlayBtn");
+    const next = document.getElementById("v112NextLineBtn");
+
+    [[undo,"prevBtn"],[next,"nextBtn"]].forEach(function(pair) {
+      const button = pair[0];
+      const targetId = pair[1];
+      if (!button || button.dataset.coach11811Bound === "1") return;
+
+      button.dataset.coach11811Bound = "1";
+      button.removeAttribute("onclick");
+
+      button.addEventListener("click", function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const target = document.getElementById(targetId);
+        if (target) target.click();
+
+        setTimeout(function() {
+          if (typeof renderFivePanelRealData === "function") renderFivePanelRealData();
+          if (typeof build1182ReadableLines === "function") build1182ReadableLines();
+        }, 90);
+      });
+    });
+  }
+
   function bindDashboardSections() {
     const fieldRadio = document.getElementById("v114Field");
 
@@ -1378,6 +1430,7 @@ window.COACH_UPDATE_VERSION = "118.10";
     ensureBackButton();
     ensureSectionFooters();
     bindDashboardSections();
+    bind11811LineControls();
     buildReadableLines();
     build1182ReadableLines();
     mirrorDashboardField();
@@ -1386,6 +1439,7 @@ window.COACH_UPDATE_VERSION = "118.10";
       refreshTimer = setInterval(function () {
         buildReadableLines();
         build1182ReadableLines();
+        bind11811LineControls();
         mirrorDashboardField();
       }, 1400);
     }
