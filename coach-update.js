@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.9 — Isolated editable line field
+   v118.10 — Clean Play Lines expansion
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.9";
+window.COACH_UPDATE_VERSION = "118.10";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-1189-style";
+  const STYLE_ID = "coach-update-11810-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -631,6 +631,61 @@ window.COACH_UPDATE_VERSION = "118.9";
           max-height:calc(100dvh - 56px)!important;
           aspect-ratio:1.78!important;
         }
+      }
+
+
+      /* ---------- 118.10: clean Play Lines expansion ---------- */
+      /* Remove the old duplicated 2x2 line-card block completely. */
+      #fivePanelDashboard .fivePanel[data-panel="lines"] .coachReadableLines{
+        display:none!important;
+      }
+
+      /* Keep only the four readable color-bar rows. */
+      #v114Lines:checked ~ .fivePanelGrid .fivePanel[data-panel="lines"]{
+        display:flex!important;
+        flex-direction:column!important;
+        overflow:hidden!important;
+      }
+
+      #v114Lines:checked ~ .fivePanelGrid .coach1182Lines{
+        display:flex!important;
+        flex-direction:column!important;
+        flex:0 0 auto!important;
+        gap:10px!important;
+        padding:14px 16px!important;
+        overflow:visible!important;
+      }
+
+      #v114Lines:checked ~ .fivePanelGrid .coach1182LineRow{
+        min-height:78px!important;
+        max-height:78px!important;
+        grid-template-columns:14px minmax(0,1fr) auto!important;
+        gap:12px!important;
+        padding:12px 16px!important;
+      }
+
+      #v114Lines:checked ~ .fivePanelGrid .coach1182Bar{
+        width:12px!important;
+        height:48px!important;
+      }
+
+      #v114Lines:checked ~ .fivePanelGrid .coach1182LineName{
+        font-size:18px!important;
+        line-height:1.05!important;
+      }
+
+      #v114Lines:checked ~ .fivePanelGrid .coach1182LineMeta{
+        font-size:10px!important;
+      }
+
+      #v114Lines:checked ~ .fivePanelGrid .coach1182LineStatus{
+        font-size:9px!important;
+        padding:6px 9px!important;
+      }
+
+      /* Keep controls and Manage Lines separated below the four rows. */
+      #v114Lines:checked ~ .fivePanelGrid .coachLinesFooter{
+        margin-top:auto!important;
       }
 
       /* ---------- STATS ---------- */
