@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.0 — UI cleanup + consistency pass
+   v118.1 — Game Day Plays + Stats controls
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.0";
+window.COACH_UPDATE_VERSION = "118.1";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-1180-style";
+  const STYLE_ID = "coach-update-1181-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -451,6 +451,26 @@ window.COACH_UPDATE_VERSION = "118.0";
         font-size:12px!important;
       }
 
+
+      /* ---------- 118.1 PLAYS + STATS BUTTON WORKSPACES ---------- */
+      .coach1181Workspace{display:flex!important;flex-direction:column!important;gap:10px!important;padding:12px!important;min-height:0!important;overflow:auto!important;color:#fff!important}
+      .coach1181Title{font-size:11px!important;font-weight:900!important;letter-spacing:.8px!important;color:#b9d9f7!important;text-transform:uppercase!important}
+      .coach1181ButtonGrid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+      .coach1181ButtonGrid.stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+      .coach1181BigBtn{min-height:58px!important;border:2px solid #4dafff!important;border-radius:7px!important;background:#0b4f91!important;color:#fff!important;font-size:12px!important;font-weight:900!important;letter-spacing:.35px!important;text-transform:uppercase!important;padding:9px!important}
+      .coach1181BigBtn.active{background:#1287e8!important;border-color:#fff!important;box-shadow:0 0 0 2px rgba(37,166,255,.25)!important}
+      .coach1181BigBtn.kicking{border-color:#f2c230!important}
+      .coach1181GameList{border:1px solid #2b6fa9!important;border-radius:7px!important;background:#061f43!important;overflow:hidden!important}
+      .coach1181GameListHead{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;padding:9px 10px!important;background:#092d5c!important;border-bottom:1px solid #2b6fa9!important}
+      .coach1181GameListHead b{font-size:11px!important;letter-spacing:.7px!important}
+      .coach1181GameListBody{padding:7px!important;display:grid!important;gap:6px!important}
+      .coach1181PlayRow{display:grid!important;grid-template-columns:1fr auto!important;gap:7px!important;align-items:center!important;min-height:44px!important;padding:7px 8px!important;background:#0b3263!important;border:1px solid rgba(255,255,255,.16)!important;border-radius:5px!important}
+      .coach1181PlayRow button{min-width:62px!important;min-height:34px!important;border:1px solid #ff6a7e!important;border-radius:5px!important;background:#5d1730!important;color:#fff!important;font-weight:900!important;font-size:10px!important}
+      .coach1181PlayPicker{display:grid!important;grid-template-columns:1fr 1fr!important;gap:6px!important}
+      .coach1181Pick{min-height:44px!important;text-align:left!important;padding:8px 10px!important;border:1px solid #2b6fa9!important;border-radius:5px!important;background:#0b3263!important;color:#fff!important;font-weight:800!important;font-size:11px!important}
+      .coach1181Empty{padding:12px!important;text-align:center!important;color:#9cc2e7!important;font-size:11px!important}
+      @media (orientation:landscape) and (max-height:700px){.coach1181BigBtn{min-height:48px!important;font-size:11px!important}.coach1181Workspace{padding:9px!important;gap:8px!important}}
+
       /* ---------- PLAYS ---------- */
       #v114Plays:checked ~ .fivePanelGrid .fivePanel[data-panel="plays"]{
         display:flex!important;
@@ -841,6 +861,195 @@ window.COACH_UPDATE_VERSION = "118.0";
     );
   }
 
+
+  /* ---------- 118.1: simplified Plays and Stats ---------- */
+  const GAME_LIST_KEY = "coach-lineup-game-play-list-v1181";
+  let coach1181PlayCache = [];
+
+  function coach1181Text(el) {
+    return (el && (el.innerText || el.textContent) || "").replace(/\s+/g, " ").trim();
+  }
+
+  function coach1181FindClickable(words) {
+    const wanted = words.map(function (w) { return String(w).toLowerCase(); });
+    return Array.from(document.querySelectorAll("button,[role='button'],a")).find(function (el) {
+      if (!el || el.offsetParent === null) return false;
+      const t = coach1181Text(el).toLowerCase();
+      return wanted.every(function (w) { return t.indexOf(w) >= 0; });
+    });
+  }
+
+  function coach1181SafeClick(selectors, words) {
+    for (const selector of selectors || []) {
+      const el = document.querySelector(selector);
+      if (el) { el.click(); return true; }
+    }
+    const el = words ? coach1181FindClickable(words) : null;
+    if (el) { el.click(); return true; }
+    return false;
+  }
+
+  function coach1181GetGameList() {
+    try {
+      const v = JSON.parse(localStorage.getItem(GAME_LIST_KEY) || "[]");
+      return Array.isArray(v) ? v : [];
+    } catch (_) { return []; }
+  }
+
+  function coach1181SetGameList(list) {
+    localStorage.setItem(GAME_LIST_KEY, JSON.stringify(list));
+  }
+
+  function coach1181CapturePlays() {
+    const preview = document.getElementById("fivePlaysPreview");
+    if (!preview || preview.dataset.coach1181Built === "1") return;
+    const items = Array.from(preview.children).map(function (el) {
+      return { label: coach1181Text(el) };
+    }).filter(function (x) { return x.label; });
+    if (items.length) coach1181PlayCache = items;
+  }
+
+  function coach1181Classify(label) {
+    const s = String(label || "").toLowerCase();
+    if (/punt|kick|field goal|extra point|pat|onside/.test(s)) return "kicking";
+    if (/pass|flat|texas|screen|slant|curl|post|corner|fade|seam|wheel|hoom/.test(s)) return "passing";
+    return "running";
+  }
+
+  function coach1181RenderGameList(body) {
+    if (!body) return;
+    const list = coach1181GetGameList();
+    body.innerHTML = "";
+    if (!list.length) {
+      const empty = document.createElement("div");
+      empty.className = "coach1181Empty";
+      empty.textContent = "No plays selected yet.";
+      body.appendChild(empty);
+      return;
+    }
+    list.forEach(function (label, index) {
+      const row = document.createElement("div");
+      row.className = "coach1181PlayRow";
+      const name = document.createElement("b");
+      name.textContent = label;
+      const del = document.createElement("button");
+      del.type = "button";
+      del.textContent = "REMOVE";
+      del.addEventListener("click", function (event) {
+        event.preventDefault(); event.stopPropagation();
+        const next = coach1181GetGameList();
+        next.splice(index, 1);
+        coach1181SetGameList(next);
+        coach1181RenderGameList(body);
+      });
+      row.append(name, del);
+      body.appendChild(row);
+    });
+  }
+
+  function coach1181RenderPicker(host, category) {
+    const picker = host.querySelector(".coach1181PlayPicker");
+    if (!picker) return;
+    picker.innerHTML = "";
+    const plays = coach1181PlayCache.filter(function (p) { return coach1181Classify(p.label) === category; });
+    if (!plays.length) {
+      const empty = document.createElement("div");
+      empty.className = "coach1181Empty";
+      empty.textContent = "No " + category + " plays found.";
+      picker.appendChild(empty);
+      return;
+    }
+    plays.forEach(function (p) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "coach1181Pick";
+      btn.textContent = "+ " + p.label;
+      btn.addEventListener("click", function (event) {
+        event.preventDefault(); event.stopPropagation();
+        const list = coach1181GetGameList();
+        if (!list.includes(p.label)) list.push(p.label);
+        coach1181SetGameList(list);
+        coach1181RenderGameList(host.querySelector(".coach1181GameListBody"));
+      });
+      picker.appendChild(btn);
+    });
+  }
+
+  function buildPlaysWorkspace() {
+    const preview = document.getElementById("fivePlaysPreview");
+    if (!preview || preview.dataset.coach1181Built === "1") return;
+    coach1181CapturePlays();
+    preview.dataset.coach1181Built = "1";
+    preview.innerHTML = "";
+    preview.style.display = "block";
+
+    const host = document.createElement("div");
+    host.className = "coach1181Workspace";
+    host.innerHTML =
+      '<div class="coach1181Title">Choose play type</div>' +
+      '<div class="coach1181ButtonGrid">' +
+      '<button type="button" class="coach1181BigBtn active" data-cat="passing">PASSING</button>' +
+      '<button type="button" class="coach1181BigBtn" data-cat="running">RUNNING</button>' +
+      '<button type="button" class="coach1181BigBtn kicking" data-cat="kicking">KICKING</button>' +
+      '</div><div class="coach1181PlayPicker"></div>' +
+      '<div class="coach1181GameList"><div class="coach1181GameListHead"><b>GAME PLAY LIST</b><span>Tap a play above to add</span></div><div class="coach1181GameListBody"></div></div>';
+    preview.appendChild(host);
+
+    host.querySelectorAll("[data-cat]").forEach(function (btn) {
+      btn.addEventListener("click", function (event) {
+        event.preventDefault(); event.stopPropagation();
+        host.querySelectorAll("[data-cat]").forEach(function (b) { b.classList.remove("active"); });
+        btn.classList.add("active");
+        coach1181RenderPicker(host, btn.dataset.cat);
+      });
+    });
+    coach1181RenderPicker(host, "passing");
+    coach1181RenderGameList(host.querySelector(".coach1181GameListBody"));
+  }
+
+  function coach1181OpenStat(kind) {
+    document.body.classList.add(TOOL_MODE_CLASS);
+    let opened = false;
+    if (kind === "participation") opened = coach1181SafeClick(["#statsBtn","[data-open-stats]"], ["stats"]);
+    if (kind === "lines") opened = coach1181SafeClick(["#lineStatsBtn","#linesStatsBtn","[data-line-stats]"], ["line","stat"]);
+    if (kind === "opponent") opened = coach1181SafeClick(["#opponentStatsBtn","[data-opponent-stats]"], ["opponent","stat"]);
+    if (kind === "rotation") opened = coach1181SafeClick(["#opponentRotationBtn","[data-opponent-rotation]"], ["opponent","rotation"]);
+    if (!opened) {
+      document.body.classList.remove(TOOL_MODE_CLASS);
+      showFivePanelDashboard();
+    }
+  }
+
+  function buildStatsWorkspace() {
+    const preview = document.getElementById("fiveStatsPreview");
+    if (!preview || preview.dataset.coach1181Built === "1") return;
+    preview.dataset.coach1181Built = "1";
+    preview.innerHTML = "";
+    preview.style.display = "block";
+    const host = document.createElement("div");
+    host.className = "coach1181Workspace";
+    host.innerHTML =
+      '<div class="coach1181Title">Stats & rotation</div>' +
+      '<div class="coach1181ButtonGrid stats">' +
+      '<button type="button" class="coach1181BigBtn" data-stat="participation">PLAYER PARTICIPATION</button>' +
+      '<button type="button" class="coach1181BigBtn" data-stat="lines">PLAYER LINES</button>' +
+      '<button type="button" class="coach1181BigBtn" data-stat="opponent">OPPONENT STATS</button>' +
+      '<button type="button" class="coach1181BigBtn" data-stat="rotation">OPPONENT ROTATION</button>' +
+      '</div>';
+    preview.appendChild(host);
+    host.querySelectorAll("[data-stat]").forEach(function (btn) {
+      btn.addEventListener("click", function (event) {
+        event.preventDefault(); event.stopPropagation();
+        coach1181OpenStat(btn.dataset.stat);
+      });
+    });
+  }
+
+  function install1181Workspaces() {
+    buildPlaysWorkspace();
+    buildStatsWorkspace();
+  }
+
   function bindDashboardSections() {
     const fieldRadio = document.getElementById("v114Field");
 
@@ -893,6 +1102,7 @@ window.COACH_UPDATE_VERSION = "118.0";
     ensureUpdateBadge();
     ensureBackButton();
     ensureSectionFooters();
+    install1181Workspaces();
     bindDashboardSections();
     buildReadableLines();
     mirrorDashboardField();
