@@ -1,12 +1,12 @@
 /* Coach Lineup live update layer
-   v117.6 — Readable Play Lines + Manage Lines
+   v117.8 — Clean readable Play Lines
 */
-window.COACH_UPDATE_VERSION = "117.6";
+window.COACH_UPDATE_VERSION = "117.8";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-1176-style";
+  const STYLE_ID = "coach-update-1178-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   let mirrorTimer = null;
@@ -184,81 +184,117 @@ window.COACH_UPDATE_VERSION = "117.6";
       }
 
 
-      /* ===== PLAY LINES readable expanded section ===== */
+      /* ===== PLAY LINES clean readable expanded section ===== */
       #v114Lines:checked ~ .fivePanelGrid .fivePanel[data-panel="lines"]{
         display:flex!important;
         flex-direction:column!important;
         overflow:hidden!important;
-        background:#061b3a!important;
+        background:#071b38!important;
       }
       #v114Lines:checked ~ .fivePanelGrid .fivePanel[data-panel="lines"] .fivePanelLabel{
-        min-height:58px!important;
-        padding:12px 18px 10px 150px!important;
+        min-height:62px!important;
+        padding:14px 20px 12px 150px!important;
+        background:#0a2f5d!important;
+        border-bottom:1px solid #2e6ea9!important;
       }
       #v114Lines:checked ~ .fivePanelGrid .fivePanel[data-panel="lines"] .fivePanelLabel b{
-        font-size:18px!important;
+        font-size:20px!important;
+        letter-spacing:.5px!important;
       }
+
       #v114Lines:checked ~ .fivePanelGrid #fiveLinesPreview{
-        display:flex!important;
-        flex-direction:column!important;
-        gap:10px!important;
+        display:none!important;
+      }
+
+      .coachReadableLines{display:none}
+      #v114Lines:checked ~ .fivePanelGrid .coachReadableLines{
+        display:grid!important;
+        grid-template-columns:1fr 1fr!important;
+        gap:14px!important;
         flex:1 1 auto!important;
         min-height:0!important;
         overflow:auto!important;
-        padding:14px!important;
+        padding:18px!important;
+        align-content:start!important;
       }
-      #v114Lines:checked ~ .fivePanelGrid #fiveLinesPreview > *{
-        min-height:68px!important;
-        padding:12px 16px!important;
-        font-size:15px!important;
-        line-height:1.25!important;
-        white-space:normal!important;
-        overflow:visible!important;
-        text-overflow:clip!important;
-        border:2px solid rgba(255,255,255,.35)!important;
-        border-left-width:10px!important;
-        border-radius:6px!important;
-        background:#0b3263!important;
-        color:#fff!important;
-        display:flex!important;
+
+      .coachLineCard{
+        min-height:96px!important;
+        display:grid!important;
+        grid-template-columns:18px minmax(0,1fr) auto!important;
+        grid-template-rows:auto auto!important;
         align-items:center!important;
-        gap:12px!important;
+        column-gap:14px!important;
+        row-gap:5px!important;
+        padding:14px 18px!important;
+        border:2px solid rgba(255,255,255,.26)!important;
+        border-radius:9px!important;
+        background:#0d3261!important;
+        color:#fff!important;
+        overflow:hidden!important;
       }
-      #v114Lines:checked ~ .fivePanelGrid #fiveLinesPreview > *:nth-child(1){
-        border-left-color:#111!important;
+      .coachLineCard.live{
+        border-color:#fff!important;
+        background:#123b6d!important;
       }
-      #v114Lines:checked ~ .fivePanelGrid #fiveLinesPreview > *:nth-child(2){
-        border-left-color:#1593ff!important;
+      .coachLineSwatch{
+        grid-row:1 / span 2!important;
+        width:14px!important;
+        height:58px!important;
+        border-radius:5px!important;
+        background:var(--line-color)!important;
+        box-shadow:0 0 0 1px rgba(255,255,255,.3)!important;
       }
-      #v114Lines:checked ~ .fivePanelGrid #fiveLinesPreview > *:nth-child(3){
-        border-left-color:#20c763!important;
+      .coachLineName{
+        min-width:0!important;
+        font-size:20px!important;
+        line-height:1.1!important;
+        font-weight:1000!important;
+        white-space:nowrap!important;
+        overflow:hidden!important;
+        text-overflow:ellipsis!important;
       }
-      #v114Lines:checked ~ .fivePanelGrid #fiveLinesPreview > *:nth-child(4){
-        border-left-color:#f2c230!important;
+      .coachLineMeta{
+        min-width:0!important;
+        font-size:12px!important;
+        line-height:1.2!important;
+        font-weight:800!important;
+        opacity:.78!important;
       }
-      #v114Lines:checked ~ .fivePanelGrid #fiveLinesPreview *{
-        font-size:inherit!important;
-        max-width:none!important;
-        overflow:visible!important;
-        text-overflow:clip!important;
+      .coachLineStatus{
+        grid-column:3!important;
+        grid-row:1 / span 2!important;
+        align-self:center!important;
+        padding:6px 9px!important;
+        border:1px solid rgba(255,255,255,.55)!important;
+        border-radius:999px!important;
+        font-size:10px!important;
+        font-weight:1000!important;
+        letter-spacing:.4px!important;
+        white-space:nowrap!important;
       }
+      .coachLineStatus.live{
+        background:#fff!important;
+        color:#071b38!important;
+      }
+
       .coachLinesFooter{display:none}
       #v114Lines:checked ~ .fivePanelGrid .coachLinesFooter{
         display:flex!important;
         flex:0 0 auto!important;
         justify-content:center!important;
-        padding:12px 14px 16px!important;
+        padding:14px 16px 18px!important;
         border-top:1px solid #2c73af!important;
         background:#04152f!important;
       }
       .coachManageLinesBtn{
-        width:min(420px,90%)!important;
-        min-height:52px!important;
+        width:min(460px,92%)!important;
+        min-height:54px!important;
         border:2px solid #fff!important;
-        border-radius:6px!important;
+        border-radius:7px!important;
         background:#0057b8!important;
         color:#fff!important;
-        font-size:14px!important;
+        font-size:15px!important;
         font-weight:1000!important;
         letter-spacing:.5px!important;
         touch-action:manipulation!important;
@@ -410,6 +446,76 @@ window.COACH_UPDATE_VERSION = "117.6";
 
 
 
+
+  function buildReadableLines() {
+    const panel = document.querySelector('#fivePanelDashboard .fivePanel[data-panel="lines"]');
+    const preview = document.getElementById("fiveLinesPreview");
+    if (!panel || !preview) return;
+
+    let host = panel.querySelector(".coachReadableLines");
+    if (!host) {
+      host = document.createElement("div");
+      host.className = "coachReadableLines";
+      const footer = panel.querySelector(".coachLinesFooter");
+      panel.insertBefore(host, footer || null);
+    }
+
+    const colors = {
+      BLACK:"#111111",
+      BLUE:"#1593ff",
+      GREEN:"#20c763",
+      GOLD:"#f2c230"
+    };
+
+    const sourceRows = Array.from(preview.children);
+    const cards = [];
+
+    sourceRows.forEach(function(row, index){
+      const raw = (row.textContent || "").replace(/\s+/g," ").trim();
+      const nameMatch = raw.match(/(BLACK|BLUE|GREEN|GOLD)\s*LINE/i);
+      const posMatch = raw.match(/(\d+)\s*POS/i);
+      const live = /\bLIVE\b/i.test(raw) || index === 0;
+      const key = nameMatch ? nameMatch[1].toUpperCase() : ("LINE " + (index+1));
+      const displayName = nameMatch ? (key + " LINE") : key;
+      cards.push({
+        name: displayName,
+        color: colors[key] || "#3aa7ff",
+        positions: posMatch ? posMatch[1] : "",
+        live: live
+      });
+    });
+
+    if (!cards.length) {
+      ["BLACK","BLUE","GREEN","GOLD"].forEach(function(key,index){
+        cards.push({name:key+" LINE",color:colors[key],positions:"",live:index===0});
+      });
+    }
+
+    host.replaceChildren(...cards.map(function(item){
+      const card=document.createElement("div");
+      card.className="coachLineCard"+(item.live?" live":"");
+      card.style.setProperty("--line-color",item.color);
+
+      const swatch=document.createElement("div");
+      swatch.className="coachLineSwatch";
+
+      const name=document.createElement("div");
+      name.className="coachLineName";
+      name.textContent=item.name;
+
+      const meta=document.createElement("div");
+      meta.className="coachLineMeta";
+      meta.textContent=item.positions ? item.positions+" POSITIONS" : "LINE ROTATION";
+
+      const status=document.createElement("div");
+      status.className="coachLineStatus"+(item.live?" live":"");
+      status.textContent=item.live ? "LIVE" : "READY";
+
+      card.append(swatch,name,meta,status);
+      return card;
+    }));
+  }
+
   function openManageLines() {
     const dashboard = document.getElementById("fivePanelDashboard");
     const all = document.getElementById("v114All");
@@ -457,16 +563,16 @@ window.COACH_UPDATE_VERSION = "117.6";
 
   function bindDashboardSections() {
     const fieldRadio = document.getElementById("v114Field");
-    if (fieldRadio && fieldRadio.dataset.coach1176 !== "1") {
-      fieldRadio.dataset.coach1176 = "1";
+    if (fieldRadio && fieldRadio.dataset.coach1178 !== "1") {
+      fieldRadio.dataset.coach1178 = "1";
       fieldRadio.addEventListener("change", function () {
         if (fieldRadio.checked) requestAnimationFrame(openFullField);
       });
     }
 
     const playersRadio = document.getElementById("v114Players");
-    if (playersRadio && playersRadio.dataset.coach1176 !== "1") {
-      playersRadio.dataset.coach1176 = "1";
+    if (playersRadio && playersRadio.dataset.coach1178 !== "1") {
+      playersRadio.dataset.coach1178 = "1";
       playersRadio.addEventListener("change", function () {
         if (playersRadio.checked) requestAnimationFrame(openPlayersRosterStatus);
       });
@@ -475,8 +581,8 @@ window.COACH_UPDATE_VERSION = "117.6";
 
     /* When the roster modal closes, return to the five-section dashboard. */
     const modal = document.getElementById("modal");
-    if (modal && modal.dataset.coach1176 !== "1") {
-      modal.dataset.coach1176 = "1";
+    if (modal && modal.dataset.coach1178 !== "1") {
+      modal.dataset.coach1178 = "1";
       const observer = new MutationObserver(function () {
         if (
           document.body.classList.contains("coach-players-expanded") &&
@@ -503,10 +609,14 @@ window.COACH_UPDATE_VERSION = "117.6";
     ensureBackButton();
     bindDashboardSections();
     ensureLinesFooter();
+    buildReadableLines();
     mirrorDashboardField();
 
     if (!mirrorTimer) {
-      mirrorTimer = setInterval(mirrorDashboardField, 1200);
+      mirrorTimer = setInterval(function(){
+        mirrorDashboardField();
+        buildReadableLines();
+      }, 1200);
     }
   }
 
