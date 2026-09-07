@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.15 — Move player placement
+   v118.16 — Per-line special teams
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.15";
+window.COACH_UPDATE_VERSION = "118.16";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11815-style";
+  const STYLE_ID = "coach-update-11816-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -875,6 +875,71 @@ window.COACH_UPDATE_VERSION = "118.15";
         transform:translate(-50%,-50%) scale(1.08)!important;
       }
 
+
+      /* ---------- 118.16: per-line special teams ---------- */
+      #coach1189LineOverlay .coach11816SpecialBtn{
+        min-height:36px!important;
+        min-width:150px!important;
+        padding:8px 14px!important;
+        border:1px solid #5a9bd5!important;
+        border-radius:6px!important;
+        background:#0b315d!important;
+        color:#fff!important;
+        font-size:11px!important;
+        font-weight:900!important;
+        letter-spacing:.3px!important;
+        pointer-events:auto!important;
+        touch-action:manipulation!important;
+      }
+
+      #coach1189LineOverlay .coach11816SpecialPanel{
+        display:none;
+        gap:8px!important;
+        align-items:center!important;
+        justify-content:center!important;
+        padding:8px 12px!important;
+        background:#03152f!important;
+        border-bottom:1px solid #245c93!important;
+        position:relative!important;
+        z-index:1000005!important;
+        pointer-events:auto!important;
+      }
+
+      #coach1189LineOverlay .coach11816SpecialPanel.open{
+        display:flex!important;
+      }
+
+      #coach1189LineOverlay .coach11816UnitBtn{
+        min-height:38px!important;
+        min-width:130px!important;
+        padding:8px 14px!important;
+        border:1px solid #4d8bc7!important;
+        border-radius:6px!important;
+        background:#082242!important;
+        color:#eef8ff!important;
+        font-size:11px!important;
+        font-weight:900!important;
+        pointer-events:auto!important;
+        touch-action:manipulation!important;
+      }
+
+      #coach1189LineOverlay .coach11816UnitBtn.active{
+        background:#1689e8!important;
+        border-color:#b5e2ff!important;
+      }
+
+      #coach1189LineOverlay .coach11816BackBtn{
+        min-height:34px!important;
+        padding:6px 10px!important;
+        border:1px solid #58799d!important;
+        border-radius:6px!important;
+        background:#07182d!important;
+        color:#d8ebff!important;
+        font-size:10px!important;
+        font-weight:900!important;
+        pointer-events:auto!important;
+      }
+
       /* ---------- STATS ---------- */
       #v114Stats:checked ~ .fivePanelGrid .fivePanel[data-panel="stats"]{
         display:flex!important;
@@ -1402,6 +1467,175 @@ window.COACH_UPDATE_VERSION = "118.15";
 
 
 
+
+  let coach11816SpecialOpen=false;
+  let coach11816ActiveType="";
+
+  function coach11816SafeName(value){
+    return String(value||"LINE").trim().replace(/\s+/g," ");
+  }
+
+  function coach11816UnitName(type){
+    const lineName=coach11816SafeName(lines?.[currentLine]?.name || `Line ${currentLine+1}`);
+    return `${lineName} — ${type}`;
+  }
+
+  function coach11816DefaultsFor(type){
+    if(type==="KICKOFF") return (typeof SPECIAL_DEFAULTS!=="undefined" && SPECIAL_DEFAULTS["Kickoff"]) || [];
+    if(type==="PUNT") return (typeof SPECIAL_DEFAULTS!=="undefined" && SPECIAL_DEFAULTS["Punt"]) || [];
+    return (typeof SPECIAL_DEFAULTS!=="undefined" && (SPECIAL_DEFAULTS["Kick Return"] || SPECIAL_DEFAULTS["Punt Return"])) || [];
+  }
+
+  async function coach11816EnsureUnit(type){
+    const wanted=coach11816UnitName(type);
+    let index=Array.isArray(specialUnits)
+      ? specialUnits.findIndex(u=>String(u?.name||"")===wanted)
+      : -1;
+
+    if(index>=0) return index;
+    if(typeof roleCanEdit==="function" && !roleCanEdit()){
+      alert("Coach access is required to create a special-teams unit.");
+      return -1;
+    }
+
+    try{
+      const order=(Array.isArray(specialUnits)?specialUnits.length:0)+100+(currentLine*10);
+      const result=await sb.from("special_team_units")
+        .insert({team_id:team.id,name:wanted,sort_order:order})
+        .select()
+        .single();
+
+      if(result.error) throw result.error;
+      const unit=result.data;
+      const defs=coach11816DefaultsFor(type);
+
+      if(defs.length){
+        const slots=defs.map((x,i)=>({
+          unit_id:unit.id,
+          slot_key:x[0],
+          label:x[1],
+          x_pct:x[2],
+          y_pct:x[3],
+          sort_order:i
+        }));
+        const slotResult=await sb.from("special_team_slots").insert(slots);
+        if(slotResult.error) throw slotResult.error;
+      }
+
+      if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+      index=specialUnits.findIndex(u=>String(u?.id)===String(unit.id));
+      return index;
+    }catch(error){
+      console.error("118.16 create special team:",error);
+      alert(error?.message || "Could not create this special-teams unit.");
+      return -1;
+    }
+  }
+
+  async function coach11816OpenUnit(type){
+    const index=await coach11816EnsureUnit(type);
+    if(index<0) return;
+
+    coach11816ActiveType=type;
+    currentSpecialUnit=index;
+    activeView="special";
+    coach11816ActiveType="";
+    coach11816SpecialOpen=false;
+    activeView="offense";
+        coach11815MoveMode=false;
+
+    const overlay=document.getElementById("coach1189LineOverlay");
+    overlay?.classList.remove("coach11815-moving");
+
+    try{
+      if(typeof renderField==="function") renderField();
+      if(typeof renderSpecialUnitSelect==="function") renderSpecialUnitSelect();
+    }catch(error){
+      console.warn("118.16 render special:",error);
+    }
+
+    const title=document.getElementById("coach1189LineTitle");
+    if(title) title.textContent=`${coach11816SafeName(lines?.[currentLine]?.name)} • ${type}`;
+
+    coach11816RenderControls();
+  }
+
+  function coach11816BackToLine(){
+    coach11816ActiveType="";
+    activeView="offense";
+
+    try{
+      if(typeof setUnifiedFieldView==="function") setUnifiedFieldView();
+      else if(typeof renderField==="function") renderField();
+    }catch(error){
+      console.warn("118.16 back to line:",error);
+    }
+
+    const title=document.getElementById("coach1189LineTitle");
+    if(title) title.textContent=coach11816SafeName(lines?.[currentLine]?.name).toUpperCase();
+
+    coach11812RefreshEditableField();
+    coach11815RefreshPlacementEditor();
+    coach11816RenderControls();
+  }
+
+  function coach11816RenderControls(){
+    const overlay=document.getElementById("coach1189LineOverlay");
+    if(!overlay || overlay.classList.contains("hidden")) return;
+
+    const placementBar=overlay.querySelector(".coach11815PlacementBar");
+    if(!placementBar) return;
+
+    let specialBtn=placementBar.querySelector(".coach11816SpecialBtn");
+    if(!specialBtn){
+      specialBtn=document.createElement("button");
+      specialBtn.type="button";
+      specialBtn.className="coach11816SpecialBtn";
+      specialBtn.textContent="★ SPECIAL TEAMS";
+      placementBar.appendChild(specialBtn);
+    }
+
+    let panel=overlay.querySelector(".coach11816SpecialPanel");
+    if(!panel){
+      panel=document.createElement("div");
+      panel.className="coach11816SpecialPanel";
+      placementBar.insertAdjacentElement("afterend",panel);
+    }
+
+    specialBtn.onclick=(event)=>{
+      event.preventDefault();
+      event.stopPropagation();
+      coach11816SpecialOpen=!coach11816SpecialOpen;
+      coach11816RenderControls();
+    };
+
+    panel.classList.toggle("open",coach11816SpecialOpen || !!coach11816ActiveType);
+    panel.innerHTML=`
+      ${coach11816ActiveType?'<button type="button" class="coach11816BackBtn">← BACK TO OFFENSE / DEFENSE</button>':''}
+      ${["KICKOFF","PUNT","RETURN"].map(type=>`
+        <button type="button" class="coach11816UnitBtn ${coach11816ActiveType===type?'active':''}" data-type="${type}">
+          ${type}
+        </button>`).join("")}
+    `;
+
+    panel.querySelectorAll(".coach11816UnitBtn").forEach(btn=>{
+      btn.onclick=(event)=>{
+        event.preventDefault();
+        event.stopPropagation();
+        coach11816OpenUnit(btn.dataset.type);
+      };
+    });
+
+    const back=panel.querySelector(".coach11816BackBtn");
+    if(back){
+      back.onclick=(event)=>{
+        event.preventDefault();
+        event.stopPropagation();
+        coach11816BackToLine();
+      };
+    }
+  }
+
   let coach11815MoveMode=false;
 
   function coach11815StorageKey(){
@@ -1470,6 +1704,8 @@ window.COACH_UPDATE_VERSION = "118.15";
       <span class="coach11815PlacementHint">
         ${coach11815MoveMode?'Drag any player box, then tap DONE MOVING.':'Placement is saved for this line on this device.'}
       </span>`;
+
+    coach11816RenderControls();
 
     const btn=bar.querySelector(".coach11815MoveBtn");
     if(btn){
@@ -1617,6 +1853,10 @@ window.COACH_UPDATE_VERSION = "118.15";
 
   function coach11813SwitchLine(index){
     if(!Number.isInteger(index) || !lines[index]) return;
+    coach11816ActiveType="";
+    coach11816SpecialOpen=false;
+    activeView="offense";
+    try{ if(typeof setUnifiedFieldView==="function") setUnifiedFieldView(); }catch{}
     const select=document.getElementById("lineSelect");
     if(select){
       select.selectedIndex=index;
