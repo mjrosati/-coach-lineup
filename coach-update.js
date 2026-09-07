@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.30 — Game Play List ordering
+   v118.31 — Players status summary
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.30";
+window.COACH_UPDATE_VERSION = "118.31";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11830-style";
+  const STYLE_ID = "coach-update-11831-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -3124,6 +3124,36 @@ window.COACH_UPDATE_VERSION = "118.30";
   }
 
 
+
+  function coach11831BuildPlayersSummary(){
+    const panel=document.querySelector('#fivePanelDashboard .fivePanel[data-panel="players"]');
+    if(!panel) return;
+
+    const list=(typeof players!=="undefined" && Array.isArray(players)) ? players : [];
+    const active=list.filter(p=>String(p.availability_status||"active").toLowerCase()==="active").length;
+    const injured=list.filter(p=>String(p.availability_status||"").toLowerCase()==="injured").length;
+    const out=list.filter(p=>String(p.availability_status||"").toLowerCase()==="out").length;
+
+    let box=panel.querySelector(".coach11831PlayerSummary");
+    if(!box){
+      box=document.createElement("div");
+      box.className="coach11831PlayerSummary";
+      panel.appendChild(box);
+    }
+
+    box.innerHTML=`
+      <div class="coach11831PlayerStat">
+        <b>${active}</b><small>ACTIVE</small>
+      </div>
+      <div class="coach11831PlayerStat injured">
+        <b>${injured}</b><small>INJURED</small>
+      </div>
+      <div class="coach11831PlayerStat out">
+        <b>${out}</b><small>OUT</small>
+      </div>
+    `;
+  }
+
   function coach11821ClickAny(selectors){
     for(const selector of selectors){
       const el=selector.startsWith("#")
@@ -3448,6 +3478,7 @@ window.COACH_UPDATE_VERSION = "118.30";
     ensureBackButton();
     ensureSectionFooters();
     coach11819BuildPlays();
+    coach11831BuildPlayersSummary();
     coach11821BuildStats();
     bindDashboardSections();
     bind11811LineControls();
@@ -3460,6 +3491,7 @@ window.COACH_UPDATE_VERSION = "118.30";
         buildReadableLines();
         build1182ReadableLines();
         coach11819BuildPlays();
+      coach11831BuildPlayersSummary();
         coach11821BuildStats();
         bind11811LineControls();
         coach11812WirePlayerTaps();
