@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.17 — Cleaner expanded player cards
+   v118.18 — Move special-team positions
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.17";
+window.COACH_UPDATE_VERSION = "118.18";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11817-style";
+  const STYLE_ID = "coach-update-11818-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -1009,6 +1009,39 @@ window.COACH_UPDATE_VERSION = "118.17";
         }
       }
 
+
+      /* ---------- 118.18: move positions for each line's special teams ---------- */
+      #coach1189LineOverlay .coach11818MoveSpecialBtn{
+        min-height:38px!important;
+        min-width:150px!important;
+        padding:8px 14px!important;
+        border:1px solid #e4b83f!important;
+        border-radius:6px!important;
+        background:#33280b!important;
+        color:#ffe99c!important;
+        font-size:11px!important;
+        font-weight:900!important;
+        pointer-events:auto!important;
+        touch-action:manipulation!important;
+      }
+
+      #coach1189LineOverlay .coach11818MoveSpecialBtn.active{
+        background:#f1b500!important;
+        border-color:#ffe488!important;
+        color:#07162d!important;
+      }
+
+      #coach1189LineOverlay.coach11818-special-moving #field{
+        outline:3px solid #f1b500!important;
+        outline-offset:-3px!important;
+      }
+
+      #coach1189LineOverlay.coach11818-special-moving #field .specialSlot{
+        box-shadow:0 0 0 3px rgba(255,199,0,.55)!important;
+        cursor:move!important;
+        touch-action:none!important;
+      }
+
       /* ---------- STATS ---------- */
       #v114Stats:checked ~ .fivePanelGrid .fivePanel[data-panel="stats"]{
         display:flex!important;
@@ -1539,6 +1572,32 @@ window.COACH_UPDATE_VERSION = "118.17";
 
   let coach11816SpecialOpen=false;
   let coach11816ActiveType="";
+  let coach11818SpecialMoveMode=false;
+
+
+  function coach11818ToggleSpecialMove(){
+    if(!coach11816ActiveType) return;
+
+    coach11818SpecialMoveMode=!coach11818SpecialMoveMode;
+    editFieldMode=coach11818SpecialMoveMode;
+
+    const overlay=document.getElementById("coach1189LineOverlay");
+    overlay?.classList.toggle("coach11818-special-moving",coach11818SpecialMoveMode);
+
+    try{
+      if(typeof renderField==="function") renderField();
+    }catch(error){
+      console.warn("118.18 special move:",error);
+    }
+
+    coach11816RenderControls();
+  }
+
+  function coach11818StopSpecialMove(){
+    coach11818SpecialMoveMode=false;
+    editFieldMode=false;
+    document.getElementById("coach1189LineOverlay")?.classList.remove("coach11818-special-moving");
+  }
 
   function coach11816SafeName(value){
     return String(value||"LINE").trim().replace(/\s+/g," ");
@@ -1602,12 +1661,14 @@ window.COACH_UPDATE_VERSION = "118.17";
   }
 
   async function coach11816OpenUnit(type){
+    coach11818StopSpecialMove();
     const index=await coach11816EnsureUnit(type);
     if(index<0) return;
 
     coach11816ActiveType=type;
     currentSpecialUnit=index;
     activeView="special";
+    coach11818StopSpecialMove();
     coach11816ActiveType="";
     coach11816SpecialOpen=false;
     activeView="offense";
@@ -1630,6 +1691,7 @@ window.COACH_UPDATE_VERSION = "118.17";
   }
 
   function coach11816BackToLine(){
+    coach11818StopSpecialMove();
     coach11816ActiveType="";
     activeView="offense";
 
@@ -1681,6 +1743,7 @@ window.COACH_UPDATE_VERSION = "118.17";
     panel.classList.toggle("open",coach11816SpecialOpen || !!coach11816ActiveType);
     panel.innerHTML=`
       ${coach11816ActiveType?'<button type="button" class="coach11816BackBtn">← BACK TO OFFENSE / DEFENSE</button>':''}
+      ${coach11816ActiveType?`<button type="button" class="coach11818MoveSpecialBtn ${coach11818SpecialMoveMode?'active':''}">${coach11818SpecialMoveMode?'✓ DONE MOVING':'↔ MOVE POSITIONS'}</button>`:''}
       ${["KICKOFF","PUNT","RETURN"].map(type=>`
         <button type="button" class="coach11816UnitBtn ${coach11816ActiveType===type?'active':''}" data-type="${type}">
           ${type}
@@ -1694,6 +1757,15 @@ window.COACH_UPDATE_VERSION = "118.17";
         coach11816OpenUnit(btn.dataset.type);
       };
     });
+
+    const moveSpecial=panel.querySelector(".coach11818MoveSpecialBtn");
+    if(moveSpecial){
+      moveSpecial.onclick=(event)=>{
+        event.preventDefault();
+        event.stopPropagation();
+        coach11818ToggleSpecialMove();
+      };
+    }
 
     const back=panel.querySelector(".coach11816BackBtn");
     if(back){
