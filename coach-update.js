@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.16 — Per-line special teams
+   v118.17 — Cleaner expanded player cards
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.16";
+window.COACH_UPDATE_VERSION = "118.17";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11816-style";
+  const STYLE_ID = "coach-update-11817-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -938,6 +938,75 @@ window.COACH_UPDATE_VERSION = "118.16";
         font-size:10px!important;
         font-weight:900!important;
         pointer-events:auto!important;
+      }
+
+
+      /* ---------- 118.17: cleaner player cards in expanded line editor ---------- */
+      #coach1189LineOverlay #field .slot{
+        min-width:68px!important;
+        max-width:82px!important;
+        padding:4px 5px!important;
+        border-width:2px!important;
+        border-radius:6px!important;
+        font-size:10px!important;
+        line-height:1.05!important;
+        font-weight:900!important;
+        white-space:nowrap!important;
+        overflow:visible!important;
+        box-shadow:0 2px 8px rgba(0,0,0,.35)!important;
+      }
+
+      #coach1189LineOverlay #field .slot small{
+        display:block!important;
+        width:100%!important;
+        max-width:72px!important;
+        margin-top:2px!important;
+        font-size:8.5px!important;
+        line-height:1.05!important;
+        font-weight:800!important;
+        color:#eef6ff!important;
+        white-space:nowrap!important;
+        overflow:hidden!important;
+        text-overflow:ellipsis!important;
+      }
+
+      /* NEXT indicators are useful on the dashboard, but clutter the line editor. */
+      #coach1189LineOverlay #field .slot.playsNextLine{
+        box-shadow:0 2px 8px rgba(0,0,0,.35)!important;
+      }
+
+      #coach1189LineOverlay #field .slot.playsNextLine::before,
+      #coach1189LineOverlay #field .slot.playsNextLine::after{
+        display:none!important;
+        content:none!important;
+      }
+
+      /* Keep offense/defense borders obvious without oversized glow. */
+      #coach1189LineOverlay #field .slot:not(.def){
+        border-color:#ef5c54!important;
+      }
+
+      #coach1189LineOverlay #field .slot.def{
+        border-color:#2da4ff!important;
+      }
+
+      /* Special-teams cards get the same cleanup. */
+      #coach1189LineOverlay #field .slot.specialSlot{
+        min-width:68px!important;
+        max-width:82px!important;
+        border-color:#f3c547!important;
+      }
+
+      @media (orientation:landscape){
+        #coach1189LineOverlay #field .slot{
+          min-width:66px!important;
+          max-width:80px!important;
+          font-size:10px!important;
+        }
+        #coach1189LineOverlay #field .slot small{
+          max-width:70px!important;
+          font-size:8.5px!important;
+        }
       }
 
       /* ---------- STATS ---------- */
