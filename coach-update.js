@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.34 — Tap status cards to filter
+   v118.35 — Player line count
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.34";
+window.COACH_UPDATE_VERSION = "118.35";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11834-style";
+  const STYLE_ID = "coach-update-11835-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -3144,9 +3144,20 @@ window.COACH_UPDATE_VERSION = "118.34";
       const name=player.name || player.full_name || "Player";
       const status=String(player.availability_status||"active").toLowerCase();
       const label=status==="injured" ? "INJURED" : status==="out" ? "OUT" : "ACTIVE";
+      const assignList=(typeof assignments!=="undefined" && Array.isArray(assignments)) ? assignments : [];
+      const lineIds=Array.from(new Set(
+        assignList
+          .filter(a=>String(a.player_id)===String(player.id) && a.line_id!=null)
+          .map(a=>String(a.line_id))
+      ));
+      const lineCount=lineIds.length;
+
       return `
         <div class="coach11832RosterRow">
-          <b>${jersey!==""?"#"+coach11819Esc(jersey)+" ":""}${coach11819Esc(name)}</b>
+          <div class="coach11835PlayerInfo">
+            <b>${jersey!==""?"#"+coach11819Esc(jersey)+" ":""}${coach11819Esc(name)}</b>
+            <small>${lineCount} ${lineCount===1?"LINE":"LINES"} ASSIGNED</small>
+          </div>
           <span class="coach11832Status ${status}">${label}</span>
         </div>`;
     }).join("");
