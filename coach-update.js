@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.32 — Players quick roster
+   v118.33 — Players availability filter
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.32";
+window.COACH_UPDATE_VERSION = "118.33";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11832-style";
+  const STYLE_ID = "coach-update-11833-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -3126,8 +3126,12 @@ window.COACH_UPDATE_VERSION = "118.32";
 
 
 
-  function coach11832OpenRoster(){
-    const list=(typeof players!=="undefined" && Array.isArray(players)) ? players.slice() : [];
+  function coach11832OpenRoster(filter="all"){
+    let list=(typeof players!=="undefined" && Array.isArray(players)) ? players.slice() : [];
+
+    if(filter!=="all"){
+      list=list.filter(player=>String(player.availability_status||"active").toLowerCase()===filter);
+    }
 
     list.sort((a,b)=>{
       const an=Number(a.jersey_number ?? a.number ?? 9999);
@@ -3156,10 +3160,22 @@ window.COACH_UPDATE_VERSION = "118.32";
           <button type="button" class="secondary" data-coach11832-close>✕ CLOSE</button>
         </div>
       </div>
-      <div class="coach11832RosterList">${rows || '<div class="notice">No players found.</div>'}</div>
+      <div class="coach11833Filters">
+        <button type="button" class="coach11833Filter ${filter==="all"?"active":""}" data-player-filter="all">ALL</button>
+        <button type="button" class="coach11833Filter ${filter==="active"?"active":""}" data-player-filter="active">ACTIVE</button>
+        <button type="button" class="coach11833Filter ${filter==="injured"?"active":""}" data-player-filter="injured">INJURED</button>
+        <button type="button" class="coach11833Filter ${filter==="out"?"active":""}" data-player-filter="out">OUT</button>
+      </div>
+      <div class="coach11832RosterList">${rows || '<div class="notice">No players found for this status.</div>'}</div>
     `);
 
     const body=document.getElementById("modalBody");
+    body?.querySelectorAll("[data-player-filter]")?.forEach(btn=>{
+      btn.addEventListener("click",event=>{
+        event.preventDefault();
+        coach11832OpenRoster(btn.dataset.playerFilter||"all");
+      });
+    });
     body?.querySelector("[data-coach11832-close]")?.addEventListener("click",()=>closeModal());
     body?.querySelector("[data-coach11832-manage]")?.addEventListener("click",()=>{
       closeModal();
