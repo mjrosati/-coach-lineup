@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.38 — Unassigned players filter
+   v118.39 — Players search
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.38";
+window.COACH_UPDATE_VERSION = "118.39";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11838-style";
+  const STYLE_ID = "coach-update-11839-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -3182,6 +3182,8 @@ window.COACH_UPDATE_VERSION = "118.38";
           <button type="button" class="secondary" data-coach11832-close>✕ CLOSE</button>
         </div>
       </div>
+      <input type="search" class="coach11839Search" data-coach11839-search
+        placeholder="Search player name or number" autocomplete="off">
       <div class="coach11833Filters coach11838Five">
         <button type="button" class="coach11833Filter ${filter==="all"?"active":""}" data-player-filter="all">ALL</button>
         <button type="button" class="coach11833Filter ${filter==="active"?"active":""}" data-player-filter="active">ACTIVE</button>
@@ -3193,6 +3195,17 @@ window.COACH_UPDATE_VERSION = "118.38";
     `);
 
     const body=document.getElementById("modalBody");
+    const search=body?.querySelector("[data-coach11839-search]");
+    const roster=body?.querySelector(".coach11832RosterList");
+    if(search && roster){
+      search.addEventListener("input",()=>{
+        const q=String(search.value||"").trim().toLowerCase();
+        roster.querySelectorAll(".coach11832RosterRow").forEach(row=>{
+          row.style.display=!q || row.textContent.toLowerCase().includes(q) ? "" : "none";
+        });
+      });
+    }
+
     body?.querySelectorAll("[data-player-filter]")?.forEach(btn=>{
       btn.addEventListener("click",event=>{
         event.preventDefault();
