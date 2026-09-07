@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.37 — Unassigned player warning
+   v118.38 — Unassigned players filter
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.37";
+window.COACH_UPDATE_VERSION = "118.38";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11837-style";
+  const STYLE_ID = "coach-update-11838-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -3129,7 +3129,12 @@ window.COACH_UPDATE_VERSION = "118.37";
   function coach11832OpenRoster(filter="all"){
     let list=(typeof players!=="undefined" && Array.isArray(players)) ? players.slice() : [];
 
-    if(filter!=="all"){
+    if(filter==="unassigned"){
+      const assignList=(typeof assignments!=="undefined" && Array.isArray(assignments)) ? assignments : [];
+      list=list.filter(player=>!assignList.some(a=>
+        String(a.player_id)===String(player.id) && a.line_id!=null
+      ));
+    }else if(filter!=="all"){
       list=list.filter(player=>String(player.availability_status||"active").toLowerCase()===filter);
     }
 
@@ -3177,11 +3182,12 @@ window.COACH_UPDATE_VERSION = "118.37";
           <button type="button" class="secondary" data-coach11832-close>✕ CLOSE</button>
         </div>
       </div>
-      <div class="coach11833Filters">
+      <div class="coach11833Filters coach11838Five">
         <button type="button" class="coach11833Filter ${filter==="all"?"active":""}" data-player-filter="all">ALL</button>
         <button type="button" class="coach11833Filter ${filter==="active"?"active":""}" data-player-filter="active">ACTIVE</button>
         <button type="button" class="coach11833Filter ${filter==="injured"?"active":""}" data-player-filter="injured">INJURED</button>
         <button type="button" class="coach11833Filter ${filter==="out"?"active":""}" data-player-filter="out">OUT</button>
+        <button type="button" class="coach11833Filter coach11838Needs ${filter==="unassigned"?"active":""}" data-player-filter="unassigned">NEEDS LINE</button>
       </div>
       <div class="coach11832RosterList">${rows || '<div class="notice">No players found for this status.</div>'}</div>
     `);
