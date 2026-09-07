@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.27 — Call plays from Game Play List
+   v118.28 — Active play indicator
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.27";
+window.COACH_UPDATE_VERSION = "118.28";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11827-style";
+  const STYLE_ID = "coach-update-11828-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -1529,6 +1529,34 @@ window.COACH_UPDATE_VERSION = "118.27";
 
 
       /* ---------- 118.27: Call plays from Game Play List ---------- */
+
+      /* ---------- 118.28: Active play indicator ---------- */
+      .coach11828ActivePlay{
+        border-color:#3f89d8!important;
+        background:#102946!important;
+        box-shadow:inset 3px 0 0 #5aa9ff!important;
+      }
+
+      .coach11828ActiveBadge{
+        display:inline-flex!important;
+        align-items:center!important;
+        justify-content:center!important;
+        margin-left:7px!important;
+        padding:2px 6px!important;
+        border-radius:999px!important;
+        background:#1c5f9f!important;
+        color:#fff!important;
+        font-size:8px!important;
+        font-weight:1000!important;
+        letter-spacing:.35px!important;
+        vertical-align:middle!important;
+      }
+
+      .coach11827CallBtn.is-active{
+        opacity:.7!important;
+        cursor:default!important;
+      }
+
       .coach11827PlayActions{
         display:flex!important;
         gap:6px!important;
@@ -2894,18 +2922,25 @@ window.COACH_UPDATE_VERSION = "118.27";
     const ids=coach11819ReadGameList().map(String);
     const selected=ids.map(id=>all.find(play=>String(play?.id)===id)).filter(Boolean);
 
+    const activePlayId=(typeof pendingCalledPlay!=="undefined" && pendingCalledPlay?.id!=null)
+      ? String(pendingCalledPlay.id)
+      : "";
+
     const rows=selected.length
-      ? selected.map((play,index)=>`
-          <div class="coach11819PlayRow">
+      ? selected.map((play,index)=>{
+          const isActive=activePlayId && String(play.id)===activePlayId;
+          return `
+          <div class="coach11819PlayRow ${isActive?'coach11828ActivePlay':''}">
             <div>
-              <b>${index+1}. ${coach11819Esc(coach11819PlayTitle(play))}</b>
+              <b>${index+1}. ${coach11819Esc(coach11819PlayTitle(play))}${isActive?'<span class="coach11828ActiveBadge">ACTIVE</span>':''}</b>
               <small>${coach11819Esc(coach11819PlayMeta(play))}</small>
             </div>
             <div class="coach11827PlayActions">
               <button type="button"
-                class="coach11827CallBtn"
-                data-call-play="${coach11819Esc(String(play.id))}">
-                CALL
+                class="coach11827CallBtn ${isActive?'is-active':''}"
+                data-call-play="${coach11819Esc(String(play.id))}"
+                ${isActive?'disabled':''}>
+                ${isActive?'CALLED':'CALL'}
               </button>
               <button type="button"
                 class="coach11820RemoveBtn"
@@ -2913,8 +2948,8 @@ window.COACH_UPDATE_VERSION = "118.27";
                 REMOVE
               </button>
             </div>
-          </div>
-        `).join("")
+          </div>`;
+        }).join("")
       : `<div class="notice">Your Game Play List is empty. Choose Passing, Running, or Kicking and add plays.</div>`;
 
     if(typeof openModal!=="function") return;
