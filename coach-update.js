@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.31 — Players status summary
+   v118.32 — Players quick roster
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.31";
+window.COACH_UPDATE_VERSION = "118.32";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11831-style";
+  const STYLE_ID = "coach-update-11832-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -3125,6 +3125,48 @@ window.COACH_UPDATE_VERSION = "118.31";
 
 
 
+
+  function coach11832OpenRoster(){
+    const list=(typeof players!=="undefined" && Array.isArray(players)) ? players.slice() : [];
+
+    list.sort((a,b)=>{
+      const an=Number(a.jersey_number ?? a.number ?? 9999);
+      const bn=Number(b.jersey_number ?? b.number ?? 9999);
+      return an-bn;
+    });
+
+    const rows=list.map(player=>{
+      const jersey=player.jersey_number ?? player.number ?? "";
+      const name=player.name || player.full_name || "Player";
+      const status=String(player.availability_status||"active").toLowerCase();
+      const label=status==="injured" ? "INJURED" : status==="out" ? "OUT" : "ACTIVE";
+      return `
+        <div class="coach11832RosterRow">
+          <b>${jersey!==""?"#"+coach11819Esc(jersey)+" ":""}${coach11819Esc(name)}</b>
+          <span class="coach11832Status ${status}">${label}</span>
+        </div>`;
+    }).join("");
+
+    if(typeof openModal!=="function") return;
+    openModal(`
+      <div class="coach11819ModalHead">
+        <h2>PLAYERS</h2>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="primary" data-coach11832-manage>MANAGE ROSTER</button>
+          <button type="button" class="secondary" data-coach11832-close>✕ CLOSE</button>
+        </div>
+      </div>
+      <div class="coach11832RosterList">${rows || '<div class="notice">No players found.</div>'}</div>
+    `);
+
+    const body=document.getElementById("modalBody");
+    body?.querySelector("[data-coach11832-close]")?.addEventListener("click",()=>closeModal());
+    body?.querySelector("[data-coach11832-manage]")?.addEventListener("click",()=>{
+      closeModal();
+      if(typeof openRosterManager==="function") openRosterManager();
+    });
+  }
+
   function coach11831BuildPlayersSummary(){
     const panel=document.querySelector('#fivePanelDashboard .fivePanel[data-panel="players"]');
     if(!panel) return;
@@ -3151,7 +3193,14 @@ window.COACH_UPDATE_VERSION = "118.31";
       <div class="coach11831PlayerStat out">
         <b>${out}</b><small>OUT</small>
       </div>
+      <button type="button" class="coach11832RosterBtn" data-coach11832-roster>VIEW PLAYERS</button>
     `;
+
+    box.querySelector("[data-coach11832-roster]")?.addEventListener("click",event=>{
+      event.preventDefault();
+      event.stopPropagation();
+      coach11832OpenRoster();
+    });
   }
 
   function coach11821ClickAny(selectors){
