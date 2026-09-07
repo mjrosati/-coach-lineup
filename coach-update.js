@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.36 — Player line names
+   v118.37 — Unassigned player warning
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.36";
+window.COACH_UPDATE_VERSION = "118.37";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11836-style";
+  const STYLE_ID = "coach-update-11837-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -3157,11 +3157,12 @@ window.COACH_UPDATE_VERSION = "118.36";
         .filter(Boolean);
 
       return `
-        <div class="coach11832RosterRow">
+        <div class="coach11832RosterRow ${lineCount===0?"coach11837Unassigned":""}">
           <div class="coach11835PlayerInfo">
             <b>${jersey!==""?"#"+coach11819Esc(jersey)+" ":""}${coach11819Esc(name)}</b>
             <small>${lineCount} ${lineCount===1?"LINE":"LINES"} ASSIGNED</small>
             ${lineNames.length?`<span class="coach11836LineNames">${coach11819Esc(lineNames.join(" • "))}</span>`:""}
+            ${lineCount===0?'<span class="coach11837UnassignedBadge">NEEDS LINE ASSIGNMENT</span>':""}
           </div>
           <span class="coach11832Status ${status}">${label}</span>
         </div>`;
