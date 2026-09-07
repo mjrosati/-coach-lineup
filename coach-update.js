@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.21 — Stats quick menu
+   v118.22 — Player Lines position detail
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.21";
+window.COACH_UPDATE_VERSION = "118.22";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11821-style";
+  const STYLE_ID = "coach-update-11822-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -1241,6 +1241,38 @@ window.COACH_UPDATE_VERSION = "118.21";
       #v114Stats:checked ~ .fivePanelGrid .coach11821StatsBtn{
         min-height:86px!important;
         font-size:16px!important;
+      }
+
+
+      /* ---------- 118.22: Player Lines detail ---------- */
+      .coach11822LineDetail{
+        display:grid!important;
+        gap:4px!important;
+        margin-top:5px!important;
+      }
+
+      .coach11822LineChip{
+        display:flex!important;
+        align-items:center!important;
+        justify-content:space-between!important;
+        gap:10px!important;
+        padding:5px 7px!important;
+        border:1px solid #2f4a67!important;
+        border-radius:6px!important;
+        background:#0d1c2d!important;
+        color:#dcebfa!important;
+        font-size:10px!important;
+      }
+
+      .coach11822LineChip b{
+        font-size:10px!important;
+        color:#fff!important;
+      }
+
+      .coach11822Pos{
+        color:#7fc6ff!important;
+        font-weight:900!important;
+        text-align:right!important;
       }
 
       /* ---------- STATS ---------- */
@@ -2716,15 +2748,26 @@ window.COACH_UPDATE_VERSION = "118.21";
       .slice()
       .sort((a,b)=>Number(a.jersey_number||a.number||999)-Number(b.jersey_number||b.number||999))
       .map(player=>{
-        const lineIds=new Set(
-          assignList
-            .filter(a=>String(a.player_id)===String(player.id))
-            .map(a=>String(a.line_id))
-        );
+        const playerAssignments=assignList
+          .filter(a=>String(a.player_id)===String(player.id));
 
-        const names=lineList
-          .filter(line=>lineIds.has(String(line.id)))
-          .map(line=>line.name)
+        const lineDetails=lineList
+          .map(line=>{
+            const matches=playerAssignments.filter(a=>String(a.line_id)===String(line.id));
+            if(!matches.length) return null;
+
+            const posNames=matches.map(a=>{
+              const pos=(typeof positions!=="undefined" && Array.isArray(positions))
+                ? positions.find(p=>String(p.id)===String(a.position_label_id))
+                : null;
+              return pos?.label || pos?.name || pos?.code || "Assigned";
+            }).filter(Boolean);
+
+            return {
+              name: line.name || "Line",
+              positions: Array.from(new Set(posNames))
+            };
+          })
           .filter(Boolean);
 
         const jersey=player.jersey_number ?? player.number ?? "";
@@ -2732,9 +2775,18 @@ window.COACH_UPDATE_VERSION = "118.21";
 
         return `
           <div class="coach11819PlayRow">
-            <div>
+            <div style="width:100%">
               <b>${jersey!=="" ? "#" + coach11819Esc(jersey) + " " : ""}${coach11819Esc(name)}</b>
-              <small>${names.length ? coach11819Esc(names.join(" • ")) : "Not assigned to a line"}</small>
+              ${lineDetails.length
+                ? `<div class="coach11822LineDetail">
+                    ${lineDetails.map(detail=>`
+                      <div class="coach11822LineChip">
+                        <b>${coach11819Esc(detail.name)}</b>
+                        <span class="coach11822Pos">${coach11819Esc(detail.positions.join(" / "))}</span>
+                      </div>
+                    `).join("")}
+                  </div>`
+                : `<small>Not assigned to a line</small>`}
             </div>
           </div>`;
       }).join("");
