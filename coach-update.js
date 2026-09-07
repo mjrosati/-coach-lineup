@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.22 — Player Lines position detail
+   v118.23 — Player Participation summary
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.22";
+window.COACH_UPDATE_VERSION = "118.23";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11822-style";
+  const STYLE_ID = "coach-update-11823-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -1272,6 +1272,100 @@ window.COACH_UPDATE_VERSION = "118.22";
       .coach11822Pos{
         color:#7fc6ff!important;
         font-weight:900!important;
+        text-align:right!important;
+      }
+
+
+      /* ---------- 118.23: Player Participation summary ---------- */
+      .coach11823SummaryHead{
+        display:grid!important;
+        grid-template-columns:1fr 1fr 1fr!important;
+        gap:8px!important;
+        margin:0 0 12px!important;
+      }
+
+      .coach11823SummaryCard{
+        padding:10px!important;
+        border:1px solid #355678!important;
+        border-radius:8px!important;
+        background:#0d1b2c!important;
+        text-align:center!important;
+      }
+
+      .coach11823SummaryCard b{
+        display:block!important;
+        color:#fff!important;
+        font-size:18px!important;
+      }
+
+      .coach11823SummaryCard small{
+        display:block!important;
+        margin-top:2px!important;
+        color:#9fb6cd!important;
+        font-size:9px!important;
+        font-weight:900!important;
+      }
+
+      .coach11823PlayerRow{
+        display:grid!important;
+        grid-template-columns:minmax(0,1fr) 70px 64px!important;
+        gap:8px!important;
+        align-items:center!important;
+        padding:9px 10px!important;
+        border:1px solid #334b68!important;
+        border-radius:8px!important;
+        background:#0b1523!important;
+      }
+
+      .coach11823PlayerRow .name{
+        min-width:0!important;
+      }
+
+      .coach11823PlayerRow .name b{
+        display:block!important;
+        color:#fff!important;
+        font-size:12px!important;
+        white-space:nowrap!important;
+        overflow:hidden!important;
+        text-overflow:ellipsis!important;
+      }
+
+      .coach11823PlayerRow .name small{
+        display:block!important;
+        margin-top:2px!important;
+        color:#9fb6cd!important;
+        font-size:9px!important;
+      }
+
+      .coach11823Plays,
+      .coach11823Pct{
+        text-align:right!important;
+        font-weight:1000!important;
+      }
+
+      .coach11823Plays{
+        color:#fff!important;
+        font-size:13px!important;
+      }
+
+      .coach11823Pct{
+        color:#7fc6ff!important;
+        font-size:13px!important;
+      }
+
+      .coach11823HeaderRow{
+        display:grid!important;
+        grid-template-columns:minmax(0,1fr) 70px 64px!important;
+        gap:8px!important;
+        padding:0 10px 4px!important;
+        color:#7f9bb5!important;
+        font-size:8px!important;
+        font-weight:1000!important;
+        letter-spacing:.4px!important;
+      }
+
+      .coach11823HeaderRow span:nth-child(2),
+      .coach11823HeaderRow span:nth-child(3){
         text-align:right!important;
       }
 
@@ -2806,11 +2900,98 @@ window.COACH_UPDATE_VERSION = "118.22";
       ?.addEventListener("click",()=>closeModal());
   }
 
+
+  function coach11823PlayerLineNames(playerId){
+    const assignList=(typeof assignments!=="undefined" && Array.isArray(assignments)) ? assignments : [];
+    const lineList=(typeof lines!=="undefined" && Array.isArray(lines)) ? lines : [];
+
+    const lineIds=new Set(
+      assignList
+        .filter(a=>String(a.player_id)===String(playerId))
+        .map(a=>String(a.line_id))
+    );
+
+    return lineList
+      .filter(line=>lineIds.has(String(line.id)))
+      .map(line=>line.name)
+      .filter(Boolean);
+  }
+
+  function coach11823OpenParticipation(){
+    const list=(typeof players!=="undefined" && Array.isArray(players)) ? players : [];
+    const total=Math.max(0,Number(typeof playCount!=="undefined" ? playCount : 0));
+    const countMap=(typeof counts!=="undefined" && counts) ? counts : {};
+
+    const active=list.filter(p=>String(p.availability_status||"active").toLowerCase()!=="out");
+
+    const rows=active
+      .map(player=>{
+        const plays=Math.max(0,Number(countMap?.[player.id]||0));
+        const pct=total>0 ? Math.round((plays/total)*100) : 0;
+        const jersey=player.jersey_number ?? player.number ?? "";
+        const name=player.name || player.full_name || "Player";
+        const lineNames=coach11823PlayerLineNames(player.id);
+
+        return {player,plays,pct,jersey,name,lineNames};
+      })
+      .sort((a,b)=>b.plays-a.plays || Number(a.jersey||999)-Number(b.jersey||999));
+
+    const maxPlays=rows.length ? Math.max(...rows.map(r=>r.plays)) : 0;
+    const minPlays=rows.length ? Math.min(...rows.map(r=>r.plays)) : 0;
+
+    const body=rows.length
+      ? rows.map(r=>`
+          <div class="coach11823PlayerRow">
+            <div class="name">
+              <b>${r.jersey!=="" ? "#" + coach11819Esc(r.jersey) + " " : ""}${coach11819Esc(r.name)}</b>
+              <small>${r.lineNames.length ? coach11819Esc(r.lineNames.join(" • ")) : "No line assignment"}</small>
+            </div>
+            <div class="coach11823Plays">${r.plays}</div>
+            <div class="coach11823Pct">${r.pct}%</div>
+          </div>
+        `).join("")
+      : `<div class="notice">No active players found.</div>`;
+
+    if(typeof openModal!=="function") return;
+
+    openModal(`
+      <div class="coach11819ModalHead">
+        <h2>PLAYER PARTICIPATION</h2>
+        <button type="button" class="secondary" data-coach11823-close>✕ CLOSE</button>
+      </div>
+
+      <div class="coach11823SummaryHead">
+        <div class="coach11823SummaryCard">
+          <b>${total}</b>
+          <small>RECORDED PLAYS</small>
+        </div>
+        <div class="coach11823SummaryCard">
+          <b>${maxPlays}</b>
+          <small>HIGHEST PLAYER</small>
+        </div>
+        <div class="coach11823SummaryCard">
+          <b>${minPlays}</b>
+          <small>LOWEST PLAYER</small>
+        </div>
+      </div>
+
+      <div class="coach11823HeaderRow">
+        <span>PLAYER / LINES</span>
+        <span>PLAYS</span>
+        <span>%</span>
+      </div>
+
+      <div class="coach11819PlayList">${body}</div>
+    `);
+
+    document.getElementById("modalBody")
+      ?.querySelector("[data-coach11823-close]")
+      ?.addEventListener("click",()=>closeModal());
+  }
+
   function coach11821Open(kind){
     if(kind==="participation"){
-      if(!coach11821ClickAny(["statsBtn","allPlayerStatsBtn","#statsBtn","[data-open-stats]"])){
-        if(typeof openStats==="function") openStats();
-      }
+      coach11823OpenParticipation();
       return;
     }
 
