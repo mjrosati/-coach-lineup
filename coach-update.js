@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.33 — Players availability filter
+   v118.34 — Tap status cards to filter
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.33";
+window.COACH_UPDATE_VERSION = "118.34";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11833-style";
+  const STYLE_ID = "coach-update-11834-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -3200,17 +3200,25 @@ window.COACH_UPDATE_VERSION = "118.33";
     }
 
     box.innerHTML=`
-      <div class="coach11831PlayerStat">
+      <button type="button" class="coach11831PlayerStat" data-coach11834-status="active">
         <b>${active}</b><small>ACTIVE</small>
-      </div>
-      <div class="coach11831PlayerStat injured">
+      </button>
+      <button type="button" class="coach11831PlayerStat injured" data-coach11834-status="injured">
         <b>${injured}</b><small>INJURED</small>
-      </div>
-      <div class="coach11831PlayerStat out">
+      </button>
+      <button type="button" class="coach11831PlayerStat out" data-coach11834-status="out">
         <b>${out}</b><small>OUT</small>
-      </div>
+      </button>
       <button type="button" class="coach11832RosterBtn" data-coach11832-roster>VIEW PLAYERS</button>
     `;
+
+    box.querySelectorAll("[data-coach11834-status]").forEach(btn=>{
+      btn.addEventListener("click",event=>{
+        event.preventDefault();
+        event.stopPropagation();
+        coach11832OpenRoster(btn.dataset.coach11834Status||"all");
+      });
+    });
 
     box.querySelector("[data-coach11832-roster]")?.addEventListener("click",event=>{
       event.preventDefault();
