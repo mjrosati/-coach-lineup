@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.24 — Opponent Stats summary
+   v118.25 — Opponent Rotation direct open
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.24";
+window.COACH_UPDATE_VERSION = "118.25";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11824-style";
+  const STYLE_ID = "coach-update-11825-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -3173,16 +3173,12 @@ window.COACH_UPDATE_VERSION = "118.24";
     }
 
     if(kind==="opponent-rotation"){
-      if(!coach11821ClickAny([
-        "opponentRotationBtn",
-        "opponentTrackerBtn",
-        "#opponentRotationBtn",
-        "#opponentTrackerBtn",
-        "[data-open-opponent-rotation]"
-      ])){
-        if(typeof openOpponentRotation==="function") openOpponentRotation();
-        else if(typeof openOpponentTracker==="function") openOpponentTracker();
+      if(typeof openOpponentTracker==="function"){
+        openOpponentTracker();
+      }else if(typeof openOpponentRotation==="function"){
+        openOpponentRotation();
       }
+      return;
     }
   }
 
