@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.29 — Clear active play
+   v118.30 — Game Play List ordering
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.29";
+window.COACH_UPDATE_VERSION = "118.30";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11829-style";
+  const STYLE_ID = "coach-update-11830-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -1533,6 +1533,28 @@ window.COACH_UPDATE_VERSION = "118.29";
       /* ---------- 118.28: Active play indicator ---------- */
 
       /* ---------- 118.29: Clear active play ---------- */
+
+      /* ---------- 118.30: Game Play List ordering ---------- */
+      .coach11830MoveBtns{
+        display:flex!important;
+        flex-direction:column!important;
+        gap:3px!important;
+      }
+      .coach11830MoveBtn{
+        min-width:28px!important;
+        padding:3px 6px!important;
+        border:1px solid #526b84!important;
+        border-radius:5px!important;
+        background:#172536!important;
+        color:#dce9f6!important;
+        font-size:10px!important;
+        font-weight:1000!important;
+        line-height:1!important;
+      }
+      .coach11830MoveBtn:disabled{
+        opacity:.25!important;
+      }
+
       .coach11829ClearCallBtn{
         border:1px solid #657b91!important;
         background:#172333!important;
@@ -2949,6 +2971,14 @@ window.COACH_UPDATE_VERSION = "118.29";
               <small>${coach11819Esc(coach11819PlayMeta(play))}</small>
             </div>
             <div class="coach11827PlayActions">
+              <div class="coach11830MoveBtns">
+                <button type="button" class="coach11830MoveBtn"
+                  data-move-play="${coach11819Esc(String(play.id))}" data-direction="-1"
+                  ${index===0?'disabled':''}>▲</button>
+                <button type="button" class="coach11830MoveBtn"
+                  data-move-play="${coach11819Esc(String(play.id))}" data-direction="1"
+                  ${index===selected.length-1?'disabled':''}>▼</button>
+              </div>
               <button type="button"
                 class="coach11827CallBtn ${isActive?'is-active':''}"
                 data-call-play="${coach11819Esc(String(play.id))}"
@@ -3003,6 +3033,22 @@ window.COACH_UPDATE_VERSION = "118.29";
       ?.addEventListener("click",event=>{
         event.preventDefault();
         coach11820ClearGameList();
+      });
+
+    modalBody
+      ?.querySelectorAll("[data-move-play]")
+      ?.forEach(btn=>{
+        btn.addEventListener("click",event=>{
+          event.preventDefault();
+          const ids=coach11819ReadGameList().map(String);
+          const id=String(btn.dataset.movePlay||"");
+          const from=ids.indexOf(id);
+          const to=from+Number(btn.dataset.direction||0);
+          if(from<0 || to<0 || to>=ids.length) return;
+          [ids[from],ids[to]]=[ids[to],ids[from]];
+          coach11819WriteGameList(ids);
+          coach11819OpenGameList();
+        });
       });
 
     modalBody
