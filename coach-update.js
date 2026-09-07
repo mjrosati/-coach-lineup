@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.13 — Expanded line switching
+   v118.14 — Visible line switch row
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.13";
+window.COACH_UPDATE_VERSION = "118.14";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11813-style";
+  const STYLE_ID = "coach-update-11814-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -779,6 +779,45 @@ window.COACH_UPDATE_VERSION = "118.13";
         background:#1689e8!important; border-color:#a9dbff!important; color:#fff!important;
       }
 
+
+      /* ---------- 118.14: visible line switch row under blue header ---------- */
+      #coach1189LineOverlay .coach11814SwitchBar{
+        display:flex!important;
+        align-items:center!important;
+        justify-content:center!important;
+        gap:8px!important;
+        padding:8px 12px!important;
+        background:#062552!important;
+        border-top:1px solid #2b70b5!important;
+        border-bottom:1px solid #2b70b5!important;
+        position:relative!important;
+        z-index:1000005!important;
+        pointer-events:auto!important;
+      }
+
+      #coach1189LineOverlay .coach11814SwitchBtn{
+        flex:1 1 0!important;
+        max-width:180px!important;
+        min-height:38px!important;
+        padding:8px 10px!important;
+        border:1px solid #4a91d4!important;
+        border-radius:6px!important;
+        background:#071d3f!important;
+        color:#eef8ff!important;
+        font-size:11px!important;
+        font-weight:900!important;
+        letter-spacing:.3px!important;
+        pointer-events:auto!important;
+        touch-action:manipulation!important;
+      }
+
+      #coach1189LineOverlay .coach11814SwitchBtn.active{
+        background:#1689e8!important;
+        border-color:#b4e0ff!important;
+        color:#fff!important;
+        box-shadow:0 0 0 2px rgba(92,182,255,.18)!important;
+      }
+
       /* ---------- STATS ---------- */
       #v114Stats:checked ~ .fivePanelGrid .fivePanel[data-panel="stats"]{
         display:flex!important;
@@ -1296,11 +1335,46 @@ window.COACH_UPDATE_VERSION = "118.13";
         }
         coach11812RefreshEditableField();
         coach11813RenderLineTabs();
+        coach11814RenderSwitchBar();
       });
     }, 70);
   }
 
 
+
+
+  function coach11814RenderSwitchBar(){
+    const overlay=document.getElementById("coach1189LineOverlay");
+    if(!overlay || overlay.classList.contains("hidden") || !Array.isArray(lines)) return;
+
+    let bar=overlay.querySelector(".coach11814SwitchBar");
+    if(!bar){
+      bar=document.createElement("div");
+      bar.className="coach11814SwitchBar";
+
+      const head=overlay.querySelector(".coach1189Head");
+      if(head && head.parentNode){
+        head.insertAdjacentElement("afterend",bar);
+      }else{
+        overlay.prepend(bar);
+      }
+    }
+
+    bar.innerHTML=lines.map((line,index)=>{
+      const name=String(line?.name||`LINE ${index+1}`).toUpperCase();
+      return `<button type="button" class="coach11814SwitchBtn ${index===currentLine?'active':''}" data-index="${index}">${name}</button>`;
+    }).join("");
+
+    bar.querySelectorAll(".coach11814SwitchBtn").forEach(btn=>{
+      btn.onclick=(event)=>{
+        event.preventDefault();
+        event.stopPropagation();
+        const index=Number(btn.dataset.index);
+        coach11813SwitchLine(index);
+        setTimeout(coach11814RenderSwitchBar,100);
+      };
+    });
+  }
 
   function coach11813RenderLineTabs(){
     const overlay=document.getElementById("coach1189LineOverlay");
@@ -1347,6 +1421,7 @@ window.COACH_UPDATE_VERSION = "118.13";
       const title=document.getElementById("coach1189LineTitle");
       if(title) title.textContent=String(lines[currentLine]?.name||"LINE").toUpperCase();
       coach11813RenderLineTabs();
+      coach11814RenderSwitchBar();
       coach11812RefreshEditableField();
     },80);
   }
