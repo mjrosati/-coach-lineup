@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.14 — Visible line switch row
+   v118.15 — Move player placement
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.14";
+window.COACH_UPDATE_VERSION = "118.15";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11814-style";
+  const STYLE_ID = "coach-update-11815-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -818,6 +818,63 @@ window.COACH_UPDATE_VERSION = "118.14";
         box-shadow:0 0 0 2px rgba(92,182,255,.18)!important;
       }
 
+
+      /* ---------- 118.15: per-line player placement editing ---------- */
+      #coach1189LineOverlay .coach11815PlacementBar{
+        display:flex!important;
+        align-items:center!important;
+        justify-content:center!important;
+        gap:8px!important;
+        padding:6px 12px 8px!important;
+        background:#041a39!important;
+        border-bottom:1px solid #245c93!important;
+        position:relative!important;
+        z-index:1000005!important;
+        pointer-events:auto!important;
+      }
+
+      #coach1189LineOverlay .coach11815MoveBtn{
+        min-height:36px!important;
+        min-width:150px!important;
+        padding:8px 14px!important;
+        border:1px solid #5a9bd5!important;
+        border-radius:6px!important;
+        background:#0b315d!important;
+        color:#fff!important;
+        font-size:11px!important;
+        font-weight:900!important;
+        letter-spacing:.3px!important;
+        pointer-events:auto!important;
+        touch-action:manipulation!important;
+      }
+
+      #coach1189LineOverlay .coach11815MoveBtn.active{
+        background:#f1b500!important;
+        border-color:#ffe488!important;
+        color:#07162d!important;
+      }
+
+      #coach1189LineOverlay .coach11815PlacementHint{
+        color:#cfeaff!important;
+        font-size:10px!important;
+        font-weight:800!important;
+      }
+
+      #coach1189LineOverlay.coach11815-moving #field .slot{
+        cursor:grab!important;
+        touch-action:none!important;
+        user-select:none!important;
+        -webkit-user-select:none!important;
+        z-index:40!important;
+        box-shadow:0 0 0 3px rgba(255,199,0,.55)!important;
+      }
+
+      #coach1189LineOverlay.coach11815-moving #field .slot.coach11815-dragging{
+        cursor:grabbing!important;
+        z-index:100!important;
+        transform:translate(-50%,-50%) scale(1.08)!important;
+      }
+
       /* ---------- STATS ---------- */
       #v114Stats:checked ~ .fivePanelGrid .fivePanel[data-panel="stats"]{
         display:flex!important;
@@ -1336,12 +1393,165 @@ window.COACH_UPDATE_VERSION = "118.14";
         coach11812RefreshEditableField();
         coach11813RenderLineTabs();
         coach11814RenderSwitchBar();
+        coach11815RefreshPlacementEditor();
       });
     }, 70);
   }
 
 
 
+
+
+  let coach11815MoveMode=false;
+
+  function coach11815StorageKey(){
+    const teamId=(typeof team!=="undefined" && team?.id) ? String(team.id) : "team";
+    const lineId=(Array.isArray(lines) && lines[currentLine]?.id) ? String(lines[currentLine].id) : String(currentLine);
+    return `coachLineupLinePlacement:v1:${teamId}:${lineId}`;
+  }
+
+  function coach11815ReadPlacements(){
+    try{
+      return JSON.parse(localStorage.getItem(coach11815StorageKey())||"{}")||{};
+    }catch{
+      return {};
+    }
+  }
+
+  function coach11815WritePlacements(data){
+    try{
+      localStorage.setItem(coach11815StorageKey(),JSON.stringify(data||{}));
+    }catch(error){
+      console.warn("118.15 placement save:",error);
+    }
+  }
+
+  function coach11815ApplyPlacements(){
+    const overlay=document.getElementById("coach1189LineOverlay");
+    const field=document.getElementById("field");
+    if(!overlay || overlay.classList.contains("hidden") || !field || !Array.isArray(positions)) return;
+
+    const saved=coach11815ReadPlacements();
+    const regularPositions=positions.filter(pos=>pos && (pos.side==="offense" || pos.side==="defense"));
+    const slots=Array.from(field.querySelectorAll(".slot"));
+
+    slots.forEach((slot,index)=>{
+      const pos=regularPositions[index];
+      if(!pos?.id) return;
+      slot.dataset.coach11815PositionId=String(pos.id);
+      const p=saved[String(pos.id)];
+      if(p && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y))){
+        slot.style.left=Math.max(2,Math.min(98,Number(p.x)))+"%";
+        slot.style.top=Math.max(4,Math.min(96,Number(p.y)))+"%";
+      }
+    });
+  }
+
+  function coach11815RenderPlacementBar(){
+    const overlay=document.getElementById("coach1189LineOverlay");
+    if(!overlay || overlay.classList.contains("hidden")) return;
+
+    let bar=overlay.querySelector(".coach11815PlacementBar");
+    if(!bar){
+      bar=document.createElement("div");
+      bar.className="coach11815PlacementBar";
+      const switchBar=overlay.querySelector(".coach11814SwitchBar");
+      if(switchBar) switchBar.insertAdjacentElement("afterend",bar);
+      else{
+        const head=overlay.querySelector(".coach1189Head");
+        if(head) head.insertAdjacentElement("afterend",bar);
+      }
+    }
+
+    bar.innerHTML=`
+      <button type="button" class="coach11815MoveBtn ${coach11815MoveMode?'active':''}">
+        ${coach11815MoveMode?'✓ DONE MOVING':'↔ MOVE PLAYERS'}
+      </button>
+      <span class="coach11815PlacementHint">
+        ${coach11815MoveMode?'Drag any player box, then tap DONE MOVING.':'Placement is saved for this line on this device.'}
+      </span>`;
+
+    const btn=bar.querySelector(".coach11815MoveBtn");
+    if(btn){
+      btn.onclick=(event)=>{
+        event.preventDefault();
+        event.stopPropagation();
+        coach11815MoveMode=!coach11815MoveMode;
+        overlay.classList.toggle("coach11815-moving",coach11815MoveMode);
+        coach11815RenderPlacementBar();
+        coach11815WirePlacementDrag();
+        if(!coach11815MoveMode) coach11812RefreshEditableField();
+      };
+    }
+  }
+
+  function coach11815WirePlacementDrag(){
+    const overlay=document.getElementById("coach1189LineOverlay");
+    const field=document.getElementById("field");
+    if(!overlay || overlay.classList.contains("hidden") || !field) return;
+
+    coach11815ApplyPlacements();
+
+    field.querySelectorAll(".slot").forEach(slot=>{
+      if(slot.dataset.coach11815DragBound==="1") return;
+      slot.dataset.coach11815DragBound="1";
+
+      slot.addEventListener("pointerdown",event=>{
+        if(!coach11815MoveMode) return;
+        const positionId=slot.dataset.coach11815PositionId;
+        if(!positionId) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        slot.classList.add("coach11815-dragging");
+        try{ slot.setPointerCapture(event.pointerId); }catch{}
+
+        const move=e=>{
+          if(!coach11815MoveMode) return;
+          const rect=field.getBoundingClientRect();
+          if(!rect.width || !rect.height) return;
+
+          const x=Math.max(2,Math.min(98,((e.clientX-rect.left)/rect.width)*100));
+          const y=Math.max(4,Math.min(96,((e.clientY-rect.top)/rect.height)*100));
+
+          slot.style.left=x+"%";
+          slot.style.top=y+"%";
+
+          const saved=coach11815ReadPlacements();
+          saved[String(positionId)]={x:Number(x.toFixed(2)),y:Number(y.toFixed(2))};
+          coach11815WritePlacements(saved);
+        };
+
+        const end=e=>{
+          event.preventDefault();
+          event.stopPropagation();
+          slot.classList.remove("coach11815-dragging");
+          slot.removeEventListener("pointermove",move);
+          slot.removeEventListener("pointerup",end);
+          slot.removeEventListener("pointercancel",end);
+          try{ slot.releasePointerCapture(event.pointerId); }catch{}
+        };
+
+        slot.addEventListener("pointermove",move);
+        slot.addEventListener("pointerup",end);
+        slot.addEventListener("pointercancel",end);
+      },true);
+    });
+  }
+
+  function coach11815RefreshPlacementEditor(){
+    coach11815MoveMode=false;
+    const overlay=document.getElementById("coach1189LineOverlay");
+    if(overlay) overlay.classList.remove("coach11815-moving");
+    coach11815RenderPlacementBar();
+    coach11815ApplyPlacements();
+    coach11815WirePlacementDrag();
+    setTimeout(()=>{
+      coach11815ApplyPlacements();
+      coach11815WirePlacementDrag();
+    },120);
+  }
 
   function coach11814RenderSwitchBar(){
     const overlay=document.getElementById("coach1189LineOverlay");
@@ -1423,6 +1633,7 @@ window.COACH_UPDATE_VERSION = "118.14";
       coach11813RenderLineTabs();
       coach11814RenderSwitchBar();
       coach11812RefreshEditableField();
+      coach11815RefreshPlacementEditor();
     },80);
   }
 
@@ -1449,6 +1660,7 @@ window.COACH_UPDATE_VERSION = "118.14";
       slot.dataset.coach11812Side = String(pos.side || "");
 
       slot.onclick = function(event) {
+        if (coach11815MoveMode) return;
         event.preventDefault();
         event.stopPropagation();
 
@@ -1488,6 +1700,8 @@ window.COACH_UPDATE_VERSION = "118.14";
 
     if (overlay) overlay.classList.add("hidden");
     document.body.classList.remove("coach11812-line-editing");
+    coach11815MoveMode=false;
+    document.getElementById("coach1189LineOverlay")?.classList.remove("coach11815-moving");
 
     try {
       if (typeof renderAll === "function") renderAll();
