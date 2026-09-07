@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.39 — Players search
+   v119.0 — STABILIZATION BUILD
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.39";
+window.COACH_UPDATE_VERSION = "119.0";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11839-style";
+  const STYLE_ID = "coach-update-1190-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -1668,6 +1668,80 @@ window.COACH_UPDATE_VERSION = "118.39";
         .coachLineName{font-size:15px!important}
         .coachLineSwatch{height:44px!important}
       }
+
+      /* =========================================================
+         119.0 STABILIZATION BUILD
+         ========================================================= */
+      #fivePanelDashboard .fivePanelLabel b{
+        font-size:12px!important;line-height:1.15!important;
+      }
+      #fivePanelDashboard .fivePanelLabel small{
+        font-size:9px!important;line-height:1.15!important;
+        color:#e4f2ff!important;font-weight:900!important;
+      }
+      #fivePanelDashboard .expandHint{
+        opacity:.9!important;font-size:8px!important;
+        font-weight:900!important;color:#d9ecff!important;
+      }
+      #fivePanelDashboard .coach1182LineMeta,
+      #fivePanelDashboard .coach1182LineStatus{
+        font-size:9px!important;font-weight:1000!important;
+      }
+
+      /* Keep our real controls above the transparent expand layers. */
+      #fivePanelDashboard .fivePanel[data-panel="stats"] .v114TapLayer,
+      #fivePanelDashboard .fivePanel[data-panel="plays"] .v114TapLayer,
+      #fivePanelDashboard .fivePanel[data-panel="lines"] .v114TapLayer{
+        pointer-events:none!important;
+      }
+      #fivePanelDashboard .coach11821Stats,
+      #fivePanelDashboard .coach11819Plays,
+      #fivePanelDashboard .coach1182Lines,
+      #fivePanelDashboard .v112LineActions{
+        position:relative!important;z-index:25!important;pointer-events:auto!important;
+      }
+      #fivePanelDashboard .coach11821StatsBtn,
+      #fivePanelDashboard .coach11819PlayBtn{
+        position:relative!important;z-index:26!important;pointer-events:auto!important;
+      }
+
+      /* Larger expanded-field player boxes and names. */
+      #coach1189LineOverlay #field .slot,
+      #coach1189LineOverlay #field .slot.specialSlot{
+        min-width:88px!important;max-width:106px!important;
+        min-height:44px!important;padding:6px 7px!important;
+        border-width:3px!important;border-radius:8px!important;
+        font-size:13px!important;line-height:1.05!important;font-weight:1000!important;
+      }
+      #coach1189LineOverlay #field .slot b{
+        font-size:13px!important;line-height:1!important;font-weight:1000!important;
+      }
+      #coach1189LineOverlay #field .slot small{
+        max-width:94px!important;margin-top:3px!important;
+        font-size:11px!important;line-height:1.05!important;
+        font-weight:1000!important;color:#fff!important;
+      }
+      @media (orientation:landscape){
+        #coach1189LineOverlay #field .slot,
+        #coach1189LineOverlay #field .slot.specialSlot{
+          min-width:84px!important;max-width:102px!important;font-size:12px!important;
+        }
+        #coach1189LineOverlay #field .slot b{font-size:12px!important}
+        #coach1189LineOverlay #field .slot small{max-width:90px!important;font-size:10.5px!important}
+      }
+
+      #coach1189LineOverlay.coach1190-special #field .tag{
+        font-size:14px!important;font-weight:1000!important;padding:5px 12px!important;
+      }
+      #coach1189LineOverlay.coach1190-special .coach11812TapHint{color:#ffe08a!important}
+
+      #fivePanelDashboard .coach11821StatsBtn{
+        min-height:60px!important;font-size:11px!important;
+      }
+      #fivePanelDashboard .coach11819PlayBtn{
+        min-height:54px!important;font-size:12px!important;font-weight:1000!important;
+      }
+
     `;
 
     document.head.appendChild(style);
@@ -2216,26 +2290,29 @@ window.COACH_UPDATE_VERSION = "118.39";
     if(index<0) return;
 
     coach11816ActiveType=type;
+    coach11816SpecialOpen=true;
     currentSpecialUnit=index;
     activeView="special";
-    coach11818StopSpecialMove();
-    coach11816ActiveType="";
-    coach11816SpecialOpen=false;
-    activeView="offense";
-        coach11815MoveMode=false;
+    coach11815MoveMode=false;
+
+    try{ if(typeof unifiedFieldView!=="undefined") unifiedFieldView=false; }catch{}
 
     const overlay=document.getElementById("coach1189LineOverlay");
     overlay?.classList.remove("coach11815-moving");
+    overlay?.classList.add("coach1190-special");
 
     try{
-      if(typeof renderField==="function") renderField();
       if(typeof renderSpecialUnitSelect==="function") renderSpecialUnitSelect();
+      if(typeof renderField==="function") renderField();
     }catch(error){
-      console.warn("118.16 render special:",error);
+      console.warn("119.0 render special:",error);
     }
 
-    const title=document.getElementById("coach1189LineTitle");
-    if(title) title.textContent=`${coach11816SafeName(lines?.[currentLine]?.name)} • ${type}`;
+    const title=document.getElementById("coach1189Title");
+    if(title) title.textContent=type;
+
+    const hint=overlay?.querySelector(".coach11812TapHint");
+    if(hint) hint.textContent=`${type} • 11 PLAYER SPECIAL TEAMS`;
 
     coach11816RenderControls();
   }
@@ -2243,17 +2320,27 @@ window.COACH_UPDATE_VERSION = "118.39";
   function coach11816BackToLine(){
     coach11818StopSpecialMove();
     coach11816ActiveType="";
+    coach11816SpecialOpen=false;
     activeView="offense";
+
+    const overlay=document.getElementById("coach1189LineOverlay");
+    overlay?.classList.remove("coach1190-special");
 
     try{
       if(typeof setUnifiedFieldView==="function") setUnifiedFieldView();
-      else if(typeof renderField==="function") renderField();
+      else{
+        if(typeof unifiedFieldView!=="undefined") unifiedFieldView=true;
+        if(typeof renderField==="function") renderField();
+      }
     }catch(error){
-      console.warn("118.16 back to line:",error);
+      console.warn("119.0 back to line:",error);
     }
 
-    const title=document.getElementById("coach1189LineTitle");
+    const title=document.getElementById("coach1189Title");
     if(title) title.textContent=coach11816SafeName(lines?.[currentLine]?.name).toUpperCase();
+
+    const hint=overlay?.querySelector(".coach11812TapHint");
+    if(hint) hint.textContent="TAP ANY PLAYER TO REPLACE";
 
     coach11812RefreshEditableField();
     coach11815RefreshPlacementEditor();
@@ -2629,7 +2716,14 @@ window.COACH_UPDATE_VERSION = "118.39";
       }
     }
 
-    if (overlay) overlay.classList.add("hidden");
+    if (overlay){
+      overlay.classList.add("hidden");
+      overlay.classList.remove("coach1190-special");
+    }
+    coach11816ActiveType="";
+    coach11816SpecialOpen=false;
+    activeView="offense";
+    try{if(typeof unifiedFieldView!=="undefined") unifiedFieldView=true;}catch{}
     document.body.classList.remove("coach11812-line-editing");
     coach11815MoveMode=false;
     document.getElementById("coach1189LineOverlay")?.classList.remove("coach11815-moving");
@@ -2739,31 +2833,46 @@ window.COACH_UPDATE_VERSION = "118.39";
   }
 
 
+  function coach1190RefreshAfterLineChange(){
+    const refresh=()=>{
+      try{
+        if(typeof renderAll==="function") renderAll();
+        else if(typeof renderField==="function") renderField();
+      }catch(error){console.warn("119.0 line refresh:",error);}
+      try{if(typeof renderFivePanelRealData==="function") renderFivePanelRealData();}catch{}
+      build1182ReadableLines();
+      mirrorDashboardField();
+    };
+    requestAnimationFrame(refresh);
+    setTimeout(refresh,80);
+    setTimeout(refresh,220);
+  }
+
   function bind11811LineControls() {
-    const undo = document.getElementById("v112UndoPlayBtn");
-    const next = document.getElementById("v112NextLineBtn");
+    const undo=document.getElementById("v112UndoPlayBtn");
+    const next=document.getElementById("v112NextLineBtn");
 
-    [[undo,"prevBtn"],[next,"nextBtn"]].forEach(function(pair) {
-      const button = pair[0];
-      const targetId = pair[1];
-      if (!button || button.dataset.coach11811Bound === "1") return;
-
-      button.dataset.coach11811Bound = "1";
+    [[undo,"prevBtn"],[next,"nextBtn"]].forEach(([button,targetId])=>{
+      if(!button||button.dataset.coach1190Bound==="1") return;
+      button.dataset.coach1190Bound="1";
       button.removeAttribute("onclick");
-
-      button.addEventListener("click", function(event) {
-        event.preventDefault();
-        event.stopPropagation();
-
-        const target = document.getElementById(targetId);
-        if (target) target.click();
-
-        setTimeout(function() {
-          if (typeof renderFivePanelRealData === "function") renderFivePanelRealData();
-          if (typeof build1182ReadableLines === "function") build1182ReadableLines();
-        }, 90);
+      button.addEventListener("click",event=>{
+        event.preventDefault();event.stopPropagation();
+        document.getElementById(targetId)?.click();
+        coach1190RefreshAfterLineChange();
       });
     });
+
+    const nativeNext=document.getElementById("nextBtn");
+    if(nativeNext&&nativeNext.dataset.coach1190Refresh!=="1"){
+      nativeNext.dataset.coach1190Refresh="1";
+      nativeNext.addEventListener("click",coach1190RefreshAfterLineChange);
+    }
+    const select=document.getElementById("lineSelect");
+    if(select&&select.dataset.coach1190Refresh!=="1"){
+      select.dataset.coach1190Refresh="1";
+      select.addEventListener("change",coach1190RefreshAfterLineChange);
+    }
   }
 
   function bindDashboardSections() {
@@ -2836,28 +2945,21 @@ window.COACH_UPDATE_VERSION = "118.39";
 
   function coach11819WriteGameList(ids){
     try{
-      localStorage.setItem(coach11819GameListKey(),JSON.stringify(Array.from(new Set(ids||[]))));
+      localStorage.setItem(coach11819GameListKey(),JSON.stringify(Array.isArray(ids)?ids:[]));
     }catch(error){
-      console.warn("118.19 game play list:",error);
+      console.warn("119.0 game play list:",error);
     }
   }
 
   function coach11819CategoryMatch(play,type){
-    const raw=String(play?.category||"").trim().toLowerCase();
+    const haystack=[
+      play?.category,play?.name,play?.play_name,play?.play_code,
+      play?.code,play?.description
+    ].filter(Boolean).join(" ").toLowerCase();
 
-    if(type==="PASSING"){
-      return raw.includes("pass") || raw.includes("throw");
-    }
-
-    if(type==="RUNNING"){
-      return raw.includes("run") || raw.includes("rush");
-    }
-
-    if(type==="KICKING"){
-      return raw.includes("kick") || raw.includes("punt") || raw.includes("field goal") ||
-             raw.includes("extra point") || raw.includes("pat");
-    }
-
+    if(type==="PASSING") return /(pass|passing|throw|screen)/.test(haystack);
+    if(type==="RUNNING") return /(run|running|rush|dive|sweep|counter|iso|trap|power|zone)/.test(haystack);
+    if(type==="KICKING") return /(kick|kickoff|punt|field goal|extra point|pat)/.test(haystack);
     return false;
   }
 
@@ -2875,72 +2977,56 @@ window.COACH_UPDATE_VERSION = "118.39";
   }
 
   function coach11819AddPlay(playId){
-    const ids=coach11819ReadGameList();
-    const id=String(playId);
-    if(!ids.map(String).includes(id)){
-      ids.push(id);
-      coach11819WriteGameList(ids);
-    }
+    const ids=coach11819ReadGameList().map(String);
+    ids.push(String(playId));
+    coach11819WriteGameList(ids);
   }
 
   function coach11819OpenCategory(type){
-    const all=(typeof playbookPlays!=="undefined" && Array.isArray(playbookPlays))
-      ? playbookPlays
-      : [];
-
+    const all=(typeof playbookPlays!=="undefined" && Array.isArray(playbookPlays))?playbookPlays:[];
     const selected=all.filter(play=>coach11819CategoryMatch(play,type));
     const gameIds=coach11819ReadGameList().map(String);
 
-    const rows=selected.length
-      ? selected.map(play=>{
-          const id=String(play.id);
-          const added=gameIds.includes(id);
-          return `
-            <div class="coach11819PlayRow">
-              <div>
-                <b>${coach11819Esc(coach11819PlayTitle(play))}</b>
-                <small>${coach11819Esc(coach11819PlayMeta(play))}</small>
-              </div>
-              <button type="button"
-                class="coach11819AddBtn ${added?'added':''}"
-                data-play-id="${coach11819Esc(id)}"
-                ${added?'disabled':''}>
-                ${added?'✓ ADDED':'ADD'}
-              </button>
-            </div>`;
-        }).join("")
-      : `<div class="notice">No ${coach11819Esc(type.toLowerCase())} plays are currently saved in the playbook.</div>`;
+    const rows=selected.length ? selected.map(play=>{
+      const id=String(play.id);
+      const count=gameIds.filter(x=>x===id).length;
+      return `
+        <div class="coach11819PlayRow">
+          <div>
+            <b>${coach11819Esc(coach11819PlayTitle(play))}</b>
+            <small>${coach11819Esc(coach11819PlayMeta(play))}${count?` • ${count} ON GAME LIST`:""}</small>
+          </div>
+          <button type="button" class="coach11819AddBtn" data-play-id="${coach11819Esc(id)}">+ ADD</button>
+        </div>`;
+    }).join("") :
+    `<div class="notice">No ${coach11819Esc(type.toLowerCase())} plays match this category.</div>`;
 
     if(typeof openModal!=="function") return;
-
     openModal(`
       <div class="coach11819ModalHead">
         <h2>${coach11819Esc(type)}</h2>
         <button type="button" class="secondary" data-coach11819-close>✕ CLOSE</button>
       </div>
-      ${selected.length?'<div class="coach11827Hint">Tap CALL to make that the active play for the next recorded play.</div>':''}
       <div class="coach11819PlayList">${rows}</div>
     `);
 
-    const modalBody=document.getElementById("modalBody");
-    modalBody?.querySelector("[data-coach11819-close]")?.addEventListener("click",()=>closeModal());
-
-    modalBody?.querySelectorAll(".coach11819AddBtn:not(.added)").forEach(btn=>{
+    const body=document.getElementById("modalBody");
+    body?.querySelector("[data-coach11819-close]")?.addEventListener("click",()=>closeModal());
+    body?.querySelectorAll("[data-play-id]").forEach(btn=>{
       btn.addEventListener("click",event=>{
-        event.preventDefault();
-        const id=btn.dataset.playId;
-        coach11819AddPlay(id);
+        event.preventDefault();event.stopPropagation();
+        coach11819AddPlay(btn.dataset.playId);
         btn.textContent="✓ ADDED";
-        btn.classList.add("added");
-        btn.disabled=true;
+        setTimeout(()=>{if(btn.isConnected) btn.textContent="+ ADD";},400);
       });
     });
   }
 
 
-  function coach11820RemovePlay(playId){
-    const id=String(playId);
-    const ids=coach11819ReadGameList().map(String).filter(x=>x!==id);
+  function coach11820RemovePlay(entryIndex){
+    const ids=coach11819ReadGameList().map(String);
+    const index=Number(entryIndex);
+    if(Number.isInteger(index)&&index>=0&&index<ids.length) ids.splice(index,1);
     coach11819WriteGameList(ids);
     coach11819OpenGameList();
   }
@@ -2951,143 +3037,112 @@ window.COACH_UPDATE_VERSION = "118.39";
   }
 
   function coach11819OpenGameList(){
-    const all=(typeof playbookPlays!=="undefined" && Array.isArray(playbookPlays))
-      ? playbookPlays
-      : [];
+    const all=(typeof playbookPlays!=="undefined" && Array.isArray(playbookPlays))?playbookPlays:[];
     const ids=coach11819ReadGameList().map(String);
-    const selected=ids.map(id=>all.find(play=>String(play?.id)===id)).filter(Boolean);
+    const entries=ids.map((id,index)=>({
+      id,index,play:all.find(play=>String(play?.id)===id)
+    })).filter(entry=>entry.play);
 
     const activePlayId=(typeof pendingCalledPlay!=="undefined" && pendingCalledPlay?.id!=null)
-      ? String(pendingCalledPlay.id)
-      : "";
+      ? String(pendingCalledPlay.id) : "";
 
-    const rows=selected.length
-      ? selected.map((play,index)=>{
-          const isActive=activePlayId && String(play.id)===activePlayId;
-          return `
-          <div class="coach11819PlayRow ${isActive?'coach11828ActivePlay':''}">
-            <div>
-              <b>${index+1}. ${coach11819Esc(coach11819PlayTitle(play))}${isActive?'<span class="coach11828ActiveBadge">ACTIVE</span>':''}</b>
-              <small>${coach11819Esc(coach11819PlayMeta(play))}</small>
+    const rows=entries.length ? entries.map((entry,rowIndex)=>{
+      const play=entry.play;
+      const active=activePlayId===String(play.id);
+      return `
+        <div class="coach11819PlayRow ${active?'coach11828ActivePlay':''}">
+          <div>
+            <b>${rowIndex+1}. ${coach11819Esc(coach11819PlayTitle(play))}${active?'<span class="coach11828ActiveBadge">ACTIVE</span>':''}</b>
+            <small>${coach11819Esc(coach11819PlayMeta(play))}</small>
+          </div>
+          <div class="coach11827PlayActions">
+            <div class="coach11830MoveBtns">
+              <button type="button" class="coach11830MoveBtn" data-move-index="${entry.index}" data-direction="-1" ${entry.index===0?'disabled':''}>▲</button>
+              <button type="button" class="coach11830MoveBtn" data-move-index="${entry.index}" data-direction="1" ${entry.index===ids.length-1?'disabled':''}>▼</button>
             </div>
-            <div class="coach11827PlayActions">
-              <div class="coach11830MoveBtns">
-                <button type="button" class="coach11830MoveBtn"
-                  data-move-play="${coach11819Esc(String(play.id))}" data-direction="-1"
-                  ${index===0?'disabled':''}>▲</button>
-                <button type="button" class="coach11830MoveBtn"
-                  data-move-play="${coach11819Esc(String(play.id))}" data-direction="1"
-                  ${index===selected.length-1?'disabled':''}>▼</button>
-              </div>
-              <button type="button"
-                class="coach11827CallBtn ${isActive?'is-active':''}"
-                data-call-play="${coach11819Esc(String(play.id))}"
-                ${isActive?'disabled':''}>
-                ${isActive?'CALLED':'CALL'}
-              </button>
-              <button type="button"
-                class="coach11820RemoveBtn"
-                data-remove-play="${coach11819Esc(String(play.id))}">
-                REMOVE
-              </button>
-            </div>
-          </div>`;
-        }).join("")
-      : `<div class="notice">Your Game Play List is empty. Choose Passing, Running, or Kicking and add plays.</div>`;
+            <button type="button" class="coach11827CallBtn" data-call-play="${coach11819Esc(String(play.id))}">CALL</button>
+            <button type="button" class="coach11820RemoveBtn" data-remove-index="${entry.index}">REMOVE</button>
+          </div>
+        </div>`;
+    }).join("") :
+    `<div class="notice">Your Game Play List is empty. Choose Passing, Running, or Kicking and tap + ADD.</div>`;
 
     if(typeof openModal!=="function") return;
-
     openModal(`
       <div class="coach11819ModalHead coach11820GameListHead">
         <h2>GAME PLAY LIST</h2>
         <div style="display:flex;gap:8px;align-items:center">
           ${activePlayId?'<button type="button" class="coach11829ClearCallBtn" data-coach11829-clear-call>CLEAR ACTIVE</button>':''}
-          ${selected.length?'<button type="button" class="coach11820ClearBtn" data-coach11820-clear>CLEAR LIST</button>':''}
+          ${entries.length?'<button type="button" class="coach11820ClearBtn" data-coach11820-clear>CLEAR LIST</button>':''}
           <button type="button" class="secondary" data-coach11819-close>✕ CLOSE</button>
         </div>
       </div>
+      <div class="coach11827Hint">Duplicates are allowed. CALL selects the play for the next recorded snap.</div>
       <div class="coach11819PlayList">${rows}</div>
     `);
 
-    const modalBody=document.getElementById("modalBody");
-
-    modalBody
-      ?.querySelector("[data-coach11819-close]")
-      ?.addEventListener("click",()=>closeModal());
-
-    modalBody
-      ?.querySelector("[data-coach11829-clear-call]")
-      ?.addEventListener("click",event=>{
+    const body=document.getElementById("modalBody");
+    body?.querySelector("[data-coach11819-close]")?.addEventListener("click",()=>closeModal());
+    body?.querySelector("[data-coach11829-clear-call]")?.addEventListener("click",event=>{
+      event.preventDefault();
+      if(typeof clearCalledPlay==="function") clearCalledPlay();
+      else{
+        if(typeof pendingCalledPlay!=="undefined") pendingCalledPlay=null;
+        if(typeof renderCalledPlay==="function") renderCalledPlay();
+      }
+      coach11819OpenGameList();
+    });
+    body?.querySelector("[data-coach11820-clear]")?.addEventListener("click",event=>{
+      event.preventDefault();coach11820ClearGameList();
+    });
+    body?.querySelectorAll("[data-move-index]").forEach(btn=>{
+      btn.addEventListener("click",event=>{
         event.preventDefault();
-        if(typeof clearCalledPlay==="function"){
-          clearCalledPlay();
-        }else{
-          if(typeof pendingCalledPlay!=="undefined") pendingCalledPlay=null;
-          if(typeof renderCalledPlay==="function") renderCalledPlay();
-        }
+        const list=coach11819ReadGameList().map(String);
+        const from=Number(btn.dataset.moveIndex);
+        const to=from+Number(btn.dataset.direction||0);
+        if(!Number.isInteger(from)||to<0||to>=list.length) return;
+        [list[from],list[to]]=[list[to],list[from]];
+        coach11819WriteGameList(list);
         coach11819OpenGameList();
       });
-
-    modalBody
-      ?.querySelector("[data-coach11820-clear]")
-      ?.addEventListener("click",event=>{
+    });
+    body?.querySelectorAll("[data-call-play]").forEach(btn=>{
+      btn.addEventListener("click",event=>{
         event.preventDefault();
-        coach11820ClearGameList();
+        const id=btn.dataset.callPlay;
+        if(typeof choosePlayForGame==="function"){choosePlayForGame(id);return;}
+        const play=all.find(item=>String(item?.id)===String(id));
+        if(!play) return;
+        if(typeof currentGame!=="undefined"&&!currentGame){alert("Start a game before calling a play.");return;}
+        if(typeof pendingCalledPlay!=="undefined") pendingCalledPlay=play;
+        closeModal();
+        if(typeof renderCalledPlay==="function") renderCalledPlay();
       });
-
-    modalBody
-      ?.querySelectorAll("[data-move-play]")
-      ?.forEach(btn=>{
-        btn.addEventListener("click",event=>{
-          event.preventDefault();
-          const ids=coach11819ReadGameList().map(String);
-          const id=String(btn.dataset.movePlay||"");
-          const from=ids.indexOf(id);
-          const to=from+Number(btn.dataset.direction||0);
-          if(from<0 || to<0 || to>=ids.length) return;
-          [ids[from],ids[to]]=[ids[to],ids[from]];
-          coach11819WriteGameList(ids);
-          coach11819OpenGameList();
-        });
+    });
+    body?.querySelectorAll("[data-remove-index]").forEach(btn=>{
+      btn.addEventListener("click",event=>{
+        event.preventDefault();coach11820RemovePlay(btn.dataset.removeIndex);
       });
+    });
+  }
 
-    modalBody
-      ?.querySelectorAll("[data-call-play]")
-      ?.forEach(btn=>{
-        btn.addEventListener("click",event=>{
-          event.preventDefault();
-          const playId=btn.dataset.callPlay;
-
-          if(typeof choosePlayForGame==="function"){
-            choosePlayForGame(playId);
-            return;
-          }
-
-          const play=all.find(item=>String(item?.id)===String(playId));
-          if(!play) return;
-
-          if(typeof currentGame!=="undefined" && !currentGame){
-            alert("Start a game before calling a play.");
-            return;
-          }
-
-          if(typeof pendingCalledPlay!=="undefined"){
-            pendingCalledPlay=play;
-          }
-
-          closeModal();
-          if(typeof renderCalledPlay==="function") renderCalledPlay();
-        });
-      });
-
-    modalBody
-      ?.querySelectorAll("[data-remove-play]")
-      ?.forEach(btn=>{
-        btn.addEventListener("click",event=>{
-          event.preventDefault();
-          coach11820RemovePlay(btn.dataset.removePlay);
-        });
-      });
+  function coach1190BindPlaysDelegation(){
+    const panel=document.querySelector('#fivePanelDashboard .fivePanel[data-panel="plays"]');
+    if(!panel||panel.dataset.coach1190Plays==="1") return;
+    panel.dataset.coach1190Plays="1";
+    panel.addEventListener("click",event=>{
+      const typeBtn=event.target.closest("[data-type]");
+      if(typeBtn&&panel.contains(typeBtn)){
+        event.preventDefault();event.stopPropagation();
+        coach11819OpenCategory(typeBtn.dataset.type);return;
+      }
+      const listBtn=event.target.closest("[data-game-list]");
+      if(listBtn&&panel.contains(listBtn)){
+        event.preventDefault();event.stopPropagation();
+        coach11819OpenGameList();
+      }
+    },true);
   }
 
   function coach11819BuildPlays(){
@@ -3554,6 +3609,18 @@ window.COACH_UPDATE_VERSION = "118.39";
     }
   }
 
+  function coach1190BindStatsDelegation(){
+    const panel=document.querySelector('#fivePanelDashboard .fivePanel[data-panel="stats"]');
+    if(!panel||panel.dataset.coach1190Stats==="1") return;
+    panel.dataset.coach1190Stats="1";
+    panel.addEventListener("click",event=>{
+      const btn=event.target.closest("[data-stat]");
+      if(!btn||!panel.contains(btn)) return;
+      event.preventDefault();event.stopPropagation();
+      coach11821Open(btn.dataset.stat);
+    },true);
+  }
+
   function coach11821BuildStats(){
     const panel=document.querySelector('#fivePanelDashboard .fivePanel[data-panel="stats"]');
     if(!panel) return;
@@ -3587,8 +3654,10 @@ window.COACH_UPDATE_VERSION = "118.39";
     ensureBackButton();
     ensureSectionFooters();
     coach11819BuildPlays();
+    coach1190BindPlaysDelegation();
     coach11831BuildPlayersSummary();
     coach11821BuildStats();
+    coach1190BindStatsDelegation();
     bindDashboardSections();
     bind11811LineControls();
     buildReadableLines();
@@ -3599,10 +3668,10 @@ window.COACH_UPDATE_VERSION = "118.39";
       refreshTimer = setInterval(function () {
         buildReadableLines();
         build1182ReadableLines();
-        coach11819BuildPlays();
-      coach11831BuildPlayersSummary();
-        coach11821BuildStats();
+        coach11831BuildPlayersSummary();
         bind11811LineControls();
+        coach1190BindPlaysDelegation();
+        coach1190BindStatsDelegation();
         coach11812WirePlayerTaps();
         mirrorDashboardField();
       }, 1400);
