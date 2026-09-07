@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.18 — Move special-team positions
+   v118.19 — Plays categories
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.18";
+window.COACH_UPDATE_VERSION = "118.19";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11818-style";
+  const STYLE_ID = "coach-update-11819-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -1040,6 +1040,127 @@ window.COACH_UPDATE_VERSION = "118.18";
         box-shadow:0 0 0 3px rgba(255,199,0,.55)!important;
         cursor:move!important;
         touch-action:none!important;
+      }
+
+
+      /* ---------- 118.19: simplified Plays section ---------- */
+      #fivePanelDashboard .fivePanel[data-panel="plays"] #fivePlaysPreview{
+        display:none!important;
+      }
+
+      #fivePanelDashboard .fivePanel[data-panel="plays"] .coachPlaysFooter{
+        display:none!important;
+      }
+
+      .coach11819Plays{
+        display:grid!important;
+        grid-template-columns:1fr 1fr!important;
+        gap:8px!important;
+        padding:10px!important;
+        min-height:0!important;
+        overflow:auto!important;
+      }
+
+      .coach11819PlayBtn{
+        min-height:48px!important;
+        padding:8px 10px!important;
+        border:1px solid rgba(255,255,255,.28)!important;
+        border-radius:7px!important;
+        background:#0b3263!important;
+        color:#fff!important;
+        font-size:11px!important;
+        font-weight:1000!important;
+        letter-spacing:.35px!important;
+        text-align:center!important;
+        touch-action:manipulation!important;
+      }
+
+      .coach11819PlayBtn.gameList{
+        grid-column:1 / -1!important;
+        background:#0057b8!important;
+        border-color:#6bb8ff!important;
+      }
+
+      #v114Plays:checked ~ .fivePanelGrid .coach11819Plays{
+        grid-template-columns:repeat(3,1fr)!important;
+        gap:12px!important;
+        padding:16px!important;
+        align-content:start!important;
+      }
+
+      #v114Plays:checked ~ .fivePanelGrid .coach11819PlayBtn{
+        min-height:76px!important;
+        font-size:16px!important;
+      }
+
+      #v114Plays:checked ~ .fivePanelGrid .coach11819PlayBtn.gameList{
+        grid-column:1 / -1!important;
+        min-height:62px!important;
+      }
+
+      .coach11819ModalHead{
+        display:flex!important;
+        align-items:center!important;
+        justify-content:space-between!important;
+        gap:10px!important;
+        margin-bottom:12px!important;
+      }
+
+      .coach11819ModalHead h2{
+        margin:0!important;
+      }
+
+      .coach11819PlayList{
+        display:grid!important;
+        gap:8px!important;
+        max-height:58vh!important;
+        overflow:auto!important;
+      }
+
+      .coach11819PlayRow{
+        display:grid!important;
+        grid-template-columns:minmax(0,1fr) auto!important;
+        gap:10px!important;
+        align-items:center!important;
+        padding:10px 12px!important;
+        border:1px solid #334b68!important;
+        border-radius:8px!important;
+        background:#0b1523!important;
+      }
+
+      .coach11819PlayRow b{
+        display:block!important;
+        font-size:13px!important;
+      }
+
+      .coach11819PlayRow small{
+        display:block!important;
+        margin-top:3px!important;
+        color:#9fb6cd!important;
+        font-size:10px!important;
+      }
+
+      .coach11819AddBtn{
+        min-width:74px!important;
+        min-height:36px!important;
+        border:1px solid #64b7ff!important;
+        border-radius:6px!important;
+        background:#0867be!important;
+        color:#fff!important;
+        font-size:10px!important;
+        font-weight:1000!important;
+      }
+
+      .coach11819AddBtn.added{
+        background:#17462a!important;
+        border-color:#5fca8c!important;
+        color:#bff4d3!important;
+      }
+
+      @media(max-width:700px){
+        #v114Plays:checked ~ .fivePanelGrid .coach11819Plays{
+          grid-template-columns:1fr 1fr!important;
+        }
       }
 
       /* ---------- STATS ---------- */
@@ -2263,11 +2384,202 @@ window.COACH_UPDATE_VERSION = "118.18";
     }
   }
 
+
+  function coach11819Esc(value){
+    return String(value??"").replace(/[&<>"']/g,ch=>({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[ch]));
+  }
+
+  function coach11819GameListKey(){
+    const id=(typeof team!=="undefined" && team?.id) ? String(team.id) : "team";
+    return `coachLineupGamePlayList:v1:${id}`;
+  }
+
+  function coach11819ReadGameList(){
+    try{
+      const value=JSON.parse(localStorage.getItem(coach11819GameListKey())||"[]");
+      return Array.isArray(value)?value:[];
+    }catch{
+      return [];
+    }
+  }
+
+  function coach11819WriteGameList(ids){
+    try{
+      localStorage.setItem(coach11819GameListKey(),JSON.stringify(Array.from(new Set(ids||[]))));
+    }catch(error){
+      console.warn("118.19 game play list:",error);
+    }
+  }
+
+  function coach11819CategoryMatch(play,type){
+    const raw=String(play?.category||"").trim().toLowerCase();
+
+    if(type==="PASSING"){
+      return raw.includes("pass") || raw.includes("throw");
+    }
+
+    if(type==="RUNNING"){
+      return raw.includes("run") || raw.includes("rush");
+    }
+
+    if(type==="KICKING"){
+      return raw.includes("kick") || raw.includes("punt") || raw.includes("field goal") ||
+             raw.includes("extra point") || raw.includes("pat");
+    }
+
+    return false;
+  }
+
+  function coach11819PlayTitle(play){
+    return play?.name || play?.play_name || play?.play_code || play?.code || "Play";
+  }
+
+  function coach11819PlayMeta(play){
+    const pieces=[
+      play?.play_code || play?.code,
+      play?.formation,
+      play?.category
+    ].filter(Boolean);
+    return pieces.join(" • ");
+  }
+
+  function coach11819AddPlay(playId){
+    const ids=coach11819ReadGameList();
+    const id=String(playId);
+    if(!ids.map(String).includes(id)){
+      ids.push(id);
+      coach11819WriteGameList(ids);
+    }
+  }
+
+  function coach11819OpenCategory(type){
+    const all=(typeof playbookPlays!=="undefined" && Array.isArray(playbookPlays))
+      ? playbookPlays
+      : [];
+
+    const selected=all.filter(play=>coach11819CategoryMatch(play,type));
+    const gameIds=coach11819ReadGameList().map(String);
+
+    const rows=selected.length
+      ? selected.map(play=>{
+          const id=String(play.id);
+          const added=gameIds.includes(id);
+          return `
+            <div class="coach11819PlayRow">
+              <div>
+                <b>${coach11819Esc(coach11819PlayTitle(play))}</b>
+                <small>${coach11819Esc(coach11819PlayMeta(play))}</small>
+              </div>
+              <button type="button"
+                class="coach11819AddBtn ${added?'added':''}"
+                data-play-id="${coach11819Esc(id)}"
+                ${added?'disabled':''}>
+                ${added?'✓ ADDED':'ADD'}
+              </button>
+            </div>`;
+        }).join("")
+      : `<div class="notice">No ${coach11819Esc(type.toLowerCase())} plays are currently saved in the playbook.</div>`;
+
+    if(typeof openModal!=="function") return;
+
+    openModal(`
+      <div class="coach11819ModalHead">
+        <h2>${coach11819Esc(type)}</h2>
+        <button type="button" class="secondary" data-coach11819-close>✕ CLOSE</button>
+      </div>
+      <div class="coach11819PlayList">${rows}</div>
+    `);
+
+    const modalBody=document.getElementById("modalBody");
+    modalBody?.querySelector("[data-coach11819-close]")?.addEventListener("click",()=>closeModal());
+
+    modalBody?.querySelectorAll(".coach11819AddBtn:not(.added)").forEach(btn=>{
+      btn.addEventListener("click",event=>{
+        event.preventDefault();
+        const id=btn.dataset.playId;
+        coach11819AddPlay(id);
+        btn.textContent="✓ ADDED";
+        btn.classList.add("added");
+        btn.disabled=true;
+      });
+    });
+  }
+
+  function coach11819OpenGameList(){
+    const all=(typeof playbookPlays!=="undefined" && Array.isArray(playbookPlays))
+      ? playbookPlays
+      : [];
+    const ids=coach11819ReadGameList().map(String);
+    const selected=ids.map(id=>all.find(play=>String(play?.id)===id)).filter(Boolean);
+
+    const rows=selected.length
+      ? selected.map((play,index)=>`
+          <div class="coach11819PlayRow">
+            <div>
+              <b>${index+1}. ${coach11819Esc(coach11819PlayTitle(play))}</b>
+              <small>${coach11819Esc(coach11819PlayMeta(play))}</small>
+            </div>
+            <span style="font-size:10px;font-weight:900;color:#78c8ff">GAME LIST</span>
+          </div>
+        `).join("")
+      : `<div class="notice">Your Game Play List is empty. Choose Passing, Running, or Kicking and add plays.</div>`;
+
+    if(typeof openModal!=="function") return;
+
+    openModal(`
+      <div class="coach11819ModalHead">
+        <h2>GAME PLAY LIST</h2>
+        <button type="button" class="secondary" data-coach11819-close>✕ CLOSE</button>
+      </div>
+      <div class="coach11819PlayList">${rows}</div>
+    `);
+
+    document.getElementById("modalBody")
+      ?.querySelector("[data-coach11819-close]")
+      ?.addEventListener("click",()=>closeModal());
+  }
+
+  function coach11819BuildPlays(){
+    const panel=document.querySelector('#fivePanelDashboard .fivePanel[data-panel="plays"]');
+    if(!panel) return;
+
+    let box=panel.querySelector(".coach11819Plays");
+    if(!box){
+      box=document.createElement("div");
+      box.className="coach11819Plays";
+      panel.appendChild(box);
+    }
+
+    box.innerHTML=`
+      <button type="button" class="coach11819PlayBtn" data-type="PASSING">PASSING</button>
+      <button type="button" class="coach11819PlayBtn" data-type="RUNNING">RUNNING</button>
+      <button type="button" class="coach11819PlayBtn" data-type="KICKING">KICKING</button>
+      <button type="button" class="coach11819PlayBtn gameList" data-game-list="1">GAME PLAY LIST</button>
+    `;
+
+    box.querySelectorAll("[data-type]").forEach(btn=>{
+      btn.onclick=event=>{
+        event.preventDefault();
+        event.stopPropagation();
+        coach11819OpenCategory(btn.dataset.type);
+      };
+    });
+
+    box.querySelector("[data-game-list]")?.addEventListener("click",event=>{
+      event.preventDefault();
+      event.stopPropagation();
+      coach11819OpenGameList();
+    });
+  }
+
   function initialize() {
     installStyles();
     ensureUpdateBadge();
     ensureBackButton();
     ensureSectionFooters();
+    coach11819BuildPlays();
     bindDashboardSections();
     bind11811LineControls();
     buildReadableLines();
@@ -2278,6 +2590,7 @@ window.COACH_UPDATE_VERSION = "118.18";
       refreshTimer = setInterval(function () {
         buildReadableLines();
         build1182ReadableLines();
+        coach11819BuildPlays();
         bind11811LineControls();
         coach11812WirePlayerTaps();
         mirrorDashboardField();
