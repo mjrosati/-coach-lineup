@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.20 — Remove plays from game list
+   v118.21 — Stats quick menu
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.20";
+window.COACH_UPDATE_VERSION = "118.21";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11820-style";
+  const STYLE_ID = "coach-update-11821-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -1196,6 +1196,51 @@ window.COACH_UPDATE_VERSION = "118.20";
         justify-content:space-between!important;
         gap:8px!important;
         flex-wrap:wrap!important;
+      }
+
+
+      /* ---------- 118.21: simplified Stats section ---------- */
+      #fivePanelDashboard .fivePanel[data-panel="stats"] #fiveStatsPreview{
+        display:none!important;
+      }
+
+      #fivePanelDashboard .fivePanel[data-panel="stats"] .coachStatsFooter{
+        display:none!important;
+      }
+
+      .coach11821Stats{
+        display:grid!important;
+        grid-template-columns:1fr 1fr!important;
+        gap:8px!important;
+        padding:10px!important;
+        min-height:0!important;
+        overflow:auto!important;
+      }
+
+      .coach11821StatsBtn{
+        min-height:50px!important;
+        padding:9px 10px!important;
+        border:1px solid #4d84bd!important;
+        border-radius:7px!important;
+        background:#0b3263!important;
+        color:#fff!important;
+        font-size:10px!important;
+        font-weight:1000!important;
+        letter-spacing:.25px!important;
+        text-align:center!important;
+        touch-action:manipulation!important;
+      }
+
+      #v114Stats:checked ~ .fivePanelGrid .coach11821Stats{
+        grid-template-columns:1fr 1fr!important;
+        gap:14px!important;
+        padding:18px!important;
+        align-content:start!important;
+      }
+
+      #v114Stats:checked ~ .fivePanelGrid .coach11821StatsBtn{
+        min-height:86px!important;
+        font-size:16px!important;
       }
 
       /* ---------- STATS ---------- */
@@ -2647,12 +2692,142 @@ window.COACH_UPDATE_VERSION = "118.20";
     });
   }
 
+
+  function coach11821ClickAny(selectors){
+    for(const selector of selectors){
+      const el=selector.startsWith("#")
+        ? document.querySelector(selector)
+        : document.getElementById(selector) || document.querySelector(selector);
+
+      if(el && typeof el.click==="function"){
+        el.click();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function coach11821PlayerLines(){
+    const list=(typeof players!=="undefined" && Array.isArray(players)) ? players : [];
+    const lineList=(typeof lines!=="undefined" && Array.isArray(lines)) ? lines : [];
+    const assignList=(typeof assignments!=="undefined" && Array.isArray(assignments)) ? assignments : [];
+
+    const rows=list
+      .slice()
+      .sort((a,b)=>Number(a.jersey_number||a.number||999)-Number(b.jersey_number||b.number||999))
+      .map(player=>{
+        const lineIds=new Set(
+          assignList
+            .filter(a=>String(a.player_id)===String(player.id))
+            .map(a=>String(a.line_id))
+        );
+
+        const names=lineList
+          .filter(line=>lineIds.has(String(line.id)))
+          .map(line=>line.name)
+          .filter(Boolean);
+
+        const jersey=player.jersey_number ?? player.number ?? "";
+        const name=player.name || player.full_name || "Player";
+
+        return `
+          <div class="coach11819PlayRow">
+            <div>
+              <b>${jersey!=="" ? "#" + coach11819Esc(jersey) + " " : ""}${coach11819Esc(name)}</b>
+              <small>${names.length ? coach11819Esc(names.join(" • ")) : "Not assigned to a line"}</small>
+            </div>
+          </div>`;
+      }).join("");
+
+    if(typeof openModal!=="function") return;
+
+    openModal(`
+      <div class="coach11819ModalHead">
+        <h2>PLAYER LINES</h2>
+        <button type="button" class="secondary" data-coach11821-close>✕ CLOSE</button>
+      </div>
+      <div class="coach11819PlayList">${rows || '<div class="notice">No players found.</div>'}</div>
+    `);
+
+    document.getElementById("modalBody")
+      ?.querySelector("[data-coach11821-close]")
+      ?.addEventListener("click",()=>closeModal());
+  }
+
+  function coach11821Open(kind){
+    if(kind==="participation"){
+      if(!coach11821ClickAny(["statsBtn","allPlayerStatsBtn","#statsBtn","[data-open-stats]"])){
+        if(typeof openStats==="function") openStats();
+      }
+      return;
+    }
+
+    if(kind==="player-lines"){
+      coach11821PlayerLines();
+      return;
+    }
+
+    if(kind==="opponent-stats"){
+      if(!coach11821ClickAny([
+        "opponentStatsBtn",
+        "opponentTrackerStatsBtn",
+        "#opponentStatsBtn",
+        "[data-open-opponent-stats]"
+      ])){
+        if(typeof openOpponentStats==="function") openOpponentStats();
+        else if(typeof openOpponentTracker==="function") openOpponentTracker();
+      }
+      return;
+    }
+
+    if(kind==="opponent-rotation"){
+      if(!coach11821ClickAny([
+        "opponentRotationBtn",
+        "opponentTrackerBtn",
+        "#opponentRotationBtn",
+        "#opponentTrackerBtn",
+        "[data-open-opponent-rotation]"
+      ])){
+        if(typeof openOpponentRotation==="function") openOpponentRotation();
+        else if(typeof openOpponentTracker==="function") openOpponentTracker();
+      }
+    }
+  }
+
+  function coach11821BuildStats(){
+    const panel=document.querySelector('#fivePanelDashboard .fivePanel[data-panel="stats"]');
+    if(!panel) return;
+
+    let box=panel.querySelector(".coach11821Stats");
+    if(!box){
+      box=document.createElement("div");
+      box.className="coach11821Stats";
+      panel.appendChild(box);
+    }
+
+    box.innerHTML=`
+      <button type="button" class="coach11821StatsBtn" data-stat="participation">PLAYER PARTICIPATION</button>
+      <button type="button" class="coach11821StatsBtn" data-stat="player-lines">PLAYER LINES</button>
+      <button type="button" class="coach11821StatsBtn" data-stat="opponent-stats">OPPONENT STATS</button>
+      <button type="button" class="coach11821StatsBtn" data-stat="opponent-rotation">OPPONENT ROTATION</button>
+    `;
+
+    box.querySelectorAll("[data-stat]").forEach(btn=>{
+      btn.onclick=event=>{
+        event.preventDefault();
+        event.stopPropagation();
+        coach11821Open(btn.dataset.stat);
+      };
+    });
+  }
+
   function initialize() {
     installStyles();
     ensureUpdateBadge();
     ensureBackButton();
     ensureSectionFooters();
     coach11819BuildPlays();
+    coach11821BuildStats();
     bindDashboardSections();
     bind11811LineControls();
     buildReadableLines();
@@ -2664,6 +2839,7 @@ window.COACH_UPDATE_VERSION = "118.20";
         buildReadableLines();
         build1182ReadableLines();
         coach11819BuildPlays();
+        coach11821BuildStats();
         bind11811LineControls();
         coach11812WirePlayerTaps();
         mirrorDashboardField();
