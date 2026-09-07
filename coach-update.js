@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.19 — Plays categories
+   v118.20 — Remove plays from game list
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.19";
+window.COACH_UPDATE_VERSION = "118.20";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11819-style";
+  const STYLE_ID = "coach-update-11820-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -1161,6 +1161,41 @@ window.COACH_UPDATE_VERSION = "118.19";
         #v114Plays:checked ~ .fivePanelGrid .coach11819Plays{
           grid-template-columns:1fr 1fr!important;
         }
+      }
+
+
+      /* ---------- 118.20: remove plays from Game Play List ---------- */
+      .coach11820RemoveBtn{
+        min-width:78px!important;
+        min-height:36px!important;
+        padding:7px 10px!important;
+        border:1px solid #b85763!important;
+        border-radius:6px!important;
+        background:#3a1118!important;
+        color:#ffb7be!important;
+        font-size:10px!important;
+        font-weight:1000!important;
+        touch-action:manipulation!important;
+      }
+
+      .coach11820ClearBtn{
+        min-height:36px!important;
+        padding:7px 12px!important;
+        border:1px solid #b85763!important;
+        border-radius:6px!important;
+        background:#2a0d13!important;
+        color:#ffb7be!important;
+        font-size:10px!important;
+        font-weight:1000!important;
+        touch-action:manipulation!important;
+      }
+
+      .coach11820GameListHead{
+        display:flex!important;
+        align-items:center!important;
+        justify-content:space-between!important;
+        gap:8px!important;
+        flex-wrap:wrap!important;
       }
 
       /* ---------- STATS ---------- */
@@ -2507,6 +2542,19 @@ window.COACH_UPDATE_VERSION = "118.19";
     });
   }
 
+
+  function coach11820RemovePlay(playId){
+    const id=String(playId);
+    const ids=coach11819ReadGameList().map(String).filter(x=>x!==id);
+    coach11819WriteGameList(ids);
+    coach11819OpenGameList();
+  }
+
+  function coach11820ClearGameList(){
+    coach11819WriteGameList([]);
+    coach11819OpenGameList();
+  }
+
   function coach11819OpenGameList(){
     const all=(typeof playbookPlays!=="undefined" && Array.isArray(playbookPlays))
       ? playbookPlays
@@ -2521,7 +2569,11 @@ window.COACH_UPDATE_VERSION = "118.19";
               <b>${index+1}. ${coach11819Esc(coach11819PlayTitle(play))}</b>
               <small>${coach11819Esc(coach11819PlayMeta(play))}</small>
             </div>
-            <span style="font-size:10px;font-weight:900;color:#78c8ff">GAME LIST</span>
+            <button type="button"
+              class="coach11820RemoveBtn"
+              data-remove-play="${coach11819Esc(String(play.id))}">
+              REMOVE
+            </button>
           </div>
         `).join("")
       : `<div class="notice">Your Game Play List is empty. Choose Passing, Running, or Kicking and add plays.</div>`;
@@ -2529,16 +2581,37 @@ window.COACH_UPDATE_VERSION = "118.19";
     if(typeof openModal!=="function") return;
 
     openModal(`
-      <div class="coach11819ModalHead">
+      <div class="coach11819ModalHead coach11820GameListHead">
         <h2>GAME PLAY LIST</h2>
-        <button type="button" class="secondary" data-coach11819-close>✕ CLOSE</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          ${selected.length?'<button type="button" class="coach11820ClearBtn" data-coach11820-clear>CLEAR LIST</button>':''}
+          <button type="button" class="secondary" data-coach11819-close>✕ CLOSE</button>
+        </div>
       </div>
       <div class="coach11819PlayList">${rows}</div>
     `);
 
-    document.getElementById("modalBody")
+    const modalBody=document.getElementById("modalBody");
+
+    modalBody
       ?.querySelector("[data-coach11819-close]")
       ?.addEventListener("click",()=>closeModal());
+
+    modalBody
+      ?.querySelector("[data-coach11820-clear]")
+      ?.addEventListener("click",event=>{
+        event.preventDefault();
+        coach11820ClearGameList();
+      });
+
+    modalBody
+      ?.querySelectorAll("[data-remove-play]")
+      ?.forEach(btn=>{
+        btn.addEventListener("click",event=>{
+          event.preventDefault();
+          coach11820RemovePlay(btn.dataset.removePlay);
+        });
+      });
   }
 
   function coach11819BuildPlays(){
