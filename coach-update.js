@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.23 — Player Participation summary
+   v118.24 — Opponent Stats summary
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.23";
+window.COACH_UPDATE_VERSION = "118.24";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11823-style";
+  const STYLE_ID = "coach-update-11824-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -1367,6 +1367,78 @@ window.COACH_UPDATE_VERSION = "118.23";
       .coach11823HeaderRow span:nth-child(2),
       .coach11823HeaderRow span:nth-child(3){
         text-align:right!important;
+      }
+
+
+      /* ---------- 118.24: Opponent Stats summary ---------- */
+      .coach11824OppRow{
+        display:grid!important;
+        grid-template-columns:58px 72px 64px minmax(0,1fr)!important;
+        gap:8px!important;
+        align-items:center!important;
+        padding:9px 10px!important;
+        border:1px solid #334b68!important;
+        border-radius:8px!important;
+        background:#0b1523!important;
+      }
+
+      .coach11824OppRow.warning{
+        border-color:#d9a633!important;
+        box-shadow:inset 0 0 0 1px rgba(217,166,51,.25)!important;
+      }
+
+      .coach11824OppRow b{
+        color:#fff!important;
+        font-size:13px!important;
+      }
+
+      .coach11824OppRow .num{
+        font-size:14px!important;
+        font-weight:1000!important;
+      }
+
+      .coach11824OppRow .apps,
+      .coach11824OppRow .pct{
+        text-align:right!important;
+        font-weight:1000!important;
+      }
+
+      .coach11824OppRow .pct{
+        color:#7fc6ff!important;
+      }
+
+      .coach11824OppRow.warning .pct{
+        color:#ffd66b!important;
+      }
+
+      .coach11824OppMeta{
+        min-width:0!important;
+        color:#b9c9da!important;
+        font-size:9px!important;
+        line-height:1.25!important;
+      }
+
+      .coach11824OppHead{
+        display:grid!important;
+        grid-template-columns:58px 72px 64px minmax(0,1fr)!important;
+        gap:8px!important;
+        padding:0 10px 4px!important;
+        color:#7f9bb5!important;
+        font-size:8px!important;
+        font-weight:1000!important;
+        letter-spacing:.35px!important;
+      }
+
+      .coach11824OppHead span:nth-child(2),
+      .coach11824OppHead span:nth-child(3){
+        text-align:right!important;
+      }
+
+      @media(max-width:620px){
+        .coach11824OppRow,
+        .coach11824OppHead{
+          grid-template-columns:52px 58px 52px minmax(0,1fr)!important;
+        }
       }
 
       /* ---------- STATS ---------- */
@@ -2989,6 +3061,101 @@ window.COACH_UPDATE_VERSION = "118.23";
       ?.addEventListener("click",()=>closeModal());
   }
 
+
+  function coach11824OpenOpponentStats(){
+    const tracker=(typeof opponentTracker!=="undefined" && opponentTracker)
+      ? opponentTracker
+      : null;
+
+    if(!tracker){
+      if(typeof openOpponentStats==="function") openOpponentStats();
+      return;
+    }
+
+    const total=Math.max(0,Number(tracker.rotations||0));
+    const slots=Array.isArray(tracker.slots) ? tracker.slots : [];
+    const slotMap={};
+
+    slots.forEach((num,index)=>{
+      const value=String(num||"").trim();
+      if(!value) return;
+      if(!slotMap[value]) slotMap[value]=[];
+      slotMap[value].push(index+1);
+    });
+
+    const roster=Array.from(new Set([
+      ...(Array.isArray(tracker.roster)?tracker.roster:[]).map(String),
+      ...Object.keys(tracker.appearances||{}).map(String),
+      ...slots.filter(Boolean).map(String)
+    ])).sort((a,b)=>Number(a)-Number(b) || a.localeCompare(b));
+
+    const rows=roster
+      .map(num=>{
+        const apps=Math.max(0,Number(tracker.appearances?.[num]||0));
+        const pct=total ? Math.round((apps/total)*100) : 0;
+        const streak=Math.max(0,Number(tracker.streaks?.[num]||0));
+        const currentSlots=slotMap[num]||[];
+        const warning=pct>75 && streak>3;
+        return {num,apps,pct,streak,currentSlots,warning};
+      })
+      .sort((a,b)=>b.pct-a.pct || b.apps-a.apps || Number(a.num)-Number(b.num));
+
+    const warningCount=rows.filter(r=>r.warning).length;
+    const currentCount=slots.filter(Boolean).length;
+
+    const body=rows.length
+      ? rows.map(r=>`
+          <div class="coach11824OppRow ${r.warning?'warning':''}">
+            <div class="num">#${coach11819Esc(r.num)}</div>
+            <div class="apps">${r.apps}</div>
+            <div class="pct">${r.pct}%</div>
+            <div class="coach11824OppMeta">
+              ${r.currentSlots.length ? `ON FIELD • SLOT ${coach11819Esc(r.currentSlots.join(", "))}` : "NOT IN CURRENT 11"}
+              ${r.streak ? `<br>${r.streak} STRAIGHT ROTATION${r.streak===1?'':'S'}` : ""}
+              ${r.warning ? `<br><b style="color:#ffd66b">⚠ ROTATION ALERT</b>` : ""}
+            </div>
+          </div>
+        `).join("")
+      : `<div class="notice">No opponent rotations recorded yet.</div>`;
+
+    if(typeof openModal!=="function") return;
+
+    openModal(`
+      <div class="coach11819ModalHead">
+        <h2>OPPONENT STATS</h2>
+        <button type="button" class="secondary" data-coach11824-close>✕ CLOSE</button>
+      </div>
+
+      <div class="coach11823SummaryHead">
+        <div class="coach11823SummaryCard">
+          <b>${total}</b>
+          <small>TOTAL ROTATIONS</small>
+        </div>
+        <div class="coach11823SummaryCard">
+          <b>${currentCount}/11</b>
+          <small>CURRENT SLOTS</small>
+        </div>
+        <div class="coach11823SummaryCard">
+          <b>${warningCount}</b>
+          <small>ACTIVE ALERTS</small>
+        </div>
+      </div>
+
+      <div class="coach11824OppHead">
+        <span>JERSEY</span>
+        <span>ROT.</span>
+        <span>%</span>
+        <span>CURRENT / STREAK</span>
+      </div>
+
+      <div class="coach11819PlayList">${body}</div>
+    `);
+
+    document.getElementById("modalBody")
+      ?.querySelector("[data-coach11824-close]")
+      ?.addEventListener("click",()=>closeModal());
+  }
+
   function coach11821Open(kind){
     if(kind==="participation"){
       coach11823OpenParticipation();
@@ -3001,15 +3168,7 @@ window.COACH_UPDATE_VERSION = "118.23";
     }
 
     if(kind==="opponent-stats"){
-      if(!coach11821ClickAny([
-        "opponentStatsBtn",
-        "opponentTrackerStatsBtn",
-        "#opponentStatsBtn",
-        "[data-open-opponent-stats]"
-      ])){
-        if(typeof openOpponentStats==="function") openOpponentStats();
-        else if(typeof openOpponentTracker==="function") openOpponentTracker();
-      }
+      coach11824OpenOpponentStats();
       return;
     }
 
