@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.28 — Active play indicator
+   v118.29 — Clear active play
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.28";
+window.COACH_UPDATE_VERSION = "118.29";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11828-style";
+  const STYLE_ID = "coach-update-11829-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -1531,6 +1531,19 @@ window.COACH_UPDATE_VERSION = "118.28";
       /* ---------- 118.27: Call plays from Game Play List ---------- */
 
       /* ---------- 118.28: Active play indicator ---------- */
+
+      /* ---------- 118.29: Clear active play ---------- */
+      .coach11829ClearCallBtn{
+        border:1px solid #657b91!important;
+        background:#172333!important;
+        color:#d9e5f1!important;
+        border-radius:7px!important;
+        padding:7px 10px!important;
+        font-size:9px!important;
+        font-weight:1000!important;
+      }
+      .coach11829ClearCallBtn:active{transform:scale(.97)!important;}
+
       .coach11828ActivePlay{
         border-color:#3f89d8!important;
         background:#102946!important;
@@ -2958,6 +2971,7 @@ window.COACH_UPDATE_VERSION = "118.28";
       <div class="coach11819ModalHead coach11820GameListHead">
         <h2>GAME PLAY LIST</h2>
         <div style="display:flex;gap:8px;align-items:center">
+          ${activePlayId?'<button type="button" class="coach11829ClearCallBtn" data-coach11829-clear-call>CLEAR ACTIVE</button>':''}
           ${selected.length?'<button type="button" class="coach11820ClearBtn" data-coach11820-clear>CLEAR LIST</button>':''}
           <button type="button" class="secondary" data-coach11819-close>✕ CLOSE</button>
         </div>
@@ -2970,6 +2984,19 @@ window.COACH_UPDATE_VERSION = "118.28";
     modalBody
       ?.querySelector("[data-coach11819-close]")
       ?.addEventListener("click",()=>closeModal());
+
+    modalBody
+      ?.querySelector("[data-coach11829-clear-call]")
+      ?.addEventListener("click",event=>{
+        event.preventDefault();
+        if(typeof clearCalledPlay==="function"){
+          clearCalledPlay();
+        }else{
+          if(typeof pendingCalledPlay!=="undefined") pendingCalledPlay=null;
+          if(typeof renderCalledPlay==="function") renderCalledPlay();
+        }
+        coach11819OpenGameList();
+      });
 
     modalBody
       ?.querySelector("[data-coach11820-clear]")
