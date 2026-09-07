@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.26 — Stats section polish
+   v118.27 — Call plays from Game Play List
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.26";
+window.COACH_UPDATE_VERSION = "118.27";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11826-style";
+  const STYLE_ID = "coach-update-11827-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -1527,6 +1527,36 @@ window.COACH_UPDATE_VERSION = "118.26";
         font-size:12px!important;
       }
 
+
+      /* ---------- 118.27: Call plays from Game Play List ---------- */
+      .coach11827PlayActions{
+        display:flex!important;
+        gap:6px!important;
+        align-items:center!important;
+        flex-shrink:0!important;
+      }
+
+      .coach11827CallBtn{
+        border:1px solid #4e90d5!important;
+        background:#14385e!important;
+        color:#fff!important;
+        border-radius:7px!important;
+        padding:7px 10px!important;
+        font-size:9px!important;
+        font-weight:1000!important;
+      }
+
+      .coach11827CallBtn:active{
+        transform:scale(.97)!important;
+      }
+
+      .coach11827Hint{
+        margin:0 0 10px!important;
+        color:#9fb6cd!important;
+        font-size:10px!important;
+        font-weight:800!important;
+      }
+
       /* ---------- PLAYS ---------- */
       #v114Plays:checked ~ .fivePanelGrid .fivePanel[data-panel="plays"]{
         display:flex!important;
@@ -2825,6 +2855,7 @@ window.COACH_UPDATE_VERSION = "118.26";
         <h2>${coach11819Esc(type)}</h2>
         <button type="button" class="secondary" data-coach11819-close>✕ CLOSE</button>
       </div>
+      ${selected.length?'<div class="coach11827Hint">Tap CALL to make that the active play for the next recorded play.</div>':''}
       <div class="coach11819PlayList">${rows}</div>
     `);
 
@@ -2870,11 +2901,18 @@ window.COACH_UPDATE_VERSION = "118.26";
               <b>${index+1}. ${coach11819Esc(coach11819PlayTitle(play))}</b>
               <small>${coach11819Esc(coach11819PlayMeta(play))}</small>
             </div>
-            <button type="button"
-              class="coach11820RemoveBtn"
-              data-remove-play="${coach11819Esc(String(play.id))}">
-              REMOVE
-            </button>
+            <div class="coach11827PlayActions">
+              <button type="button"
+                class="coach11827CallBtn"
+                data-call-play="${coach11819Esc(String(play.id))}">
+                CALL
+              </button>
+              <button type="button"
+                class="coach11820RemoveBtn"
+                data-remove-play="${coach11819Esc(String(play.id))}">
+                REMOVE
+              </button>
+            </div>
           </div>
         `).join("")
       : `<div class="notice">Your Game Play List is empty. Choose Passing, Running, or Kicking and add plays.</div>`;
@@ -2903,6 +2941,35 @@ window.COACH_UPDATE_VERSION = "118.26";
       ?.addEventListener("click",event=>{
         event.preventDefault();
         coach11820ClearGameList();
+      });
+
+    modalBody
+      ?.querySelectorAll("[data-call-play]")
+      ?.forEach(btn=>{
+        btn.addEventListener("click",event=>{
+          event.preventDefault();
+          const playId=btn.dataset.callPlay;
+
+          if(typeof choosePlayForGame==="function"){
+            choosePlayForGame(playId);
+            return;
+          }
+
+          const play=all.find(item=>String(item?.id)===String(playId));
+          if(!play) return;
+
+          if(typeof currentGame!=="undefined" && !currentGame){
+            alert("Start a game before calling a play.");
+            return;
+          }
+
+          if(typeof pendingCalledPlay!=="undefined"){
+            pendingCalledPlay=play;
+          }
+
+          closeModal();
+          if(typeof renderCalledPlay==="function") renderCalledPlay();
+        });
       });
 
     modalBody
