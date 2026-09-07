@@ -1,13 +1,13 @@
 /* Coach Lineup live update layer
-   v118.25 — Opponent Rotation direct open
+   v118.26 — Stats section polish
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "118.25";
+window.COACH_UPDATE_VERSION = "118.26";
 
 (function () {
   "use strict";
 
-  const STYLE_ID = "coach-update-11825-style";
+  const STYLE_ID = "coach-update-11826-style";
   const BADGE_ID = "coachUpdateBadge";
   const BACK_ID = "coachFieldBackBtn";
   const TOOL_MODE_CLASS = "coach-tool-modal-open";
@@ -1439,6 +1439,64 @@ window.COACH_UPDATE_VERSION = "118.25";
         .coach11824OppHead{
           grid-template-columns:52px 58px 52px minmax(0,1fr)!important;
         }
+      }
+
+
+      /* ---------- 118.26: Stats section visual polish ---------- */
+      .coach11821StatsBtn{
+        position:relative!important;
+        display:flex!important;
+        flex-direction:column!important;
+        align-items:flex-start!important;
+        justify-content:center!important;
+        text-align:left!important;
+        padding:10px 11px 10px 38px!important;
+        overflow:hidden!important;
+      }
+
+      .coach11821StatsBtn::before{
+        position:absolute!important;
+        left:10px!important;
+        top:50%!important;
+        transform:translateY(-50%)!important;
+        width:20px!important;
+        text-align:center!important;
+        font-size:17px!important;
+        line-height:1!important;
+      }
+
+      .coach11821StatsBtn[data-stat="participation"]::before{content:"%";}
+      .coach11821StatsBtn[data-stat="player-lines"]::before{content:"☰";}
+      .coach11821StatsBtn[data-stat="opponent-stats"]::before{content:"#";}
+      .coach11821StatsBtn[data-stat="opponent-rotation"]::before{content:"↻";}
+
+      .coach11821StatsBtn::after{
+        display:block!important;
+        margin-top:3px!important;
+        color:#9fc1e4!important;
+        font-size:8px!important;
+        font-weight:800!important;
+        letter-spacing:0!important;
+        text-transform:none!important;
+      }
+
+      .coach11821StatsBtn[data-stat="participation"]::after{content:"Plays and percentages";}
+      .coach11821StatsBtn[data-stat="player-lines"]::after{content:"Assignments by player";}
+      .coach11821StatsBtn[data-stat="opponent-stats"]::after{content:"Rotation usage and alerts";}
+      .coach11821StatsBtn[data-stat="opponent-rotation"]::after{content:"Track the opponent's 11";}
+
+      #v114Stats:checked ~ .fivePanelGrid .coach11821StatsBtn{
+        padding-left:54px!important;
+      }
+
+      #v114Stats:checked ~ .fivePanelGrid .coach11821StatsBtn::before{
+        left:17px!important;
+        width:24px!important;
+        font-size:22px!important;
+      }
+
+      #v114Stats:checked ~ .fivePanelGrid .coach11821StatsBtn::after{
+        font-size:10px!important;
       }
 
       /* ---------- STATS ---------- */
