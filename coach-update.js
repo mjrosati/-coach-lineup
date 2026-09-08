@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v119.5 — FIVE-PANEL FIX PACK
+   v119.6 — HUB EDIT + SWAP FIX
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "119.5";
+window.COACH_UPDATE_VERSION = "119.6";
 
 (function () {
   "use strict";
@@ -2125,6 +2125,120 @@ window.COACH_UPDATE_VERSION = "119.5";
         font-size:14px!important;
       }
 
+
+      /* =========================================================
+         119.6 — player edit, line fit, full on-field swap list
+         ========================================================= */
+
+      /* On the main 5-panel screen, give the upper row (Players / Play Lines)
+         more height and make the Plays box smaller. */
+      #v114All:checked ~ .fivePanelGrid{
+        grid-template-rows:minmax(0,1.42fr) minmax(0,.58fr)!important;
+      }
+
+      #v114All:checked ~ .fivePanelGrid .fivePanel[data-panel="plays"]{
+        min-height:0!important;
+        overflow:hidden!important;
+      }
+
+      #v114All:checked ~ .fivePanelGrid .fivePanel[data-panel="plays"] .coach11819Plays{
+        display:grid!important;
+        grid-template-columns:1fr 1fr!important;
+        gap:5px!important;
+        padding:5px!important;
+        overflow:hidden!important;
+      }
+
+      #v114All:checked ~ .fivePanelGrid .fivePanel[data-panel="plays"] .coach11819PlayBtn{
+        min-height:32px!important;
+        padding:4px 6px!important;
+        font-size:9px!important;
+      }
+
+      /* Play Lines: all lines visible at once instead of a scrolling list. */
+      #fivePanelDashboard .fivePanel[data-panel="lines"] .coach1182Lines{
+        display:grid!important;
+        grid-template-columns:1fr 1fr!important;
+        grid-auto-rows:minmax(42px,auto)!important;
+        gap:5px!important;
+        padding:5px!important;
+        overflow:hidden!important;
+        align-content:start!important;
+        min-height:0!important;
+      }
+
+      #fivePanelDashboard .fivePanel[data-panel="lines"] .coach1182LineRow{
+        min-height:42px!important;
+        padding:5px 7px!important;
+        margin:0!important;
+      }
+
+      /* Native player editor sits above every dashboard/line overlay. */
+      body.coach1196-player-editor #modal{
+        z-index:1000025!important;
+        pointer-events:auto!important;
+      }
+      body.coach1196-player-editor #modal:not(.hidden){
+        display:grid!important;
+      }
+
+      /* Full swap picker. */
+      .coach1196SwapHead{
+        display:flex!important;
+        align-items:center!important;
+        justify-content:space-between!important;
+        gap:10px!important;
+        margin-bottom:8px!important;
+      }
+      .coach1196SwapHead h2{margin:2px 0 0!important}
+      .coach1196SwapHint{
+        margin:0 0 10px!important;
+        color:#b8d3e8!important;
+        font-size:10px!important;
+      }
+      .coach1196SwapList{
+        display:grid!important;
+        gap:5px!important;
+        max-height:64dvh!important;
+        overflow:auto!important;
+      }
+      .coach1196SwapRow{
+        display:grid!important;
+        grid-template-columns:50px minmax(150px,1.1fr) minmax(100px,.8fr) minmax(120px,1fr) 48px!important;
+        align-items:center!important;
+        gap:7px!important;
+        width:100%!important;
+        min-height:48px!important;
+        padding:6px 8px!important;
+        text-align:left!important;
+        border:1px solid #376589!important;
+        border-radius:6px!important;
+        background:#0a213c!important;
+        color:#fff!important;
+      }
+      .coach1196SwapRow.onField{
+        border-color:#f0b800!important;
+        background:#2b260c!important;
+      }
+      .coach1196SwapRow.current{
+        border-color:#50b7ff!important;
+        box-shadow:0 0 0 1px #50b7ff inset!important;
+      }
+      .coach1196SwapRow small{color:#a9c4da!important}
+      .coach1196SwapWhere{
+        font-size:9px!important;
+        font-weight:1000!important;
+        color:#ffd45c!important;
+      }
+      .coach1196SwapPrefs{
+        font-size:9px!important;
+        color:#c5d9ea!important;
+      }
+      .coach1196SwapPlays{
+        text-align:center!important;
+        font-weight:1000!important;
+      }
+
     `;
 
     document.head.appendChild(style);
@@ -3069,9 +3183,8 @@ window.COACH_UPDATE_VERSION = "119.5";
           /* Use the app's full substitution flow when available. */
           activeView = pos.side;
           try{
-            if(typeof openSubstitutionForPosition === "function"){ openSubstitutionForPosition(pos.id); return; }
-            if(typeof openSmartSubstitution === "function"){ openSmartSubstitution(pos.id); return; }
-            if(typeof openReplacePlayerModal === "function") openReplacePlayerModal(pos.id);
+            coach1196OpenSwapPlayerModal(pos.id);
+            return;
           }catch(error){console.warn("119.2 substitution:",error);}
         } catch (error) {
           console.warn("118.12 player replace:", error);
@@ -3309,7 +3422,7 @@ window.COACH_UPDATE_VERSION = "119.5";
           <b>${coach11819Esc(name)}</b>
           <small>${coach11819Esc(pos)}</small>
           <span class="coach1191RosterStatus ${status}">${label}</span>
-          <button type="button" class="coach1194RosterEdit" data-coach1194-edit="${coach11819Esc(String(player.id))}">EDIT</button>
+          <button type="button" class="coach1194RosterEdit" data-coach1194-edit="${coach11819Esc(String(player.id))}" onclick="event.preventDefault();event.stopPropagation();editPlayer('${coach11819Esc(String(player.id))}');return false;">EDIT</button>
         </div>`;
     }).join("")||'<div class="notice">No players loaded.</div>';
 
@@ -3320,7 +3433,9 @@ window.COACH_UPDATE_VERSION = "119.5";
         if(!btn) return;
         event.preventDefault();
         event.stopPropagation();
-        coach1194OpenPlayerEditor(btn.dataset.coach1194Edit);
+        document.body.classList.add("coach1196-player-editor");
+      if(typeof editPlayer==="function") editPlayer(btn.dataset.coach1194Edit);
+      else coach1194OpenPlayerEditor(btn.dataset.coach1194Edit);
       });
     }
   }
@@ -3378,6 +3493,7 @@ window.COACH_UPDATE_VERSION = "119.5";
       modal.dataset.coach1194 = "1";
       const observer = new MutationObserver(function () {
         if (!modal.classList.contains("hidden")) return;
+        document.body.classList.remove("coach1196-player-editor");
         const lineOverlay=document.getElementById("coach1189LineOverlay");
         if(lineOverlay && !lineOverlay.classList.contains("hidden")) return;
         if(document.body.classList.contains("coach1194-player-editing")) return;
@@ -4426,6 +4542,178 @@ window.COACH_UPDATE_VERSION = "119.5";
     coach1194EnsurePanelActions();
   }
 
+
+
+  function coach1196SidePositionAssignment(lineId,side,playerId){
+    const ids=new Set(
+      (typeof positions!=="undefined"&&Array.isArray(positions)?positions:[])
+        .filter(p=>String(p.side)===String(side))
+        .map(p=>String(p.id))
+    );
+    const a=(typeof assignments!=="undefined"&&Array.isArray(assignments)?assignments:[])
+      .find(x=>String(x.line_id)===String(lineId) &&
+        String(x.player_id)===String(playerId) &&
+        ids.has(String(x.position_label_id)));
+    if(!a) return null;
+    const pos=positions.find(p=>String(p.id)===String(a.position_label_id));
+    return pos?{assignment:a,pos}:null;
+  }
+
+  async function coach1196SwapPlayerAtPosition(positionId,newPlayerId){
+    const line=lines?.[currentLine];
+    const target=positions?.find(p=>String(p.id)===String(positionId));
+    if(!line||!target) return;
+
+    const side=target.side;
+    const opposite=side==="offense"?"defense":"offense";
+    const targetAssignment=currentLineAssignments()
+      .find(a=>String(a.position_label_id)===String(positionId));
+    const oldPlayerId=targetAssignment?.player_id||"";
+
+    if(String(oldPlayerId)===String(newPlayerId)){
+      if(typeof closeModal==="function") closeModal();
+      return;
+    }
+
+    const incoming=players.find(p=>String(p.id)===String(newPlayerId));
+    if(!incoming || !playerCanPlay(incoming)){
+      alert("That player is not currently available.");
+      return;
+    }
+
+    /* Full on-field swap:
+       If the incoming player already occupies another position on this side,
+       put the outgoing player into that position instead of blocking the swap. */
+    const incomingHere=coach1196SidePositionAssignment(line.id,side,newPlayerId);
+    const oldOpp=oldPlayerId?coach1196SidePositionAssignment(line.id,opposite,oldPlayerId):null;
+    const incomingOpp=coach1196SidePositionAssignment(line.id,opposite,newPlayerId);
+
+    try{
+      // Clear affected same-side positions first.
+      await assignPlayerDirect(line.id,target.id,"");
+      if(incomingHere && String(incomingHere.pos.id)!==String(target.id)){
+        await assignPlayerDirect(line.id,incomingHere.pos.id,"");
+      }
+
+      // Put incoming player in target; outgoing player takes incoming's old spot.
+      await assignPlayerDirect(line.id,target.id,newPlayerId);
+      if(incomingHere && String(incomingHere.pos.id)!==String(target.id) && oldPlayerId){
+        await assignPlayerDirect(line.id,incomingHere.pos.id,oldPlayerId);
+      }
+
+      /* Keep offense and defense linked on this same line.
+         If both players are already on the opposite side, swap those spots too.
+         If only the outgoing player is there, replace that spot with incoming. */
+      if(oldOpp){
+        await assignPlayerDirect(line.id,oldOpp.pos.id,"");
+        if(incomingOpp && String(incomingOpp.pos.id)!==String(oldOpp.pos.id)){
+          await assignPlayerDirect(line.id,incomingOpp.pos.id,"");
+        }
+
+        await assignPlayerDirect(line.id,oldOpp.pos.id,newPlayerId);
+
+        if(incomingOpp &&
+           String(incomingOpp.pos.id)!==String(oldOpp.pos.id) &&
+           oldPlayerId){
+          await assignPlayerDirect(line.id,incomingOpp.pos.id,oldPlayerId);
+        }
+      }
+
+      if(navigator.onLine && typeof loadAssignments==="function"){
+        await loadAssignments();
+      }
+      if(typeof saveOfflineSnapshot==="function") saveOfflineSnapshot();
+      if(typeof closeModal==="function") closeModal();
+      if(typeof renderField==="function") renderField();
+      if(typeof renderPlayers==="function") renderPlayers();
+      if(typeof mirrorDashboardField==="function") mirrorDashboardField();
+
+      setTimeout(coach11812RefreshEditableField,60);
+    }catch(error){
+      console.error("119.6 player swap:",error);
+      alert(error?.message||"Could not swap these players.");
+    }
+  }
+
+  function coach1196OpenSwapPlayerModal(positionId){
+    const line=lines?.[currentLine];
+    const pos=positions?.find(p=>String(p.id)===String(positionId));
+    if(!line||!pos || typeof openModal!=="function") return;
+
+    activeView=pos.side;
+
+    const current=currentLineAssignments()
+      .find(a=>String(a.position_label_id)===String(positionId));
+    const currentPlayer=current
+      ? players.find(p=>String(p.id)===String(current.player_id))
+      : null;
+
+    const sideIds=new Set(
+      positions.filter(p=>p.side===pos.side).map(p=>String(p.id))
+    );
+
+    const sideAssignments=currentLineAssignments()
+      .filter(a=>sideIds.has(String(a.position_label_id)));
+
+    const whereByPlayer=new Map();
+    sideAssignments.forEach(a=>{
+      const p=positions.find(x=>String(x.id)===String(a.position_label_id));
+      if(p) whereByPlayer.set(String(a.player_id),p.label||p.slot_key||"ON FIELD");
+    });
+
+    const list=players
+      .filter(p=>playerCanPlay(p))
+      .slice()
+      .sort((a,b)=>{
+        const aon=whereByPlayer.has(String(a.id))?0:1;
+        const bon=whereByPlayer.has(String(b.id))?0:1;
+        if(aon!==bon) return aon-bon;
+        const ap=(pos.side==="offense"?a.offense_positions:a.defense_positions)||[];
+        const bp=(pos.side==="offense"?b.offense_positions:b.defense_positions)||[];
+        const ai=ap.findIndex(x=>String(x).toUpperCase()===String(pos.label).toUpperCase());
+        const bi=bp.findIndex(x=>String(x).toUpperCase()===String(pos.label).toUpperCase());
+        const ar=ai<0?99:ai, br=bi<0?99:bi;
+        if(ar!==br) return ar-br;
+        return Number(a.jersey_number||999)-Number(b.jersey_number||999);
+      });
+
+    openModal(`
+      <div>
+        <div class="coach1196SwapHead">
+          <div>
+            <small>${coach11819Esc(line.name||"LINE")} • ${coach11819Esc(pos.side.toUpperCase())}</small>
+            <h2>${coach11819Esc(pos.label)}${currentPlayer?" — "+coach11819Esc(currentPlayer.name):""}</h2>
+          </div>
+          <button type="button" class="secondary" onclick="closeModal()">✕ CLOSE</button>
+        </div>
+        <p class="coach1196SwapHint">
+          Full roster shown. Players already on this ${coach11819Esc(pos.side)} line are marked ON FIELD.
+          Selecting one swaps the two positions. If the outgoing player is also on the opposite side of this line,
+          that side is updated automatically too.
+        </p>
+        <div class="coach1196SwapList">
+          ${list.map(p=>{
+            const onField=whereByPlayer.get(String(p.id))||"";
+            const currentId=String(currentPlayer?.id||"")===String(p.id);
+            const prefs=(pos.side==="offense"?p.offense_positions:p.defense_positions)||[];
+            return `
+              <button type="button"
+                class="coach1196SwapRow ${onField?"onField":""} ${currentId?"current":""}"
+                onclick="coach1196SwapPlayerAtPosition('${coach11819Esc(String(positionId))}','${coach11819Esc(String(p.id))}')">
+                <b>#${coach11819Esc(p.jersey_number??"")}</b>
+                <span><b>${coach11819Esc(p.name||"Player")}</b><small>${currentId?"CURRENT PLAYER":(onField?"TAP TO SWAP":"TAP TO REPLACE")}</small></span>
+                <span class="coach1196SwapWhere">${onField?"ON FIELD • "+coach11819Esc(onField):"BENCH"}</span>
+                <span class="coach1196SwapPrefs">${coach11819Esc(Array.isArray(prefs)&&prefs.length?prefs.join(" / "):"OTHER POSITION")}</span>
+                <span class="coach1196SwapPlays">${Number(counts?.[p.id]||0)}</span>
+              </button>`;
+          }).join("")}
+        </div>
+      </div>
+    `);
+  }
+
+  window.coach1196SwapPlayerAtPosition=coach1196SwapPlayerAtPosition;
+  window.coach1196OpenSwapPlayerModal=coach1196OpenSwapPlayerModal;
 
   function coach1195BindDirectFieldOpen(){
     const panel=document.querySelector('#fivePanelDashboard .fivePanel[data-panel="field"]');
