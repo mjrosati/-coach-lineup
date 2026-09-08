@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v119.1 — DASHBOARD REPAIR BUILD
+   v119.2 — ALL FIXES REPAIR BUILD
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "119.1";
+window.COACH_UPDATE_VERSION = "119.2";
 
 (function () {
   "use strict";
@@ -1821,6 +1821,30 @@ window.COACH_UPDATE_VERSION = "119.1";
       .coach1191RosterStatus{font-size:8px!important;font-weight:1000!important;text-align:center!important;padding:4px!important;border-radius:4px!important;background:#137c49!important}
       .coach1191RosterStatus.injured{background:#a66b00!important}.coach1191RosterStatus.out{background:#8d2637!important}
 
+      /* 119.2 repair pass */
+      @media (orientation:landscape){
+        #dashboard.dashScreen{height:100dvh!important;overflow:hidden!important}
+        #dashboard .dashTop{height:48px!important;min-height:48px!important;padding:5px 12px!important}
+        #dashboard .dashWrap{height:calc(100dvh - 48px)!important;max-width:900px!important;padding:8px 14px!important;overflow:hidden!important}
+        #dashboard .teamHero{padding:4px 0 7px!important;margin:0!important;min-height:68px!important}
+        #dashboard .teamHero h1{font-size:30px!important;line-height:1!important;margin:2px 0!important}
+        #dashboard .teamBadge{font-size:34px!important}
+        #dashboard .dashCard{min-height:54px!important;padding:7px 12px!important}
+        #dashboard .dashCard.gameDay{min-height:62px!important;margin-bottom:6px!important}
+        #dashboard .dashGrid{gap:5px!important}
+        #dashboard .dashCard b{font-size:13px!important}
+        #dashboard .dashCard small{font-size:9px!important;line-height:1.05!important}
+        #dashboard .dashHint{display:none!important}
+      }
+      #v114Players:checked ~ .fivePanelGrid .fivePanel[data-panel="players"] #fivePlayersPreview,
+      #v114Players:checked ~ .fivePanelGrid .fivePanel[data-panel="players"] .coach11831PlayerSummary,
+      #v114Players:checked ~ .fivePanelGrid .fivePanel[data-panel="players"] .expandHint{display:none!important}
+      #v114Players:checked ~ .fivePanelGrid .fivePanel[data-panel="players"] .coach1191RosterBoard{height:100%!important;align-content:start!important}
+      #coach1189LineOverlay{--coach-active-line:#1593ff}
+      #coach1189LineOverlay .coach1189LineHeader{border-bottom:5px solid var(--coach-active-line)!important;box-shadow:inset 0 -2px 0 var(--coach-active-line)!important}
+      #coach1189LineOverlay .coach11814SwitchBtn{border-top:5px solid var(--coach-line-button,#1593ff)!important}
+      #coach1189LineOverlay .coach11814SwitchBtn.active{background:var(--coach-line-button,#1593ff)!important;color:#fff!important;box-shadow:0 0 0 2px #fff inset!important}
+
       /* Make all Plays controls unmistakably interactive. */
       #fivePanelDashboard .fivePanel[data-panel="plays"] .coach11819Plays,
       #fivePanelDashboard .fivePanel[data-panel="plays"] .coach11819PlayBtn{
@@ -2779,12 +2803,13 @@ window.COACH_UPDATE_VERSION = "119.1";
         event.stopPropagation();
 
         try {
-          if (typeof openReplacePlayerModal !== "function") return;
-
-          /* openReplacePlayerModal reads activeView to decide offense/defense.
-             Use the tapped position's real side while the picker is built. */
+          /* Use the app's full substitution flow when available. */
           activeView = pos.side;
-          openReplacePlayerModal(pos.id);
+          try{
+            if(typeof openSubstitutionForPosition === "function"){ openSubstitutionForPosition(pos.id); return; }
+            if(typeof openSmartSubstitution === "function"){ openSmartSubstitution(pos.id); return; }
+            if(typeof openReplacePlayerModal === "function") openReplacePlayerModal(pos.id);
+          }catch(error){console.warn("119.2 substitution:",error);}
         } catch (error) {
           console.warn("118.12 player replace:", error);
         }
@@ -3799,6 +3824,67 @@ window.COACH_UPDATE_VERSION = "119.1";
     });
   }
 
+
+  function coach1192LineKey(name){
+    const upper=String(name||"").toUpperCase();
+    if(upper.includes("BLACK")) return "BLACK";
+    if(upper.includes("BLUE")) return "BLUE";
+    if(upper.includes("GREEN")) return "GREEN";
+    if(upper.includes("GOLD")) return "GOLD";
+    return "BLUE";
+  }
+
+  function coach1192ApplyLineColor(){
+    const overlay=document.getElementById("coach1189LineOverlay");
+    if(!overlay) return;
+    const key=coach1192LineKey(lines?.[currentLine]?.name || coach1189SelectedLineText());
+    overlay.style.setProperty("--coach-active-line",LINE_COLORS[key]||"#1593ff");
+    overlay.querySelectorAll(".coach11814SwitchBtn").forEach(btn=>{
+      const k=coach1192LineKey(btn.textContent);
+      btn.style.setProperty("--coach-line-button",LINE_COLORS[k]||"#1593ff");
+    });
+  }
+
+  function coach1192OpenPlaybook(){
+    try{
+      if(typeof openPlaybook==="function"){ openPlaybook(); return true; }
+      const btn=document.getElementById("playbookBtn");
+      if(btn){ btn.click(); return true; }
+    }catch(error){console.warn("119.2 playbook:",error);}
+    return false;
+  }
+
+  function coach1192BindPlayPanel(){
+    const panel=document.querySelector('#fivePanelDashboard .fivePanel[data-panel="plays"]');
+    if(!panel || panel.dataset.coach1192Bound==="1") return;
+    panel.dataset.coach1192Bound="1";
+    panel.addEventListener("click",event=>{
+      const game=event.target.closest("[data-game-list]");
+      if(game){event.preventDefault();event.stopImmediatePropagation();coach11819OpenGameList();return;}
+      const category=event.target.closest("[data-type]");
+      if(category){event.preventDefault();event.stopImmediatePropagation();coach1192OpenPlaybook();return;}
+      if(event.target.closest('.fivePanelLabel,.expandHint,.v114TapLayer')){
+        event.preventDefault();event.stopImmediatePropagation();coach1192OpenPlaybook();
+      }
+    },true);
+  }
+
+  function coach1192BindExpandedPlayers(){
+    const radio=document.getElementById("v114Players");
+    if(!radio || radio.dataset.coach1192Players==="1") return;
+    radio.dataset.coach1192Players="1";
+    radio.addEventListener("change",()=>{
+      if(!radio.checked) return;
+      requestAnimationFrame(()=>{coach1191BuildRosterBoard();});
+    });
+  }
+
+  function coach1192PatchLineOverlay(){
+    const overlay=document.getElementById("coach1189LineOverlay");
+    if(!overlay || overlay.classList.contains("hidden")) return;
+    coach1192ApplyLineColor();
+  }
+
   function initialize() {
     installStyles();
     ensureUpdateBadge();
@@ -3807,6 +3893,9 @@ window.COACH_UPDATE_VERSION = "119.1";
     coach11819BuildPlays();
     coach1190BindPlaysDelegation();
     coach1191BindPlayButtonsGlobal();
+    coach1192BindPlayPanel();
+    coach1192BindExpandedPlayers();
+    coach1192PatchLineOverlay();
     coach1191BuildFieldLineBar();
     coach1191BuildRosterBoard();
     coach11831BuildPlayersSummary();
@@ -3827,6 +3916,8 @@ window.COACH_UPDATE_VERSION = "119.1";
         if(document.getElementById("v114Players")?.checked) coach1191BuildRosterBoard();
         bind11811LineControls();
         coach1190BindPlaysDelegation();
+        coach1192BindPlayPanel();
+        coach1192PatchLineOverlay();
         coach1190BindStatsDelegation();
         coach11812WirePlayerTaps();
         mirrorDashboardField();
