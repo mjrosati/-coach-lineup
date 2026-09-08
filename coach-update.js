@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v119.4 — FIVE-PANEL MAIN HUB
+   v119.5 — FIVE-PANEL FIX PACK
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "119.4";
+window.COACH_UPDATE_VERSION = "119.5";
 
 (function () {
   "use strict";
@@ -2062,6 +2062,67 @@ window.COACH_UPDATE_VERSION = "119.4";
         #fivePanelDashboard .coach1194PanelActions{
           padding:5px 8px!important;
         }
+      }
+
+
+      /* =========================================================
+         119.5 — direct fixes from 119.4 test
+         ========================================================= */
+
+      #fivePanelDashboard .fivePanel[data-panel="field"]{cursor:pointer!important;}
+
+      #fivePanelDashboard .fivePanel[data-panel="players"] .v114TapLayer,
+      #fivePanelDashboard .fivePanel[data-panel="plays"] .v114TapLayer,
+      #fivePanelDashboard .fivePanel[data-panel="lines"] .v114TapLayer{
+        pointer-events:none!important;
+      }
+
+      #fivePanelDashboard .coach1191RosterBoard,
+      #fivePanelDashboard .coach1194RosterEdit,
+      #fivePanelDashboard .coach11819Plays,
+      #fivePanelDashboard .coach1182Lines,
+      #fivePanelDashboard .coach1194PanelActions{
+        position:relative!important;
+        z-index:60!important;
+        pointer-events:auto!important;
+      }
+
+      #v114Lines:checked ~ .fivePanelGrid .fivePanel[data-panel="lines"] .coach1182Lines{
+        display:grid!important;
+        grid-template-columns:1fr 1fr!important;
+        grid-auto-rows:minmax(48px,auto)!important;
+        gap:6px!important;
+        padding:7px!important;
+        overflow:visible!important;
+        flex:1 1 auto!important;
+        align-content:start!important;
+      }
+      #v114Lines:checked ~ .fivePanelGrid .coach1182LineRow{
+        min-height:48px!important;
+        padding:6px 8px!important;
+      }
+      #v114Lines:checked ~ .fivePanelGrid .v112LineActions,
+      #v114Lines:checked ~ .fivePanelGrid .coach1194PanelActions{
+        padding:5px 7px!important;
+        gap:6px!important;
+      }
+
+      .coach1194RosterEdit{
+        min-width:56px!important;
+        min-height:34px!important;
+        font-size:9px!important;
+      }
+
+      #v114Plays:checked ~ .fivePanelGrid .coach11819Plays{
+        display:grid!important;
+        grid-template-columns:1fr 1fr!important;
+        gap:12px!important;
+        padding:16px!important;
+        align-content:center!important;
+      }
+      #v114Plays:checked ~ .fivePanelGrid .coach11819PlayBtn{
+        min-height:76px!important;
+        font-size:14px!important;
       }
 
     `;
@@ -4365,12 +4426,104 @@ window.COACH_UPDATE_VERSION = "119.4";
     coach1194EnsurePanelActions();
   }
 
+
+  function coach1195BindDirectFieldOpen(){
+    const panel=document.querySelector('#fivePanelDashboard .fivePanel[data-panel="field"]');
+    if(!panel || panel.dataset.coach1195Direct==="1") return;
+    panel.dataset.coach1195Direct="1";
+
+    panel.addEventListener("click",event=>{
+      if(event.target.closest("select,option,button")) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      coach1194OpenLiveField();
+    },true);
+  }
+
+  function coach1195BindPlayerEdit(){
+    const panel=document.querySelector('#fivePanelDashboard .fivePanel[data-panel="players"]');
+    if(!panel || panel.dataset.coach1195Edit==="1") return;
+    panel.dataset.coach1195Edit="1";
+
+    panel.addEventListener("click",event=>{
+      const btn=event.target.closest("[data-coach1194-edit]");
+      if(!btn) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      coach1194OpenPlayerEditor(btn.dataset.coach1194Edit);
+    },true);
+  }
+
+  function coach1195BindLines(){
+    const panel=document.querySelector('#fivePanelDashboard .fivePanel[data-panel="lines"]');
+    if(!panel || panel.dataset.coach1195Lines==="1") return;
+    panel.dataset.coach1195Lines="1";
+
+    const actions=panel.querySelector(".coach1194PanelActions");
+    const btn=actions?.querySelector(".coach1194PanelAction");
+    if(btn){
+      btn.textContent="MANAGE / ADD / DELETE LINES";
+      btn.onclick=null;
+      btn.addEventListener("click",event=>{
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if(typeof openLines==="function") openLines();
+        else openTool("lines");
+      },true);
+    }
+  }
+
+  function coach1195BindPlays(){
+    const panel=document.querySelector('#fivePanelDashboard .fivePanel[data-panel="plays"]');
+    if(!panel || panel.dataset.coach1195Plays==="1") return;
+    panel.dataset.coach1195Plays="1";
+
+    panel.addEventListener("click",event=>{
+      const list=event.target.closest("[data-game-list]");
+      if(list){
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        coach11819OpenGameList();
+        return;
+      }
+
+      const playbook=event.target.closest("[data-open-team-playbook]");
+      if(playbook){
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if(typeof openPlaybook==="function") openPlaybook();
+        else coach1192OpenPlaybook();
+      }
+    },true);
+  }
+
+  function coach1195InstallLinkedSubstitution(){
+    try{
+      if(typeof replacePlayerLinked==="function"){
+        window.replacePlayerAtPosition=async function(positionId,newPlayerId){
+          return replacePlayerLinked(positionId,newPlayerId);
+        };
+      }
+    }catch(error){
+      console.warn("119.5 linked substitution install:",error);
+    }
+  }
+
+  function coach1195BindFixes(){
+    coach1195BindDirectFieldOpen();
+    coach1195BindPlayerEdit();
+    coach1195BindLines();
+    coach1195BindPlays();
+    coach1195InstallLinkedSubstitution();
+  }
+
   function initialize() {
     installStyles();
     ensureUpdateBadge();
     ensureBackButton();
     coach1194BindHub();
     coach1194EnsurePanelActions();
+    coach1195BindFixes();
     coach11819BuildPlays();
     coach1190BindPlaysDelegation();
     coach1191BindPlayButtonsGlobal();
@@ -4402,6 +4555,7 @@ window.COACH_UPDATE_VERSION = "119.4";
         coach1190BindStatsDelegation();
         coach11812WirePlayerTaps();
         coach1194EnsurePanelActions();
+        coach1195BindFixes();
         mirrorDashboardField();
       }, 1400);
     }
