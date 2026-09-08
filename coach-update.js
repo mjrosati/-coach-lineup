@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v120.1 — CLEAN LIVE FIELD DASHBOARD
+   v120.2 — BOTTOM DASHBOARD BAR
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "120.1";
+window.COACH_UPDATE_VERSION = "120.2";
 
 (function () {
   "use strict";
@@ -2877,6 +2877,71 @@ window.COACH_UPDATE_VERSION = "120.1";
         }
       }
 
+
+      /* =========================================================
+         120.2 — REMOVE 8 GAME-STATUS BUTTONS
+         Move the dashboard menu bar into their bottom location.
+         ========================================================= */
+
+      /* Hard-hide every legacy game-status control individually. */
+      body.coach1200-game-dashboard #gameStrip,
+      body.coach1200-game-dashboard .gameStrip,
+      body.coach1200-game-dashboard #quarterDisplay,
+      body.coach1200-game-dashboard #clockDisplay,
+      body.coach1200-game-dashboard #clockToggleBtn,
+      body.coach1200-game-dashboard #possessionDisplay,
+      body.coach1200-game-dashboard #opponentBtn,
+      body.coach1200-game-dashboard .opponentUnderPossession,
+      body.coach1200-game-dashboard #driveDisplay,
+      body.coach1200-game-dashboard #downDisplay,
+      body.coach1200-game-dashboard #distanceDisplay{
+        display:none!important;
+        visibility:hidden!important;
+        height:0!important;
+        min-height:0!important;
+        max-height:0!important;
+        margin:0!important;
+        padding:0!important;
+        border:0!important;
+        overflow:hidden!important;
+        pointer-events:none!important;
+      }
+
+      /* Put the dashboard menu where the 8 white buttons used to be. */
+      #coach1200DashboardBar{
+        top:auto!important;
+        bottom:51px!important;
+        left:50%!important;
+        right:auto!important;
+        transform:translateX(-50%)!important;
+        width:min(1040px,calc(100vw - 16px))!important;
+        padding:5px 7px!important;
+      }
+
+      /* Keep the native game-action footer directly below it. */
+      body.coach1200-game-dashboard .fullscreenControls{
+        bottom:0!important;
+      }
+
+      /* Field can now use the top edge again. */
+      body.coach1200-game-dashboard.fieldFullscreen .fieldArea{
+        padding-top:4px!important;
+        padding-bottom:96px!important;
+      }
+
+      @media (orientation:landscape) and (max-height:700px){
+        #coach1200DashboardBar{
+          top:auto!important;
+          bottom:47px!important;
+          padding:4px 6px!important;
+        }
+
+        body.coach1200-game-dashboard.fieldFullscreen .fieldArea{
+          padding-top:2px!important;
+          padding-bottom:86px!important;
+        }
+      }
+
     `;
 
     document.head.appendChild(style);
@@ -5307,8 +5372,35 @@ window.COACH_UPDATE_VERSION = "120.1";
     alert("Special Teams could not be opened.");
   }
 
+
+  function coach1202HideGameStatus(){
+    [
+      "gameStrip","quarterDisplay","clockDisplay","clockToggleBtn",
+      "possessionDisplay","opponentBtn","driveDisplay","downDisplay","distanceDisplay"
+    ].forEach(id=>{
+      const el=document.getElementById(id);
+      if(!el) return;
+      el.style.setProperty("display","none","important");
+      el.style.setProperty("visibility","hidden","important");
+      el.style.setProperty("height","0","important");
+      el.style.setProperty("min-height","0","important");
+      el.style.setProperty("margin","0","important");
+      el.style.setProperty("padding","0","important");
+      el.style.setProperty("border","0","important");
+      el.style.setProperty("pointer-events","none","important");
+    });
+
+    document.querySelectorAll(".opponentUnderPossession,.gameStrip").forEach(el=>{
+      el.style.setProperty("display","none","important");
+      el.style.setProperty("height","0","important");
+      el.style.setProperty("margin","0","important");
+      el.style.setProperty("padding","0","important");
+    });
+  }
+
   function coach1201EnforceCleanField(){
     if(!document.body.classList.contains("coach1200-game-dashboard")) return;
+    coach1202HideGameStatus();
 
     const fp=document.getElementById("fivePanelDashboard");
     if(fp){
@@ -5330,6 +5422,7 @@ window.COACH_UPDATE_VERSION = "120.1";
   }
 
   window.coach1201OpenSpecialTeams=coach1201OpenSpecialTeams;
+  window.coach1202HideGameStatus=coach1202HideGameStatus;
 
   function coach1200OpenStats(){
     if(typeof openStats==="function"){
@@ -5409,6 +5502,7 @@ window.COACH_UPDATE_VERSION = "120.1";
     coach1200InstallSwapPicker();
     coach1200PrepareNativeControls();
     coach1200RenderBar();
+    coach1202HideGameStatus();
     coach1201EnforceCleanField();
 
     setTimeout(()=>{
