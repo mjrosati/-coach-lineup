@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v119.9 — DASHBOARD CLEANUP
+   v120.0 — LIVE FIELD DASHBOARD
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "119.9";
+window.COACH_UPDATE_VERSION = "120.0";
 
 (function () {
   "use strict";
@@ -2574,6 +2574,188 @@ window.COACH_UPDATE_VERSION = "119.9";
         font-size:9px!important;
       }
 
+
+      /* =========================================================
+         120.0 — LIVE FIELD IS THE GAME DAY DASHBOARD
+         Reuse the proven native full-field screen instead of mini-panels.
+         ========================================================= */
+
+      body.coach1200-game-dashboard #fivePanelDashboard{
+        display:none!important;
+      }
+
+      /* The old 8-item game-status strip remains removed. */
+      body.coach1200-game-dashboard #gameStrip,
+      body.coach1200-game-dashboard .gameStrip,
+      body.coach1200-game-dashboard .v102GameStrip{
+        display:none!important;
+      }
+
+      /* Dashboard tool strip sits above the proven native fullscreen controls. */
+      #coach1200DashboardBar{
+        position:fixed!important;
+        left:10px!important;
+        right:10px!important;
+        bottom:62px!important;
+        z-index:99990!important;
+        display:grid!important;
+        grid-template-columns:auto minmax(0,1fr) auto!important;
+        align-items:center!important;
+        gap:8px!important;
+        padding:6px 8px!important;
+        background:#06162be8!important;
+        border:1px solid #4e8fca!important;
+        border-radius:8px!important;
+        box-shadow:0 8px 24px #0009!important;
+        backdrop-filter:blur(7px)!important;
+      }
+
+      #coach1200DashboardBar .coach1200Tools,
+      #coach1200DashboardBar .coach1200Lines{
+        display:flex!important;
+        align-items:center!important;
+        gap:5px!important;
+        min-width:0!important;
+      }
+
+      #coach1200DashboardBar .coach1200Lines{
+        justify-content:center!important;
+        overflow:auto!important;
+        scrollbar-width:none!important;
+      }
+
+      #coach1200DashboardBar .coach1200Lines::-webkit-scrollbar{
+        display:none!important;
+      }
+
+      #coach1200DashboardBar button{
+        min-height:36px!important;
+        border:1px solid #78b9eb!important;
+        border-radius:6px!important;
+        background:#0a4f89!important;
+        color:#fff!important;
+        padding:5px 9px!important;
+        font-size:9px!important;
+        font-weight:1000!important;
+        white-space:nowrap!important;
+        touch-action:manipulation!important;
+      }
+
+      #coach1200DashboardBar button.coach1200Home{
+        background:#182334!important;
+      }
+
+      #coach1200DashboardBar .coach1200LineBtn{
+        border-width:2px!important;
+        min-width:72px!important;
+      }
+
+      #coach1200DashboardBar .coach1200LineBtn.live{
+        box-shadow:0 0 0 2px #fff inset,0 0 0 1px #fff!important;
+        transform:translateY(-1px)!important;
+      }
+
+      #coach1200DashboardBar .coach1200LineBtn small{
+        display:block!important;
+        font-size:7px!important;
+        opacity:.84!important;
+        margin-top:1px!important;
+      }
+
+      /* Make the native fullscreen control bar feel like the dashboard footer. */
+      body.coach1200-game-dashboard .fullscreenControls{
+        z-index:99989!important;
+        min-height:54px!important;
+        background:#040b14f2!important;
+        border-top:1px solid #294a67!important;
+      }
+
+      /* "Exit Full Screen" is now a dashboard/home action and should not suggest
+         that the live field is merely an expanded secondary view. */
+      body.coach1200-game-dashboard .fullscreenControls button[data-coach1200-home]{
+        background:#182334!important;
+        border-color:#597188!important;
+      }
+
+      /* Players modal for quick roster access from the field dashboard. */
+      .coach1200PlayersHead{
+        display:flex!important;
+        justify-content:space-between!important;
+        align-items:center!important;
+        gap:10px!important;
+        margin-bottom:10px!important;
+      }
+
+      .coach1200PlayersActions{
+        display:flex!important;
+        gap:7px!important;
+      }
+
+      .coach1200PlayersList{
+        display:grid!important;
+        grid-template-columns:1fr 1fr!important;
+        gap:6px!important;
+        max-height:68dvh!important;
+        overflow:auto!important;
+      }
+
+      .coach1200PlayerRow{
+        display:grid!important;
+        grid-template-columns:42px minmax(0,1fr) auto!important;
+        gap:8px!important;
+        align-items:center!important;
+        min-height:46px!important;
+        padding:7px 9px!important;
+        border:1px solid #365f82!important;
+        border-radius:6px!important;
+        background:#0a213c!important;
+        color:#fff!important;
+        text-align:left!important;
+      }
+
+      .coach1200PlayerRow b{
+        font-size:12px!important;
+      }
+
+      .coach1200PlayerRow small{
+        display:block!important;
+        color:#b7cee0!important;
+        font-size:8px!important;
+        margin-top:2px!important;
+      }
+
+      .coach1200Status{
+        font-size:8px!important;
+        font-weight:1000!important;
+        padding:4px 6px!important;
+        border-radius:999px!important;
+        background:#124c32!important;
+      }
+
+      .coach1200Status.injured{background:#7b4a05!important}
+      .coach1200Status.out{background:#69242a!important}
+
+      /* Give the field a little breathing room above the dashboard bar without
+         changing the native field's geometry. */
+      body.coach1200-game-dashboard.fieldFullscreen .fieldArea{
+        padding-bottom:56px!important;
+      }
+
+      @media (orientation:landscape) and (max-height:700px){
+        #coach1200DashboardBar{
+          bottom:55px!important;
+          padding:4px 6px!important;
+        }
+        #coach1200DashboardBar button{
+          min-height:32px!important;
+          padding:4px 7px!important;
+          font-size:8px!important;
+        }
+        body.coach1200-game-dashboard.fieldFullscreen .fieldArea{
+          padding-bottom:48px!important;
+        }
+      }
+
     `;
 
     document.head.appendChild(style);
@@ -2615,26 +2797,7 @@ window.COACH_UPDATE_VERSION = "119.9";
   }
 
   function showFivePanelDashboard() {
-    const dashboard = document.getElementById("fivePanelDashboard");
-    if (!dashboard) return;
-
-    resetDashboardToAll();
-    dashboard.classList.remove("hidden");
-    dashboard.style.display = "grid";
-    dashboard.scrollTop = 0;
-    document.body.classList.remove(
-      "coach-field-expanded",
-      "coach-players-expanded",
-      TOOL_MODE_CLASS
-    );
-
-    const back = document.getElementById(BACK_ID);
-    if (back) back.hidden = true;
-
-    setTimeout(function () {
-      mirrorDashboardField();
-      buildReadableLines();
-    }, 50);
+    coach1200OpenGameDashboard();
   }
 
   function mirrorDashboardField() {
@@ -4880,6 +5043,239 @@ window.COACH_UPDATE_VERSION = "119.9";
 
 
 
+
+  function coach1200LineColor(line,index){
+    return line?.color || ["#111111","#178bff","#16b35d","#e2ac17"][index] || "#178bff";
+  }
+
+  function coach1200RenderBar(){
+    let bar=document.getElementById("coach1200DashboardBar");
+    if(!bar){
+      bar=document.createElement("div");
+      bar.id="coach1200DashboardBar";
+      document.body.appendChild(bar);
+    }
+
+    const lineButtons=(Array.isArray(lines)?lines:[]).map((line,i)=>{
+      const color=coach1200LineColor(line,i);
+      const live=i===currentLine;
+      return `
+        <button type="button"
+          class="coach1200LineBtn ${live?"live":""}"
+          style="border-color:${coach11819Esc(color)}!important;background:${coach11819Esc(color)}!important"
+          onclick="coach1200SelectLine(${i})">
+          ${coach11819Esc(line.name||`LINE ${i+1}`)}
+          <small>${live?"CURRENT":"SELECT"}</small>
+        </button>`;
+    }).join("");
+
+    bar.innerHTML=`
+      <div class="coach1200Tools">
+        <button type="button" class="coach1200Home" onclick="coach1200GoMainDashboard()">⌂ HOME</button>
+        <button type="button" onclick="coach1200OpenPlayers()">PLAYERS</button>
+        <button type="button" onclick="openLines()">LINES</button>
+      </div>
+      <div class="coach1200Lines">${lineButtons}</div>
+      <div class="coach1200Tools">
+        <button type="button" onclick="coach1200OpenStats()">STATS</button>
+        <button type="button" onclick="coach1200OpenPlaybook()">PLAYBOOK</button>
+      </div>`;
+  }
+
+  function coach1200SelectLine(index){
+    const i=Number(index);
+    if(!Number.isFinite(i) || !lines?.[i]) return;
+
+    if(typeof setLine==="function"){
+      setLine(i);
+    }else{
+      currentLine=i;
+      if(typeof renderAll==="function") renderAll();
+    }
+
+    setTimeout(()=>{
+      coach1200RenderBar();
+      try{
+        const badge=document.getElementById("fullscreenLineBadge");
+        if(badge){
+          badge.textContent=lines?.[currentLine]?.name||`LINE ${currentLine+1}`;
+          badge.style.backgroundColor=coach1200LineColor(lines?.[currentLine],currentLine);
+          badge.style.borderColor=coach1200LineColor(lines?.[currentLine],currentLine);
+        }
+      }catch(e){}
+    },40);
+  }
+
+  function coach1200GoMainDashboard(){
+    document.body.classList.remove("coach1200-game-dashboard");
+    document.getElementById("coach1200DashboardBar")?.remove();
+
+    try{
+      if(typeof setFieldFullscreen==="function") setFieldFullscreen(false);
+    }catch(e){}
+
+    try{
+      const fp=document.getElementById("fivePanelDashboard");
+      if(fp){
+        fp.classList.add("hidden");
+        fp.style.display="";
+      }
+    }catch(e){}
+
+    try{
+      if(typeof showDashboard==="function") showDashboard();
+    }catch(e){}
+  }
+
+  function coach1200OpenPlayers(){
+    if(typeof openModal!=="function") return;
+
+    const list=(Array.isArray(players)?players.slice():[])
+      .sort((a,b)=>Number(a.jersey_number||999)-Number(b.jersey_number||999));
+
+    openModal(`
+      <div class="coach1200PlayersHead">
+        <div><small>GAME DAY DASHBOARD</small><h2>Players</h2></div>
+        <div class="coach1200PlayersActions">
+          <button class="primary" onclick="openPlayerModal(null)">+ ADD PLAYER</button>
+          <button class="secondary" onclick="closeModal()">✕ CLOSE</button>
+        </div>
+      </div>
+      <div class="coach1200PlayersList">
+        ${list.map(p=>{
+          const status=String(p.availability_status||"active").toLowerCase();
+          const off=Array.isArray(p.offense_positions)?p.offense_positions.join("/"):"";
+          const def=Array.isArray(p.defense_positions)?p.defense_positions.join("/"):"";
+          return `
+            <button class="coach1200PlayerRow" onclick="editPlayer('${coach11819Esc(String(p.id))}')">
+              <b>#${coach11819Esc(p.jersey_number??"")}</b>
+              <span>
+                <b>${coach11819Esc(p.name||"Player")}</b>
+                <small>${coach11819Esc([off&&`O:${off}`,def&&`D:${def}`].filter(Boolean).join(" • ")||"No saved positions")}</small>
+              </span>
+              <span class="coach1200Status ${coach11819Esc(status)}">${status==="injured"?"INJ":status==="out"?"OUT":"OK"}</span>
+            </button>`;
+        }).join("")||'<div class="notice">No players loaded.</div>'}
+      </div>`);
+  }
+
+  function coach1200OpenStats(){
+    if(typeof openStats==="function"){
+      openStats();
+      return;
+    }
+    const btn=document.getElementById("statsBtn");
+    if(btn){ btn.click(); return; }
+    alert("Stats could not be opened.");
+  }
+
+  function coach1200OpenPlaybook(){
+    if(typeof openPlaybook==="function"){
+      openPlaybook();
+      return;
+    }
+    const btn=document.getElementById("playbookBtn");
+    if(btn){ btn.click(); return; }
+    alert("Playbook could not be opened.");
+  }
+
+  function coach1200PrepareNativeControls(){
+    const controls=document.querySelector(".fullscreenControls");
+    if(!controls) return;
+
+    const exit=[...controls.querySelectorAll("button")].find(b=>
+      /EXIT FULL SCREEN/i.test(String(b.textContent||""))
+    );
+    if(exit && exit.dataset.coach1200Home!=="1"){
+      exit.dataset.coach1200Home="1";
+      exit.setAttribute("data-coach1200-home","1");
+      exit.textContent="⌂ MAIN DASHBOARD";
+      exit.onclick=null;
+      exit.addEventListener("click",event=>{
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        coach1200GoMainDashboard();
+      },true);
+    }
+  }
+
+  function coach1200InstallSwapPicker(){
+    try{
+      if(typeof coach1196OpenSwapPlayerModal==="function"){
+        window.openReplacePlayerModal=function(positionId){
+          return coach1196OpenSwapPlayerModal(positionId);
+        };
+      }
+    }catch(error){
+      console.warn("120.0 swap picker install:",error);
+    }
+  }
+
+  function coach1200OpenGameDashboard(){
+    const app=document.getElementById("app");
+    if(!app || app.classList.contains("hidden")) return;
+
+    document.body.classList.add("coach1200-game-dashboard");
+
+    const fp=document.getElementById("fivePanelDashboard");
+    if(fp){
+      fp.classList.add("hidden");
+      fp.style.display="none";
+    }
+
+    try{
+      if(typeof setFieldFullscreen==="function"){
+        setFieldFullscreen(true);
+      }else{
+        document.body.classList.add("fieldFullscreen");
+        if(typeof renderField==="function") renderField();
+      }
+    }catch(error){
+      console.error("120.0 fullscreen dashboard:",error);
+    }
+
+    coach1200InstallSwapPicker();
+    coach1200PrepareNativeControls();
+    coach1200RenderBar();
+
+    setTimeout(()=>{
+      coach1200PrepareNativeControls();
+      coach1200RenderBar();
+      try{ if(typeof renderField==="function") renderField(); }catch(e){}
+    },80);
+  }
+
+  function coach1200BindEntryPoints(){
+    if(document.documentElement.dataset.coach1200Bound==="1") return;
+    document.documentElement.dataset.coach1200Bound="1";
+
+    /* Existing 5-panel buttons now mean "Game Day Dashboard". */
+    ["fivePanelBtn","gameDayCard"].forEach(id=>{
+      const el=document.getElementById(id);
+      if(!el) return;
+      el.addEventListener("click",event=>{
+        setTimeout(coach1200OpenGameDashboard,30);
+      },true);
+    });
+
+    /* Preserve the normal main dashboard, but when the app asks to reopen the
+       old five-panel view, show the live field dashboard instead. */
+    try{
+      window.coachShowFivePanel=function(event){
+        event?.preventDefault?.();
+        event?.stopPropagation?.();
+        coach1200OpenGameDashboard();
+      };
+    }catch(e){}
+  }
+
+  window.coach1200OpenGameDashboard=coach1200OpenGameDashboard;
+  window.coach1200GoMainDashboard=coach1200GoMainDashboard;
+  window.coach1200OpenPlayers=coach1200OpenPlayers;
+  window.coach1200OpenStats=coach1200OpenStats;
+  window.coach1200OpenPlaybook=coach1200OpenPlaybook;
+  window.coach1200SelectLine=coach1200SelectLine;
+
   function coach1199CleanupDashboard(){
     const root=document.getElementById("fivePanelDashboard");
     if(!root) return;
@@ -5450,6 +5846,8 @@ window.COACH_UPDATE_VERSION = "119.9";
     coach1198BuildPlays();
     coach1198BindHardControls();
     coach1199CleanupDashboard();
+    coach1200BindEntryPoints();
+    coach1200InstallSwapPicker();
     coach11819BuildPlays();
     coach1190BindPlaysDelegation();
     coach1191BindPlayButtonsGlobal();
@@ -5488,6 +5886,12 @@ window.COACH_UPDATE_VERSION = "119.9";
         coach1198BuildPlays();
         coach1198BindHardControls();
         coach1199CleanupDashboard();
+        coach1200BindEntryPoints();
+        coach1200InstallSwapPicker();
+        if(document.body.classList.contains("coach1200-game-dashboard")){
+          coach1200PrepareNativeControls();
+          coach1200RenderBar();
+        }
         mirrorDashboardField();
       }, 1400);
     }
