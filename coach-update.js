@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v120.0 — LIVE FIELD DASHBOARD
+   v120.1 — CLEAN LIVE FIELD DASHBOARD
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "120.0";
+window.COACH_UPDATE_VERSION = "120.1";
 
 (function () {
   "use strict";
@@ -2756,6 +2756,127 @@ window.COACH_UPDATE_VERSION = "120.0";
         }
       }
 
+
+      /* =========================================================
+         120.1 — CLEAN LIVE FIELD DASHBOARD
+         The native field becomes the screen. Old five-panel chrome disappears.
+         ========================================================= */
+
+      body.coach1200-game-dashboard #fivePanelDashboard{
+        display:none!important;
+        visibility:hidden!important;
+        pointer-events:none!important;
+      }
+
+      /* Hide the old dashboard's duplicated entry/control surfaces. */
+      body.coach1200-game-dashboard #fivePanelBtn,
+      body.coach1200-game-dashboard #fivePanelClose,
+      body.coach1200-game-dashboard #gameStrip,
+      body.coach1200-game-dashboard .gameStrip,
+      body.coach1200-game-dashboard .v102GameStrip{
+        display:none!important;
+      }
+
+      /* Let the proven native live-field layout own the viewport. */
+      body.coach1200-game-dashboard .layout{
+        grid-template-columns:1fr!important;
+      }
+      body.coach1200-game-dashboard .sidebar,
+      body.coach1200-game-dashboard .rightRail{
+        display:none!important;
+      }
+      body.coach1200-game-dashboard .main{
+        width:100%!important;
+        max-width:none!important;
+        min-width:0!important;
+        margin:0!important;
+      }
+
+      /* One compact toolbar across the top. */
+      #coach1200DashboardBar{
+        top:7px!important;
+        bottom:auto!important;
+        left:50%!important;
+        right:auto!important;
+        transform:translateX(-50%)!important;
+        width:min(980px,calc(100vw - 18px))!important;
+        display:grid!important;
+        grid-template-columns:auto minmax(0,1fr) auto!important;
+        gap:7px!important;
+        padding:5px 7px!important;
+        border-radius:7px!important;
+        background:#06162bf2!important;
+        z-index:2147482000!important;
+      }
+
+      #coach1200DashboardBar .coach1200Tools{
+        gap:4px!important;
+      }
+
+      #coach1200DashboardBar .coach1200Lines{
+        gap:4px!important;
+        justify-content:center!important;
+      }
+
+      #coach1200DashboardBar button{
+        min-height:32px!important;
+        padding:4px 8px!important;
+        font-size:8px!important;
+      }
+
+      #coach1200DashboardBar .coach1200LineBtn{
+        min-width:67px!important;
+      }
+
+      /* Field fills the usable area. Do not alter the field's internal geometry. */
+      body.coach1200-game-dashboard.fieldFullscreen .fieldArea{
+        padding-top:43px!important;
+        padding-bottom:55px!important;
+      }
+
+      /* Native bottom controls remain the only game-action footer. */
+      body.coach1200-game-dashboard .fullscreenControls{
+        display:flex!important;
+        z-index:2147481900!important;
+        min-height:50px!important;
+        padding:5px 8px!important;
+        gap:6px!important;
+        background:#030a13f5!important;
+      }
+
+      /* Main Dashboard is a compact exit, not a second dashboard layer. */
+      body.coach1200-game-dashboard .fullscreenControls button[data-coach1200-home]{
+        min-width:auto!important;
+        padding-left:10px!important;
+        padding-right:10px!important;
+      }
+
+      /* No extra "open live field" action once the field IS the dashboard. */
+      body.coach1200-game-dashboard #coach1194OpenLiveField,
+      body.coach1200-game-dashboard .coach1194OpenLiveField,
+      body.coach1200-game-dashboard [data-open-live-field]{
+        display:none!important;
+      }
+
+      @media (orientation:landscape) and (max-height:700px){
+        #coach1200DashboardBar{
+          top:4px!important;
+          padding:4px 6px!important;
+        }
+        #coach1200DashboardBar button{
+          min-height:29px!important;
+          padding:3px 6px!important;
+          font-size:7.5px!important;
+        }
+        #coach1200DashboardBar .coach1200LineBtn{
+          min-width:62px!important;
+        }
+        body.coach1200-game-dashboard.fieldFullscreen .fieldArea{
+          padding-top:38px!important;
+          padding-bottom:49px!important;
+        }
+      }
+
     `;
 
     document.head.appendChild(style);
@@ -5071,7 +5192,6 @@ window.COACH_UPDATE_VERSION = "120.0";
 
     bar.innerHTML=`
       <div class="coach1200Tools">
-        <button type="button" class="coach1200Home" onclick="coach1200GoMainDashboard()">⌂ HOME</button>
         <button type="button" onclick="coach1200OpenPlayers()">PLAYERS</button>
         <button type="button" onclick="openLines()">LINES</button>
       </div>
@@ -5079,6 +5199,7 @@ window.COACH_UPDATE_VERSION = "120.0";
       <div class="coach1200Tools">
         <button type="button" onclick="coach1200OpenStats()">STATS</button>
         <button type="button" onclick="coach1200OpenPlaybook()">PLAYBOOK</button>
+        <button type="button" onclick="coach1201OpenSpecialTeams()">SPECIAL TEAMS</button>
       </div>`;
   }
 
@@ -5159,6 +5280,57 @@ window.COACH_UPDATE_VERSION = "120.0";
       </div>`);
   }
 
+
+  function coach1201OpenSpecialTeams(){
+    try{
+      if(typeof openSpecialTeams==="function"){
+        openSpecialTeams();
+        return;
+      }
+      if(typeof openSpecialTeamsManager==="function"){
+        openSpecialTeamsManager();
+        return;
+      }
+      const btn=document.getElementById("specialTeamsBtn");
+      if(btn){ btn.click(); return; }
+
+      /* Native field already has OFFENSE/DEFENSE + SPECIAL TEAMS tabs.
+         If no manager function exists, activate that proven native control. */
+      const native=[...document.querySelectorAll("button")].find(b=>
+        /SPECIAL TEAMS/i.test(String(b.textContent||"")) &&
+        !b.closest("#coach1200DashboardBar")
+      );
+      if(native){ native.click(); return; }
+    }catch(error){
+      console.error("120.1 special teams:",error);
+    }
+    alert("Special Teams could not be opened.");
+  }
+
+  function coach1201EnforceCleanField(){
+    if(!document.body.classList.contains("coach1200-game-dashboard")) return;
+
+    const fp=document.getElementById("fivePanelDashboard");
+    if(fp){
+      fp.classList.add("hidden");
+      fp.style.setProperty("display","none","important");
+      fp.style.setProperty("visibility","hidden","important");
+      fp.style.setProperty("pointer-events","none","important");
+    }
+
+    /* Fullscreen is the dashboard state; keep native field active. */
+    if(!document.body.classList.contains("fieldFullscreen")){
+      try{
+        if(typeof setFieldFullscreen==="function") setFieldFullscreen(true);
+      }catch(e){}
+    }
+
+    coach1200PrepareNativeControls();
+    coach1200RenderBar();
+  }
+
+  window.coach1201OpenSpecialTeams=coach1201OpenSpecialTeams;
+
   function coach1200OpenStats(){
     if(typeof openStats==="function"){
       openStats();
@@ -5237,10 +5409,12 @@ window.COACH_UPDATE_VERSION = "120.0";
     coach1200InstallSwapPicker();
     coach1200PrepareNativeControls();
     coach1200RenderBar();
+    coach1201EnforceCleanField();
 
     setTimeout(()=>{
       coach1200PrepareNativeControls();
       coach1200RenderBar();
+      coach1201EnforceCleanField();
       try{ if(typeof renderField==="function") renderField(); }catch(e){}
     },80);
   }
@@ -5889,8 +6063,7 @@ window.COACH_UPDATE_VERSION = "120.0";
         coach1200BindEntryPoints();
         coach1200InstallSwapPicker();
         if(document.body.classList.contains("coach1200-game-dashboard")){
-          coach1200PrepareNativeControls();
-          coach1200RenderBar();
+          coach1201EnforceCleanField();
         }
         mirrorDashboardField();
       }, 1400);
