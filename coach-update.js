@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v119.3 — REMOVE GAME STATUS STRIP
+   v119.4 — FIVE-PANEL MAIN HUB
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "119.3";
+window.COACH_UPDATE_VERSION = "119.4";
 
 (function () {
   "use strict";
@@ -1886,6 +1886,184 @@ window.COACH_UPDATE_VERSION = "119.3";
         border:0!important;
       }
 
+
+      /* =========================================================
+         119.4 — FIVE-PANEL MAIN HUB
+         The five-panel dashboard is the Game Day home.
+         ========================================================= */
+
+      body.coach1194-fivehub #fivePanelDashboard:not(.hidden){
+        display:grid!important;
+        height:100dvh!important;
+        max-height:100dvh!important;
+        overflow:hidden!important;
+      }
+
+      /* When the hub is visible, do not show a second copy of the native
+         Game Day screen underneath it. */
+      body.coach1194-fivehub #fivePanelDashboard:not(.hidden) ~ .top,
+      body.coach1194-fivehub #fivePanelDashboard:not(.hidden) ~ .fullscreenControls,
+      body.coach1194-fivehub #fivePanelDashboard:not(.hidden) ~ .layout{
+        display:none!important;
+      }
+
+      #fivePanelDashboard .v114Back{
+        font-weight:1000!important;
+        letter-spacing:.35px!important;
+      }
+
+      /* One consistent action bar for expanded sections. */
+      .coach1194PanelActions{
+        display:flex!important;
+        gap:8px!important;
+        align-items:center!important;
+        justify-content:center!important;
+        padding:8px 10px!important;
+        border-top:1px solid #2c73af!important;
+        background:#04152f!important;
+        position:relative!important;
+        z-index:40!important;
+        pointer-events:auto!important;
+      }
+
+      .coach1194PanelAction{
+        min-height:44px!important;
+        padding:8px 15px!important;
+        border:2px solid #fff!important;
+        border-radius:7px!important;
+        background:#076fc5!important;
+        color:#fff!important;
+        font-size:11px!important;
+        font-weight:1000!important;
+        letter-spacing:.35px!important;
+        touch-action:manipulation!important;
+      }
+
+      /* FIELD: keep the dashboard field as the preview/source of truth.
+         The live/editable field opens only when the coach asks for it. */
+      #v114Field:checked ~ .fivePanelGrid .fivePanel[data-panel="field"]{
+        display:flex!important;
+        flex-direction:column!important;
+        min-height:0!important;
+        overflow:hidden!important;
+      }
+      #v114Field:checked ~ .fivePanelGrid .fivePanel[data-panel="field"] .miniField{
+        flex:1 1 auto!important;
+        min-height:0!important;
+        width:auto!important;
+        max-width:100%!important;
+        margin:6px auto!important;
+      }
+
+      /* PLAYERS: one roster board, editable from the same screen. */
+      #v114Players:checked ~ .fivePanelGrid .fivePanel[data-panel="players"] #fivePlayersPreview,
+      #v114Players:checked ~ .fivePanelGrid .fivePanel[data-panel="players"] .coach11831PlayerSummary{
+        display:none!important;
+      }
+
+      #v114Players:checked ~ .fivePanelGrid .fivePanel[data-panel="players"] .coach1191RosterBoard{
+        display:grid!important;
+        grid-template-columns:1fr 1fr!important;
+        gap:6px!important;
+        padding:8px!important;
+        overflow:auto!important;
+        align-content:start!important;
+      }
+
+      .coach1191RosterRow{
+        grid-template-columns:42px minmax(0,1fr) minmax(120px,1.2fr) 54px 58px!important;
+        min-height:42px!important;
+      }
+
+      .coach1194RosterEdit{
+        min-height:30px!important;
+        padding:4px 7px!important;
+        border:1px solid #9bd4ff!important;
+        border-radius:5px!important;
+        background:#0b4f89!important;
+        color:#fff!important;
+        font-size:8px!important;
+        font-weight:1000!important;
+        touch-action:manipulation!important;
+      }
+
+      /* Shared player editor. */
+      .coach1194EditorHead{
+        display:flex!important;
+        justify-content:space-between!important;
+        align-items:center!important;
+        gap:10px!important;
+        margin-bottom:12px!important;
+      }
+      .coach1194EditorHead h2{margin:0!important;color:#fff!important}
+      .coach1194EditorGrid{
+        display:grid!important;
+        grid-template-columns:130px 1fr!important;
+        gap:9px 12px!important;
+        align-items:center!important;
+      }
+      .coach1194EditorGrid label{
+        color:#bcd8ef!important;
+        font-size:10px!important;
+        font-weight:900!important;
+      }
+      .coach1194EditorGrid input,
+      .coach1194EditorGrid select{
+        width:100%!important;
+        min-height:40px!important;
+        box-sizing:border-box!important;
+        border:1px solid #4a85b8!important;
+        border-radius:6px!important;
+        background:#0b294a!important;
+        color:#fff!important;
+        padding:7px 9px!important;
+        font-size:13px!important;
+        font-weight:800!important;
+      }
+      .coach1194EditorHint{
+        margin-top:10px!important;
+        color:#9ebbd3!important;
+        font-size:9px!important;
+      }
+      .coach1194EditorActions{
+        display:flex!important;
+        justify-content:flex-end!important;
+        gap:8px!important;
+        margin-top:14px!important;
+      }
+
+      /* PLAYS: categories live in Team Playbook now; dashboard only launches
+         the shared playbook and the shared ordered Game Play List. */
+      #fivePanelDashboard .coach11819Plays{
+        grid-template-columns:1fr!important;
+        gap:8px!important;
+      }
+      #fivePanelDashboard .coach11819PlayBtn{
+        min-height:52px!important;
+      }
+
+      /* Avoid duplicate legacy section footers after consolidation. */
+      .coachLinesFooter,
+      .coachStatsFooter,
+      .coachPlaysFooter{
+        display:none!important;
+      }
+
+      @media (orientation:landscape) and (max-height:760px){
+        #fivePanelDashboard .fivePanelTop{
+          min-height:42px!important;
+          padding-top:5px!important;
+          padding-bottom:5px!important;
+        }
+        #fivePanelDashboard .fivePanelLabel{
+          min-height:34px!important;
+          padding:5px 8px!important;
+        }
+        #fivePanelDashboard .coach1194PanelActions{
+          padding:5px 8px!important;
+        }
+      }
+
     `;
 
     document.head.appendChild(style);
@@ -3045,10 +3223,17 @@ window.COACH_UPDATE_VERSION = "119.3";
   function coach1191BuildRosterBoard(){
     const panel=document.querySelector('#fivePanelDashboard .fivePanel[data-panel="players"]');
     if(!panel) return;
+
     let board=panel.querySelector(".coach1191RosterBoard");
-    if(!board){board=document.createElement("div");board.className="coach1191RosterBoard";panel.appendChild(board);}
+    if(!board){
+      board=document.createElement("div");
+      board.className="coach1191RosterBoard";
+      panel.appendChild(board);
+    }
+
     const list=(typeof players!=="undefined"&&Array.isArray(players))?players.slice():[];
     list.sort((a,b)=>Number(a.jersey_number??a.number??9999)-Number(b.jersey_number??b.number??9999));
+
     board.innerHTML=list.map(player=>{
       const num=player.jersey_number??player.number??"";
       const name=player.name||player.full_name||"Player";
@@ -3057,8 +3242,26 @@ window.COACH_UPDATE_VERSION = "119.3";
       const offense=Array.isArray(player.offense_positions)?player.offense_positions.join("/"):"";
       const defense=Array.isArray(player.defense_positions)?player.defense_positions.join("/"):"";
       const pos=[offense&&`O:${offense}`,defense&&`D:${defense}`].filter(Boolean).join("  ")||"—";
-      return `<div class="coach1191RosterRow"><small>#${coach11819Esc(num)}</small><b>${coach11819Esc(name)}</b><small>${coach11819Esc(pos)}</small><span class="coach1191RosterStatus ${status}">${label}</span></div>`;
+      return `
+        <div class="coach1191RosterRow" data-coach1194-player="${coach11819Esc(String(player.id))}">
+          <small>#${coach11819Esc(num)}</small>
+          <b>${coach11819Esc(name)}</b>
+          <small>${coach11819Esc(pos)}</small>
+          <span class="coach1191RosterStatus ${status}">${label}</span>
+          <button type="button" class="coach1194RosterEdit" data-coach1194-edit="${coach11819Esc(String(player.id))}">EDIT</button>
+        </div>`;
     }).join("")||'<div class="notice">No players loaded.</div>';
+
+    if(board.dataset.coach1194Bound!=="1"){
+      board.dataset.coach1194Bound="1";
+      board.addEventListener("click",event=>{
+        const btn=event.target.closest("[data-coach1194-edit]");
+        if(!btn) return;
+        event.preventDefault();
+        event.stopPropagation();
+        coach1194OpenPlayerEditor(btn.dataset.coach1194Edit);
+      });
+    }
   }
 
   function coach1191BindPlayButtonsGlobal(){
@@ -3075,50 +3278,51 @@ window.COACH_UPDATE_VERSION = "119.3";
 
   function bindDashboardSections() {
     const fieldRadio = document.getElementById("v114Field");
-
-    if (fieldRadio && fieldRadio.dataset.coach118 !== "1") {
-      fieldRadio.dataset.coach118 = "1";
-
+    if (fieldRadio && fieldRadio.dataset.coach1194 !== "1") {
+      fieldRadio.dataset.coach1194 = "1";
       fieldRadio.addEventListener("change", function () {
-        if (fieldRadio.checked) {
-          requestAnimationFrame(openFullField);
-        }
+        if (!fieldRadio.checked) return;
+        requestAnimationFrame(function(){
+          coach1191BuildFieldLineBar();
+          mirrorDashboardField();
+          coach1194EnsurePanelActions();
+        });
       });
     }
 
     const playersRadio = document.getElementById("v114Players");
-
-    if (playersRadio && playersRadio.dataset.coach118 !== "1") {
-      playersRadio.dataset.coach118 = "1";
-
+    if (playersRadio && playersRadio.dataset.coach1194 !== "1") {
+      playersRadio.dataset.coach1194 = "1";
       playersRadio.addEventListener("change", function () {
-        if (playersRadio.checked) {
-          requestAnimationFrame(function(){
-            coach1191BuildRosterBoard();
-          });
-        }
+        if (!playersRadio.checked) return;
+        requestAnimationFrame(function(){
+          coach1191BuildRosterBoard();
+          coach1194EnsurePanelActions();
+        });
       });
     }
 
+    ["v114Lines","v114Stats","v114Plays"].forEach(function(id){
+      const radio=document.getElementById(id);
+      if(!radio || radio.dataset.coach1194==="1") return;
+      radio.dataset.coach1194="1";
+      radio.addEventListener("change",function(){
+        if(!radio.checked) return;
+        requestAnimationFrame(coach1194EnsurePanelActions);
+      });
+    });
+
     const modal = document.getElementById("modal");
-
-    if (modal && modal.dataset.coach118 !== "1") {
-      modal.dataset.coach118 = "1";
-
+    if (modal && modal.dataset.coach1194 !== "1") {
+      modal.dataset.coach1194 = "1";
       const observer = new MutationObserver(function () {
-        const appManagedModal =
-          document.body.classList.contains("coach-players-expanded") ||
-          document.body.classList.contains(TOOL_MODE_CLASS);
-
-        if (appManagedModal && modal.classList.contains("hidden")) {
-          showFivePanelDashboard();
-        }
+        if (!modal.classList.contains("hidden")) return;
+        const lineOverlay=document.getElementById("coach1189LineOverlay");
+        if(lineOverlay && !lineOverlay.classList.contains("hidden")) return;
+        if(document.body.classList.contains("coach1194-player-editing")) return;
+        coach1194ShowHubIfGameVisible();
       });
-
-      observer.observe(modal, {
-        attributes: true,
-        attributeFilter: ["class"]
-      });
+      observer.observe(modal,{attributes:true,attributeFilter:["class"]});
     }
   }
 
@@ -3349,6 +3553,9 @@ window.COACH_UPDATE_VERSION = "119.3";
     const panel=document.querySelector('#fivePanelDashboard .fivePanel[data-panel="plays"]');
     if(!panel) return;
 
+    const oldPreview=document.getElementById("fivePlaysPreview");
+    if(oldPreview) oldPreview.style.display="none";
+
     let box=panel.querySelector(".coach11819Plays");
     if(!box){
       box=document.createElement("div");
@@ -3357,18 +3564,18 @@ window.COACH_UPDATE_VERSION = "119.3";
     }
 
     box.innerHTML=`
-      <button type="button" class="coach11819PlayBtn" data-type="PASSING">PASSING</button>
-      <button type="button" class="coach11819PlayBtn" data-type="RUNNING">RUNNING</button>
-      <button type="button" class="coach11819PlayBtn" data-type="KICKING">KICKING</button>
-      <button type="button" class="coach11819PlayBtn gameList" data-game-list="1">GAME PLAY LIST</button>
+      <button type="button" class="coach11819PlayBtn" data-open-team-playbook="1">
+        📘 OPEN TEAM PLAYBOOK
+      </button>
+      <button type="button" class="coach11819PlayBtn gameList" data-game-list="1">
+        GAME PLAY LIST
+      </button>
     `;
 
-    box.querySelectorAll("[data-type]").forEach(btn=>{
-      btn.onclick=event=>{
-        event.preventDefault();
-        event.stopPropagation();
-        coach11819OpenCategory(btn.dataset.type);
-      };
+    box.querySelector("[data-open-team-playbook]")?.addEventListener("click",event=>{
+      event.preventDefault();
+      event.stopPropagation();
+      coach1192OpenPlaybook();
     });
 
     box.querySelector("[data-game-list]")?.addEventListener("click",event=>{
@@ -3880,15 +4087,31 @@ window.COACH_UPDATE_VERSION = "119.3";
 
   function coach1192BindPlayPanel(){
     const panel=document.querySelector('#fivePanelDashboard .fivePanel[data-panel="plays"]');
-    if(!panel || panel.dataset.coach1192Bound==="1") return;
-    panel.dataset.coach1192Bound="1";
+    if(!panel || panel.dataset.coach1194Bound==="1") return;
+    panel.dataset.coach1194Bound="1";
+
     panel.addEventListener("click",event=>{
       const game=event.target.closest("[data-game-list]");
-      if(game){event.preventDefault();event.stopImmediatePropagation();coach11819OpenGameList();return;}
-      const category=event.target.closest("[data-type]");
-      if(category){event.preventDefault();event.stopImmediatePropagation();coach1192OpenPlaybook();return;}
-      if(event.target.closest('.fivePanelLabel,.expandHint,.v114TapLayer')){
-        event.preventDefault();event.stopImmediatePropagation();coach1192OpenPlaybook();
+      if(game){
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        coach11819OpenGameList();
+        return;
+      }
+
+      const playbook=event.target.closest("[data-open-team-playbook]");
+      if(playbook){
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        coach1192OpenPlaybook();
+        return;
+      }
+
+      /* Tapping the PLAY section itself opens the one shared Team Playbook. */
+      if(event.target.closest(".fivePanelLabel,.expandHint,.v114TapLayer")){
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        coach1192OpenPlaybook();
       }
     },true);
   }
@@ -3909,11 +4132,245 @@ window.COACH_UPDATE_VERSION = "119.3";
     coach1192ApplyLineColor();
   }
 
+
+  function coach1194CurrentLineName(){
+    return String(
+      document.querySelector("#lineSelect option:checked")?.textContent ||
+      lines?.[currentLine]?.name ||
+      "LINE"
+    ).trim();
+  }
+
+  function coach1194OpenLiveField(){
+    const name=coach1194CurrentLineName();
+    if(typeof coach1189OpenLineField==="function"){
+      coach1189OpenLineField(name);
+      return;
+    }
+    if(typeof renderField==="function") renderField();
+  }
+
+  function coach1194EnsurePanelActions(){
+    const configs=[
+      ["field","OPEN LIVE FIELD",coach1194OpenLiveField],
+      ["players","MANAGE / ADD PLAYERS",()=>{
+        if(typeof openRosterManager==="function") openRosterManager();
+      }],
+      ["lines","MANAGE LINES",()=>openTool("lines")],
+      ["stats","FULL STATS",()=>openTool("stats")],
+      ["plays","OPEN TEAM PLAYBOOK",()=>coach1192OpenPlaybook()]
+    ];
+
+    configs.forEach(([panelName,label,action])=>{
+      const panel=document.querySelector(`#fivePanelDashboard .fivePanel[data-panel="${panelName}"]`);
+      if(!panel) return;
+
+      let bar=panel.querySelector(".coach1194PanelActions");
+      if(!bar){
+        bar=document.createElement("div");
+        bar.className="coach1194PanelActions";
+        panel.appendChild(bar);
+      }
+
+      if(bar.dataset.coach1194Built==="1") return;
+      bar.dataset.coach1194Built="1";
+
+      const button=document.createElement("button");
+      button.type="button";
+      button.className="coach1194PanelAction";
+      button.textContent=label;
+      button.addEventListener("click",event=>{
+        event.preventDefault();
+        event.stopPropagation();
+        action();
+      });
+      bar.replaceChildren(button);
+    });
+  }
+
+  function coach1194CsvToArray(value){
+    return String(value||"")
+      .split(",")
+      .map(x=>x.trim())
+      .filter(Boolean)
+      .slice(0,3);
+  }
+
+  function coach1194OpenPlayerEditor(playerId){
+    const list=(typeof players!=="undefined"&&Array.isArray(players))?players:[];
+    const player=list.find(p=>String(p.id)===String(playerId));
+    if(!player || typeof openModal!=="function") return;
+
+    const num=player.jersey_number??player.number??"";
+    const name=player.name||player.full_name||"";
+    const status=String(player.availability_status||"active").toLowerCase();
+    const offense=Array.isArray(player.offense_positions)?player.offense_positions.join(", "):"";
+    const defense=Array.isArray(player.defense_positions)?player.defense_positions.join(", "):"";
+
+    document.body.classList.add("coach1194-player-editing");
+
+    openModal(`
+      <div class="coach1194EditorHead">
+        <div><small>PLAYER EDITOR</small><h2>#${coach11819Esc(num)} ${coach11819Esc(name)}</h2></div>
+        <button type="button" class="secondary" data-coach1194-close>✕ CLOSE</button>
+      </div>
+      <div class="coach1194EditorGrid">
+        <label>JERSEY #</label>
+        <input inputmode="numeric" data-coach1194-number value="${coach11819Esc(num)}">
+
+        <label>PLAYER NAME</label>
+        <input data-coach1194-name value="${coach11819Esc(name)}">
+
+        <label>AVAILABILITY</label>
+        <select data-coach1194-status>
+          <option value="active" ${status==="active"?"selected":""}>ACTIVE</option>
+          <option value="injured" ${status==="injured"?"selected":""}>INJURED</option>
+          <option value="out" ${status==="out"?"selected":""}>OUT</option>
+        </select>
+
+        <label>OFFENSE POSITIONS</label>
+        <input data-coach1194-offense value="${coach11819Esc(offense)}" placeholder="QB, F, Y">
+
+        <label>DEFENSE POSITIONS</label>
+        <input data-coach1194-defense value="${coach11819Esc(defense)}" placeholder="S, LE, FC">
+      </div>
+      <div class="coach1194EditorHint">Enter up to three positions on each side, separated by commas.</div>
+      <div class="coach1194EditorActions">
+        <button type="button" class="secondary" data-coach1194-cancel>CANCEL</button>
+        <button type="button" class="primary" data-coach1194-save>SAVE PLAYER</button>
+      </div>
+    `);
+
+    const body=document.getElementById("modalBody");
+    const close=()=>{
+      document.body.classList.remove("coach1194-player-editing");
+      if(typeof closeModal==="function") closeModal();
+      coach1191BuildRosterBoard();
+    };
+
+    body?.querySelector("[data-coach1194-close]")?.addEventListener("click",close);
+    body?.querySelector("[data-coach1194-cancel]")?.addEventListener("click",close);
+
+    body?.querySelector("[data-coach1194-save]")?.addEventListener("click",async event=>{
+      event.preventDefault();
+
+      if(typeof roleCanEdit==="function" && !roleCanEdit()){
+        alert("Coach access is required to edit players.");
+        return;
+      }
+      if(!navigator.onLine){
+        alert("Player roster edits require an internet connection.");
+        return;
+      }
+
+      const numberRaw=String(body.querySelector("[data-coach1194-number]")?.value||"").trim();
+      const nameValue=String(body.querySelector("[data-coach1194-name]")?.value||"").trim();
+      const statusValue=String(body.querySelector("[data-coach1194-status]")?.value||"active");
+      const offenseValue=coach1194CsvToArray(body.querySelector("[data-coach1194-offense]")?.value);
+      const defenseValue=coach1194CsvToArray(body.querySelector("[data-coach1194-defense]")?.value);
+
+      if(!nameValue){
+        alert("Enter the player's name.");
+        return;
+      }
+
+      const jerseyNumber=Number(numberRaw);
+      if(!Number.isFinite(jerseyNumber)){
+        alert("Enter a valid jersey number.");
+        return;
+      }
+
+      const saveBtn=body.querySelector("[data-coach1194-save]");
+      if(saveBtn){saveBtn.disabled=true;saveBtn.textContent="SAVING…";}
+
+      try{
+        const payload={
+          jersey_number:jerseyNumber,
+          name:nameValue,
+          availability_status:statusValue,
+          offense_positions:offenseValue,
+          defense_positions:defenseValue
+        };
+
+        const result=await sb.from("players")
+          .update(payload)
+          .eq("id",player.id)
+          .select()
+          .single();
+
+        if(result.error) throw result.error;
+
+        const index=players.findIndex(p=>String(p.id)===String(player.id));
+        if(index>=0) players[index]={...players[index],...result.data};
+
+        try{
+          if(typeof renderPlayers==="function") renderPlayers();
+          if(typeof renderAll==="function") renderAll();
+          if(typeof saveOfflineSnapshot==="function") saveOfflineSnapshot();
+        }catch{}
+
+        close();
+        coach11831BuildPlayersSummary();
+        mirrorDashboardField();
+      }catch(error){
+        console.error("119.4 save player:",error);
+        alert(error?.message||"Could not save this player.");
+        if(saveBtn){saveBtn.disabled=false;saveBtn.textContent="SAVE PLAYER";}
+      }
+    });
+  }
+
+  function coach1194ShowHubIfGameVisible(){
+    const app=document.getElementById("app");
+    const dashboard=document.getElementById("fivePanelDashboard");
+    if(!app || app.classList.contains("hidden") || !dashboard) return;
+
+    const lineOverlay=document.getElementById("coach1189LineOverlay");
+    if(lineOverlay && !lineOverlay.classList.contains("hidden")) return;
+
+    const modal=document.getElementById("modal");
+    if(modal && !modal.classList.contains("hidden")) return;
+
+    if(document.body.classList.contains("coach-field-expanded") ||
+       document.body.classList.contains("coach-players-expanded") ||
+       document.body.classList.contains(TOOL_MODE_CLASS)) return;
+
+    showFivePanelDashboard();
+  }
+
+  function coach1194BindHub(){
+    document.body.classList.add("coach1194-fivehub");
+
+    const back=document.querySelector("#fivePanelDashboard .v114Back");
+    if(back) back.textContent="← 5-PANEL DASHBOARD";
+
+    const live=document.getElementById("fivePanelClose");
+    if(live && live.dataset.coach1194!=="1"){
+      live.dataset.coach1194="1";
+      live.textContent="LIVE FIELD";
+      live.addEventListener("click",event=>{
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        coach1194OpenLiveField();
+      },true);
+    }
+
+    const app=document.getElementById("app");
+    if(app && app.dataset.coach1194Observed!=="1"){
+      app.dataset.coach1194Observed="1";
+      const observer=new MutationObserver(()=>setTimeout(coach1194ShowHubIfGameVisible,40));
+      observer.observe(app,{attributes:true,attributeFilter:["class"]});
+    }
+
+    coach1194EnsurePanelActions();
+  }
+
   function initialize() {
     installStyles();
     ensureUpdateBadge();
     ensureBackButton();
-    ensureSectionFooters();
+    coach1194BindHub();
+    coach1194EnsurePanelActions();
     coach11819BuildPlays();
     coach1190BindPlaysDelegation();
     coach1191BindPlayButtonsGlobal();
@@ -3944,6 +4401,7 @@ window.COACH_UPDATE_VERSION = "119.3";
         coach1192PatchLineOverlay();
         coach1190BindStatsDelegation();
         coach11812WirePlayerTaps();
+        coach1194EnsurePanelActions();
         mirrorDashboardField();
       }, 1400);
     }
