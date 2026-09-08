@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v119.2 — ALL FIXES REPAIR BUILD
+   v119.3 — REMOVE GAME STATUS STRIP
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "119.2";
+window.COACH_UPDATE_VERSION = "119.3";
 
 (function () {
   "use strict";
@@ -1860,6 +1860,30 @@ window.COACH_UPDATE_VERSION = "119.2";
         width:min(100%,calc((100dvh - 155px) * 1.58))!important;
         height:auto!important;aspect-ratio:1.58/1!important;max-height:calc(100dvh - 155px)!important;
         margin:auto!important;flex:none!important;
+      }
+
+
+      /* =========================================================
+         119.3 — remove unused 8-part game-status controls everywhere
+         QTR / CLOCK / START / POSSESSION / OPPONENT / DRIVE / DOWN / DISTANCE
+         ========================================================= */
+      #gameStrip,
+      .gameStrip,
+      #fivePanelDashboard .v102GameStrip{
+        display:none!important;
+      }
+
+      /* Reclaim the space anywhere those controls previously occupied. */
+      body.coach-field-expanded #gameStrip,
+      body.fieldFullscreen #gameStrip,
+      body.sidelineMode #gameStrip,
+      #coach1189LineOverlay #gameStrip{
+        display:none!important;
+        height:0!important;
+        min-height:0!important;
+        margin:0!important;
+        padding:0!important;
+        border:0!important;
       }
 
     `;
