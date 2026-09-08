@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v119.8 — FIVE-PANEL HARD FIX
+   v119.9 — DASHBOARD CLEANUP
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "119.8";
+window.COACH_UPDATE_VERSION = "119.9";
 
 (function () {
   "use strict";
@@ -2480,6 +2480,100 @@ window.COACH_UPDATE_VERSION = "119.8";
         }
       }
 
+
+      /* =========================================================
+         119.9 — CLEANUP ONLY
+         Preserve the working Field, Play Lines and Playbook behavior.
+         ========================================================= */
+
+      /* PLAYERS: one clean roster list + one management button.
+         Remove the duplicate status/filter controls shown under the roster. */
+      #v114All:checked ~ .fivePanelGrid .fivePanel[data-panel="players"] .coach11831PlayerSummary,
+      #v114All:checked ~ .fivePanelGrid .fivePanel[data-panel="players"] .coach11832RosterFilters,
+      #v114All:checked ~ .fivePanelGrid .fivePanel[data-panel="players"] .coach11839Search,
+      #v114All:checked ~ .fivePanelGrid .fivePanel[data-panel="players"] .expandHint{
+        display:none!important;
+      }
+
+      #v114All:checked ~ .fivePanelGrid .fivePanel[data-panel="players"]{
+        overflow:hidden!important;
+      }
+
+      #v114All:checked ~ .fivePanelGrid .fivePanel[data-panel="players"] .coach1191RosterBoard{
+        flex:1 1 auto!important;
+        min-height:0!important;
+        overflow:auto!important;
+        padding:4px 6px!important;
+      }
+
+      #v114All:checked ~ .fivePanelGrid .fivePanel[data-panel="players"] .coach1191RosterRow{
+        min-height:32px!important;
+        padding:3px 4px!important;
+      }
+
+      /* Hide per-row EDIT buttons on the compact dashboard.
+         The whole player row remains the edit target. */
+      #v114All:checked ~ .fivePanelGrid .fivePanel[data-panel="players"] .coach1194RosterEdit{
+        display:none!important;
+      }
+
+      #v114All:checked ~ .fivePanelGrid .fivePanel[data-panel="players"] .coach1191RosterRow{
+        grid-template-columns:34px minmax(0,1fr) minmax(76px,.8fr) 38px!important;
+      }
+
+      /* STATS: remove old overlapping footer widgets and keep one clear action. */
+      #v114All:checked ~ .fivePanelGrid .fivePanel[data-panel="stats"] .coach11821StatsQuick,
+      #v114All:checked ~ .fivePanelGrid .fivePanel[data-panel="stats"] .coach11826StatsPolish,
+      #v114All:checked ~ .fivePanelGrid .fivePanel[data-panel="stats"] .expandHint{
+        display:none!important;
+      }
+
+      #v114All:checked ~ .fivePanelGrid .fivePanel[data-panel="stats"]{
+        overflow:hidden!important;
+      }
+
+      #v114All:checked ~ .fivePanelGrid .fivePanel[data-panel="stats"] #fiveStatsPreview{
+        flex:1 1 auto!important;
+        min-height:0!important;
+        overflow:hidden!important;
+      }
+
+      /* PLAYS: only the two working 119.8 controls remain visible.
+         Remove duplicate footer/open-playbook controls beneath them. */
+      #fivePanelDashboard .fivePanel[data-panel="plays"] > .coach1194PanelActions,
+      #fivePanelDashboard .fivePanel[data-panel="plays"] > .expandHint{
+        display:none!important;
+      }
+
+      #fivePanelDashboard .fivePanel[data-panel="plays"] .coach1198PlayBox{
+        padding:8px!important;
+        gap:8px!important;
+        height:auto!important;
+        flex:1 1 auto!important;
+      }
+
+      #fivePanelDashboard .fivePanel[data-panel="plays"] .coach1198PlayButton{
+        min-height:44px!important;
+      }
+
+      /* PLAY LINES: keep the working 119.8 four-card layout untouched,
+         but remove the redundant "tap to expand" label. */
+      #fivePanelDashboard .fivePanel[data-panel="lines"] > .expandHint{
+        display:none!important;
+      }
+
+      /* Compact dashboard action bars so the five-panel screen stays balanced. */
+      #v114All:checked ~ .fivePanelGrid .coach1194PanelActions{
+        min-height:36px!important;
+        padding:4px 6px!important;
+      }
+
+      #v114All:checked ~ .fivePanelGrid .coach1194PanelAction{
+        min-height:34px!important;
+        padding:5px 9px!important;
+        font-size:9px!important;
+      }
+
     `;
 
     document.head.appendChild(style);
@@ -4785,6 +4879,26 @@ window.COACH_UPDATE_VERSION = "119.8";
 
 
 
+
+  function coach1199CleanupDashboard(){
+    const root=document.getElementById("fivePanelDashboard");
+    if(!root) return;
+
+    /* Players: make each visible roster row explicitly explain its action. */
+    root.querySelectorAll(".fivePanel[data-panel='players'] .coach1191RosterRow").forEach(row=>{
+      row.setAttribute("title","Tap to edit player");
+      row.setAttribute("aria-label","Edit player");
+    });
+
+    /* Stats: make the existing single dashboard action unambiguous. */
+    const statsAction=root.querySelector(".fivePanel[data-panel='stats'] .coach1194PanelAction");
+    if(statsAction) statsAction.textContent="FULL STATS";
+
+    /* Lines: preserve 119.8 behavior and wording. */
+    const lineAction=root.querySelector(".fivePanel[data-panel='lines'] .coach1194PanelAction");
+    if(lineAction) lineAction.textContent="MANAGE / ADD / DELETE LINES";
+  }
+
   function coach1198OpenRoster(){
     if(typeof openRosterManager==="function"){ openRosterManager(); return; }
     if(typeof openRosterSetup==="function"){ openRosterSetup(); return; }
@@ -5335,6 +5449,7 @@ window.COACH_UPDATE_VERSION = "119.8";
     coach1198BuildLines();
     coach1198BuildPlays();
     coach1198BindHardControls();
+    coach1199CleanupDashboard();
     coach11819BuildPlays();
     coach1190BindPlaysDelegation();
     coach1191BindPlayButtonsGlobal();
@@ -5372,6 +5487,7 @@ window.COACH_UPDATE_VERSION = "119.8";
         coach1198BuildLines();
         coach1198BuildPlays();
         coach1198BindHardControls();
+        coach1199CleanupDashboard();
         mirrorDashboardField();
       }, 1400);
     }
