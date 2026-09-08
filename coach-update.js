@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v120.2 — BOTTOM DASHBOARD BAR
+   v120.4 — MOVE PLAYERS ON FIELD
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "120.2";
+window.COACH_UPDATE_VERSION = "120.4";
 
 (function () {
   "use strict";
@@ -2942,6 +2942,119 @@ window.COACH_UPDATE_VERSION = "120.2";
         }
       }
 
+
+      /* =========================================================
+         120.3 — SEPARATE THE TWO BOTTOM BARS
+         Keep dashboard menu above game controls with a clear gap.
+         ========================================================= */
+
+      body.coach1200-game-dashboard .fullscreenControls{
+        position:fixed!important;
+        left:0!important;
+        right:0!important;
+        bottom:0!important;
+        min-height:54px!important;
+        height:54px!important;
+        margin:0!important;
+        padding:5px 8px!important;
+        display:flex!important;
+        align-items:center!important;
+        gap:6px!important;
+        z-index:2147481900!important;
+      }
+
+      #coach1200DashboardBar{
+        position:fixed!important;
+        top:auto!important;
+        bottom:61px!important;
+        left:50%!important;
+        right:auto!important;
+        transform:translateX(-50%)!important;
+        width:min(1040px,calc(100vw - 18px))!important;
+        min-height:39px!important;
+        margin:0!important;
+        padding:5px 7px!important;
+        z-index:2147482000!important;
+      }
+
+      body.coach1200-game-dashboard .fullscreenLineBadge{
+        position:static!important;
+        flex:0 0 auto!important;
+        margin:0 4px 0 0!important;
+      }
+
+      body.coach1200-game-dashboard .fullscreenControls button{
+        position:static!important;
+        flex:0 0 auto!important;
+        margin:0!important;
+      }
+
+      body.coach1200-game-dashboard.fieldFullscreen .fieldArea{
+        padding-top:2px!important;
+        padding-bottom:108px!important;
+      }
+
+      @media (orientation:landscape) and (max-height:700px){
+        body.coach1200-game-dashboard .fullscreenControls{
+          min-height:49px!important;
+          height:49px!important;
+          padding:4px 6px!important;
+        }
+
+        #coach1200DashboardBar{
+          bottom:55px!important;
+          min-height:35px!important;
+          padding:4px 6px!important;
+        }
+
+        body.coach1200-game-dashboard.fieldFullscreen .fieldArea{
+          padding-bottom:96px!important;
+        }
+      }
+
+
+      /* =========================================================
+         120.4 — MOVE / SWAP PLAYERS DIRECTLY ON THE LIVE FIELD
+         ========================================================= */
+
+      #coach1200DashboardBar .coach1204MoveBtn.active{
+        background:#8a5a00!important;
+        border-color:#ffd34e!important;
+        box-shadow:0 0 0 2px #ffd34e inset!important;
+      }
+
+      body.coach1204-move-mode #field .slot{
+        cursor:pointer!important;
+      }
+
+      body.coach1204-move-mode #field .slot.coach1204-selected{
+        box-shadow:0 0 0 4px #ffd34e,0 0 18px #ffd34e!important;
+        z-index:999!important;
+      }
+
+      #coach1204MoveNotice{
+        position:fixed!important;
+        left:50%!important;
+        bottom:106px!important;
+        transform:translateX(-50%)!important;
+        z-index:2147482500!important;
+        background:#7a5000f2!important;
+        border:2px solid #ffd34e!important;
+        color:#fff!important;
+        border-radius:7px!important;
+        padding:6px 12px!important;
+        font-size:10px!important;
+        font-weight:1000!important;
+        pointer-events:none!important;
+        white-space:nowrap!important;
+      }
+
+      @media (orientation:landscape) and (max-height:700px){
+        #coach1204MoveNotice{
+          bottom:94px!important;
+        }
+      }
+
     `;
 
     document.head.appendChild(style);
@@ -5262,10 +5375,12 @@ window.COACH_UPDATE_VERSION = "120.2";
       </div>
       <div class="coach1200Lines">${lineButtons}</div>
       <div class="coach1200Tools">
+        <button type="button" class="coach1204MoveBtn" onclick="coach1204ToggleMoveMode()">MOVE PLAYERS</button>
         <button type="button" onclick="coach1200OpenStats()">STATS</button>
         <button type="button" onclick="coach1200OpenPlaybook()">PLAYBOOK</button>
         <button type="button" onclick="coach1201OpenSpecialTeams()">SPECIAL TEAMS</button>
       </div>`;
+    bar.querySelectorAll(".coach1204MoveBtn").forEach(b=>b.classList.toggle("active",coach1204MoveMode));
   }
 
   function coach1200SelectLine(index){
@@ -5346,6 +5461,157 @@ window.COACH_UPDATE_VERSION = "120.2";
   }
 
 
+
+  let coach1204MoveMode=false;
+  let coach1204FirstPositionId=null;
+
+  function coach1204Notice(message){
+    let el=document.getElementById("coach1204MoveNotice");
+    if(!message){
+      el?.remove();
+      return;
+    }
+    if(!el){
+      el=document.createElement("div");
+      el.id="coach1204MoveNotice";
+      document.body.appendChild(el);
+    }
+    el.textContent=message;
+  }
+
+  function coach1204ClearSelection(){
+    coach1204FirstPositionId=null;
+    document.querySelectorAll("#field .slot.coach1204-selected")
+      .forEach(el=>el.classList.remove("coach1204-selected"));
+  }
+
+  function coach1204ToggleMoveMode(force){
+    coach1204MoveMode = typeof force==="boolean" ? force : !coach1204MoveMode;
+    coach1204ClearSelection();
+    document.body.classList.toggle("coach1204-move-mode",coach1204MoveMode);
+
+    document.querySelectorAll(".coach1204MoveBtn")
+      .forEach(b=>b.classList.toggle("active",coach1204MoveMode));
+
+    if(coach1204MoveMode){
+      coach1204Notice("MOVE PLAYERS: tap one player, then tap the position to swap with");
+    }else{
+      coach1204Notice("");
+    }
+  }
+
+  function coach1204SlotLabel(slot){
+    if(!slot) return "";
+    for(const node of slot.childNodes){
+      if(node.nodeType===Node.TEXT_NODE && String(node.textContent||"").trim()){
+        return String(node.textContent||"").trim();
+      }
+    }
+    return String(slot.textContent||"").trim().split(/\s+/)[0]||"";
+  }
+
+  function coach1204PositionForSlot(slot){
+    const label=coach1204SlotLabel(slot);
+    if(!label) return null;
+    const side=slot.classList.contains("def") ? "defense" : "offense";
+    return (positions||[]).find(p=>
+      String(p.side)===side &&
+      String(p.label||p.slot_key||"").trim().toUpperCase()===label.toUpperCase()
+    ) || null;
+  }
+
+  function coach1204AssignmentAt(positionId){
+    const line=lines?.[currentLine];
+    if(!line) return null;
+    return (assignments||[]).find(a=>
+      String(a.line_id)===String(line.id) &&
+      String(a.position_label_id)===String(positionId)
+    ) || null;
+  }
+
+  async function coach1204SwapPositions(firstId,secondId){
+    const line=lines?.[currentLine];
+    const first=positions.find(p=>String(p.id)===String(firstId));
+    const second=positions.find(p=>String(p.id)===String(secondId));
+    if(!line||!first||!second) return;
+
+    if(first.side!==second.side){
+      alert("Choose two positions on the same side of the ball.");
+      return;
+    }
+
+    const a=coach1204AssignmentAt(first.id);
+    const b=coach1204AssignmentAt(second.id);
+    const firstPlayer=a?.player_id||"";
+    const secondPlayer=b?.player_id||"";
+
+    try{
+      await assignPlayerDirect(line.id,first.id,"");
+      await assignPlayerDirect(line.id,second.id,"");
+
+      if(secondPlayer) await assignPlayerDirect(line.id,first.id,secondPlayer);
+      if(firstPlayer) await assignPlayerDirect(line.id,second.id,firstPlayer);
+
+      if(navigator.onLine && typeof loadAssignments==="function"){
+        await loadAssignments();
+      }
+
+      if(typeof saveOfflineSnapshot==="function") saveOfflineSnapshot();
+      if(typeof renderField==="function") renderField();
+      if(typeof renderPlayers==="function") renderPlayers();
+
+      coach1204ClearSelection();
+      coach1204Notice("PLAYERS MOVED — tap another player to continue");
+      setTimeout(()=>{
+        if(coach1204MoveMode){
+          coach1204Notice("MOVE PLAYERS: tap one player, then tap the position to swap with");
+        }
+      },1100);
+    }catch(error){
+      console.error("120.4 field swap:",error);
+      coach1204ClearSelection();
+      alert(error?.message||"Could not move these players.");
+    }
+  }
+
+  function coach1204BindFieldMove(){
+    const field=document.getElementById("field");
+    if(!field || field.dataset.coach1204MoveBound==="1") return;
+    field.dataset.coach1204MoveBound="1";
+
+    field.addEventListener("click",event=>{
+      if(!coach1204MoveMode) return;
+      const slot=event.target.closest(".slot");
+      if(!slot) return;
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      const pos=coach1204PositionForSlot(slot);
+      if(!pos){
+        alert("I could not identify that field position.");
+        return;
+      }
+
+      if(!coach1204FirstPositionId){
+        coach1204FirstPositionId=pos.id;
+        slot.classList.add("coach1204-selected");
+        coach1204Notice(`SELECTED ${pos.label} — now tap the position to swap with`);
+        return;
+      }
+
+      if(String(coach1204FirstPositionId)===String(pos.id)){
+        coach1204ClearSelection();
+        coach1204Notice("MOVE PLAYERS: tap one player, then tap the position to swap with");
+        return;
+      }
+
+      coach1204SwapPositions(coach1204FirstPositionId,pos.id);
+    },true);
+  }
+
+  window.coach1204ToggleMoveMode=coach1204ToggleMoveMode;
+
   function coach1201OpenSpecialTeams(){
     try{
       if(typeof openSpecialTeams==="function"){
@@ -5419,6 +5685,7 @@ window.COACH_UPDATE_VERSION = "120.2";
 
     coach1200PrepareNativeControls();
     coach1200RenderBar();
+    coach1204BindFieldMove();
   }
 
   window.coach1201OpenSpecialTeams=coach1201OpenSpecialTeams;
