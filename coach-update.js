@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v120.4 — MOVE PLAYERS ON FIELD
+   v120.5 — FIELD FIT + LINE SPECIAL TEAMS
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "120.4";
+window.COACH_UPDATE_VERSION = "120.5";
 
 (function () {
   "use strict";
@@ -3055,6 +3055,44 @@ window.COACH_UPDATE_VERSION = "120.4";
         }
       }
 
+
+      /* 120.5 — fill field gap + simplified per-line Special Teams */
+      body.coach1200-game-dashboard.fieldFullscreen .fieldArea{
+        padding-top:2px!important;
+        padding-bottom:91px!important;
+        min-height:0!important;
+      }
+      body.coach1200-game-dashboard.fieldFullscreen #field{
+        width:100%!important;
+        max-width:none!important;
+        height:100%!important;
+        min-height:0!important;
+        aspect-ratio:auto!important;
+      }
+      #coach1205SpecialPanel{
+        position:fixed!important;inset:0!important;z-index:2147483000!important;
+        background:#000c!important;display:grid!important;place-items:center!important;padding:14px!important;
+      }
+      #coach1205SpecialPanel .coach1205Card{
+        width:min(860px,96vw)!important;max-height:92dvh!important;overflow:auto!important;
+        background:#092849!important;border:2px solid #58b8f0!important;border-radius:10px!important;
+        padding:14px!important;color:#fff!important;
+      }
+      .coach1205Head{display:flex!important;justify-content:space-between!important;align-items:center!important;gap:10px!important;margin-bottom:10px!important}
+      .coach1205UnitGrid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:9px!important}
+      .coach1205UnitBtn{
+        min-height:62px!important;padding:10px!important;border:2px solid #7bc7f5!important;border-radius:8px!important;
+        background:#0b4f88!important;color:#fff!important;text-align:left!important;font-weight:1000!important;
+      }
+      .coach1205UnitBtn small{display:block!important;margin-top:3px!important;color:#c7e3f7!important;font-size:9px!important}
+      .coach1205ManageRow{display:flex!important;gap:8px!important;flex-wrap:wrap!important;margin-top:12px!important}
+      #coach1205RenamePanel{display:grid!important;gap:7px!important;margin-top:12px!important}
+      .coach1205RenameRow{display:grid!important;grid-template-columns:72px 1fr!important;gap:8px!important;align-items:center!important}
+      .coach1205RenameRow input{min-height:38px!important;background:#071b30!important;color:#fff!important;border:1px solid #5aa7d7!important;border-radius:5px!important;padding:7px!important}
+      @media (orientation:landscape) and (max-height:700px){
+        body.coach1200-game-dashboard.fieldFullscreen .fieldArea{padding-bottom:84px!important}
+      }
+
     `;
 
     document.head.appendChild(style);
@@ -5378,7 +5416,7 @@ window.COACH_UPDATE_VERSION = "120.4";
         <button type="button" class="coach1204MoveBtn" onclick="coach1204ToggleMoveMode()">MOVE PLAYERS</button>
         <button type="button" onclick="coach1200OpenStats()">STATS</button>
         <button type="button" onclick="coach1200OpenPlaybook()">PLAYBOOK</button>
-        <button type="button" onclick="coach1201OpenSpecialTeams()">SPECIAL TEAMS</button>
+        <button type="button" onclick="coach1205OpenSpecialTeams()">SPECIAL TEAMS</button>
       </div>`;
     bar.querySelectorAll(".coach1204MoveBtn").forEach(b=>b.classList.toggle("active",coach1204MoveMode));
   }
@@ -5611,6 +5649,153 @@ window.COACH_UPDATE_VERSION = "120.4";
   }
 
   window.coach1204ToggleMoveMode=coach1204ToggleMoveMode;
+
+
+  const COACH1205_SPECIAL_TYPES = [
+    {key:"kickoff_offense", label:"KICKOFF OFFENSE", base:"Kickoff"},
+    {key:"kickoff_defense", label:"KICKOFF DEFENSE", base:"Kick Return"},
+    {key:"punt_offense", label:"PUNT OFFENSE", base:"Punt"},
+    {key:"punt_defense", label:"PUNT DEFENSE", base:"Punt Return"}
+  ];
+
+  function coach1205CurrentLine(){ return lines?.[currentLine] || null; }
+  function coach1205UnitName(line,type){ return `${line.name} • ${type.label}`; }
+
+  async function coach1205EnsureUnit(line,type){
+    if(!line) return null;
+    if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+    let unit=(specialUnits||[]).find(u=>String(u.name)===coach1205UnitName(line,type));
+    if(unit) return unit;
+    if(!navigator.onLine){ alert("Creating a new Special Teams unit requires an internet connection."); return null; }
+
+    const sort=Math.max(-1,...(specialUnits||[]).map(u=>Number(u.sort_order||0)))+1;
+    const r=await sb.from("special_team_units")
+      .insert({team_id:team.id,name:coach1205UnitName(line,type),sort_order:sort})
+      .select().single();
+    if(r.error){ alert(r.error.message); return null; }
+    unit=r.data;
+
+    const defs=(typeof SPECIAL_DEFAULTS!=="undefined" && SPECIAL_DEFAULTS[type.base]) || [];
+    if(defs.length){
+      const sr=await sb.from("special_team_slots").insert(defs.map((x,i)=>({
+        unit_id:unit.id,slot_key:x[0],label:x[1],x_pct:x[2],y_pct:x[3],sort_order:i
+      })));
+      if(sr.error){ alert(sr.error.message); return null; }
+    }
+    if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+    return (specialUnits||[]).find(u=>String(u.id)===String(unit.id)) || unit;
+  }
+
+  async function coach1205ActivateUnit(typeKey){
+    const line=coach1205CurrentLine();
+    const type=COACH1205_SPECIAL_TYPES.find(t=>t.key===typeKey);
+    if(!line||!type) return;
+    const unit=await coach1205EnsureUnit(line,type);
+    if(!unit) return;
+    if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+
+    const idx=(specialUnits||[]).findIndex(u=>String(u.id)===String(unit.id));
+    if(idx<0) return;
+    currentSpecialUnit=idx;
+    activeView="special";
+    unifiedFieldView=false;
+    editFieldMode=false;
+    if(typeof renderSpecialUnitSelect==="function") renderSpecialUnitSelect();
+    if(typeof renderField==="function") renderField();
+    coach1205CloseSpecialTeams();
+  }
+
+  function coach1205CloseSpecialTeams(){ document.getElementById("coach1205SpecialPanel")?.remove(); }
+
+  function coach1205OpenSpecialTeams(){
+    coach1205CloseSpecialTeams();
+    const line=coach1205CurrentLine();
+    if(!line) return alert("Select a line first.");
+    const panel=document.createElement("div");
+    panel.id="coach1205SpecialPanel";
+    panel.innerHTML=`
+      <div class="coach1205Card">
+        <div class="coach1205Head">
+          <div><small>${coach11819Esc(line.name)}</small><h2>Special Teams</h2></div>
+          <button type="button" class="secondary" onclick="coach1205CloseSpecialTeams()">✕ CLOSE</button>
+        </div>
+        <div class="coach1205UnitGrid">
+          ${COACH1205_SPECIAL_TYPES.map(t=>`
+            <button type="button" class="coach1205UnitBtn" onclick="coach1205ActivateUnit('${t.key}')">
+              ${t.label}<small>${coach11819Esc(line.name)} only</small>
+            </button>`).join("")}
+        </div>
+        <div class="coach1205ManageRow">
+          <button type="button" class="secondary" onclick="coach1205RenameCurrentSpots()">RENAME SPOTS</button>
+          <button type="button" class="secondary" onclick="coach1205MoveCurrentSpots()">MOVE SPOTS</button>
+        </div>
+        <div id="coach1205RenamePanel"></div>
+      </div>`;
+    document.body.appendChild(panel);
+  }
+
+  async function coach1205PickType(message){
+    const n=Number(prompt(`${message}\n1 = Kickoff Offense\n2 = Kickoff Defense\n3 = Punt Offense\n4 = Punt Defense`));
+    return COACH1205_SPECIAL_TYPES[n-1] || null;
+  }
+
+  async function coach1205RenameCurrentSpots(){
+    const line=coach1205CurrentLine(); if(!line) return;
+    const type=await coach1205PickType("Which unit do you want to rename spots for?");
+    if(!type) return;
+    const unit=await coach1205EnsureUnit(line,type); if(!unit) return;
+    if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+    const slots=(specialSlots||[]).filter(s=>String(s.unit_id)===String(unit.id)).sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+    const host=document.getElementById("coach1205RenamePanel"); if(!host) return;
+    host.innerHTML=`
+      <h3>${type.label} — Rename Spots</h3>
+      ${slots.map((s,i)=>`
+        <label class="coach1205RenameRow">
+          <b>${coach11819Esc(s.slot_key||`SPOT ${i+1}`)}</b>
+          <input id="coach1205Spot${i}" value="${coach11819Esc(s.label||s.slot_key||"")}">
+        </label>`).join("")}
+      <div class="coach1205ManageRow">
+        <button type="button" class="primary" onclick="coach1205SaveSpotNames('${coach11819Esc(String(unit.id))}')">SAVE NAMES</button>
+      </div>`;
+  }
+
+  async function coach1205SaveSpotNames(unitId){
+    const slots=(specialSlots||[]).filter(s=>String(s.unit_id)===String(unitId)).sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+    for(let i=0;i<slots.length;i++){
+      const label=document.getElementById(`coach1205Spot${i}`)?.value.trim() || slots[i].slot_key;
+      const r=await sb.from("special_team_slots").update({label}).eq("id",slots[i].id);
+      if(r.error){ alert(r.error.message); return; }
+    }
+    if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+    alert("Spot names saved.");
+    coach1205OpenSpecialTeams();
+  }
+
+  async function coach1205MoveCurrentSpots(){
+    const line=coach1205CurrentLine(); if(!line) return;
+    const type=await coach1205PickType("Which unit do you want to move spots for?");
+    if(!type) return;
+    const unit=await coach1205EnsureUnit(line,type); if(!unit) return;
+    if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+
+    const idx=(specialUnits||[]).findIndex(u=>String(u.id)===String(unit.id));
+    if(idx<0) return;
+    currentSpecialUnit=idx;
+    activeView="special";
+    unifiedFieldView=false;
+    editFieldMode=true;
+    if(typeof renderSpecialUnitSelect==="function") renderSpecialUnitSelect();
+    if(typeof renderField==="function") renderField();
+    coach1205CloseSpecialTeams();
+    alert("MOVE SPOTS is on. Drag the Special Teams spot boxes to new locations. Use the native edit/back control when finished.");
+  }
+
+  window.coach1205OpenSpecialTeams=coach1205OpenSpecialTeams;
+  window.coach1205CloseSpecialTeams=coach1205CloseSpecialTeams;
+  window.coach1205ActivateUnit=coach1205ActivateUnit;
+  window.coach1205RenameCurrentSpots=coach1205RenameCurrentSpots;
+  window.coach1205SaveSpotNames=coach1205SaveSpotNames;
+  window.coach1205MoveCurrentSpots=coach1205MoveCurrentSpots;
 
   function coach1201OpenSpecialTeams(){
     try{
