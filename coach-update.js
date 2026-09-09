@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v120.5 — FIELD FIT + LINE SPECIAL TEAMS
+   v120.6 — SPECIAL TEAMS ACTUAL FIX
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "120.5";
+window.COACH_UPDATE_VERSION = "120.6";
 
 (function () {
   "use strict";
@@ -3093,6 +3093,91 @@ window.COACH_UPDATE_VERSION = "120.5";
         body.coach1200-game-dashboard.fieldFullscreen .fieldArea{padding-bottom:84px!important}
       }
 
+
+      /* =========================================================
+         120.6 — make the native Special Teams screen itself use
+         only the four requested per-line units.
+         ========================================================= */
+
+      /* Fill more of the vertical gap above the menu bars. */
+      body.coach1200-game-dashboard.fieldFullscreen .fieldArea{
+        padding-top:0!important;
+        padding-bottom:82px!important;
+      }
+
+      body.coach1200-game-dashboard.fieldFullscreen #field{
+        height:calc(100dvh - 82px)!important;
+        max-height:calc(100dvh - 82px)!important;
+        width:100%!important;
+        max-width:none!important;
+        aspect-ratio:auto!important;
+      }
+
+      /* Compact tools beside the native Special Teams selector. */
+      #coach1206SpecialTools{
+        display:flex!important;
+        gap:5px!important;
+        align-items:center!important;
+        margin-left:6px!important;
+      }
+
+      #coach1206SpecialTools button{
+        min-height:31px!important;
+        padding:4px 7px!important;
+        border:1px solid #79c9ff!important;
+        border-radius:6px!important;
+        background:#0b4f89!important;
+        color:#fff!important;
+        font-size:8px!important;
+        font-weight:1000!important;
+      }
+
+      #coach1206RenameOverlay{
+        position:fixed!important;
+        inset:0!important;
+        z-index:2147483200!important;
+        background:#000c!important;
+        display:grid!important;
+        place-items:center!important;
+        padding:12px!important;
+      }
+
+      #coach1206RenameOverlay .coach1206RenameCard{
+        width:min(760px,95vw)!important;
+        max-height:90dvh!important;
+        overflow:auto!important;
+        background:#0a294a!important;
+        border:2px solid #64c3ff!important;
+        border-radius:9px!important;
+        padding:14px!important;
+        color:#fff!important;
+      }
+
+      .coach1206RenameList{
+        display:grid!important;
+        grid-template-columns:1fr 1fr!important;
+        gap:8px!important;
+        margin-top:10px!important;
+      }
+
+      .coach1206RenameList label{
+        display:grid!important;
+        grid-template-columns:64px 1fr!important;
+        gap:7px!important;
+        align-items:center!important;
+        font-size:10px!important;
+        font-weight:900!important;
+      }
+
+      .coach1206RenameList input{
+        min-height:38px!important;
+        background:#071b31!important;
+        color:#fff!important;
+        border:1px solid #5aa6d6!important;
+        border-radius:5px!important;
+        padding:7px!important;
+      }
+
     `;
 
     document.head.appendChild(style);
@@ -5416,7 +5501,7 @@ window.COACH_UPDATE_VERSION = "120.5";
         <button type="button" class="coach1204MoveBtn" onclick="coach1204ToggleMoveMode()">MOVE PLAYERS</button>
         <button type="button" onclick="coach1200OpenStats()">STATS</button>
         <button type="button" onclick="coach1200OpenPlaybook()">PLAYBOOK</button>
-        <button type="button" onclick="coach1205OpenSpecialTeams()">SPECIAL TEAMS</button>
+        <button type="button" onclick="coach1201OpenSpecialTeams();setTimeout(coach1206RefreshNativeSpecialSelector,60)">SPECIAL TEAMS</button>
       </div>`;
     bar.querySelectorAll(".coach1204MoveBtn").forEach(b=>b.classList.toggle("active",coach1204MoveMode));
   }
@@ -5650,6 +5735,185 @@ window.COACH_UPDATE_VERSION = "120.5";
 
   window.coach1204ToggleMoveMode=coach1204ToggleMoveMode;
 
+
+
+  const COACH1206_SPECIAL_TYPES = [
+    {key:"kickoff_offense", label:"KICKOFF OFFENSE", base:"Kickoff"},
+    {key:"kickoff_defense", label:"KICKOFF DEFENSE", base:"Kick Return"},
+    {key:"punt_offense", label:"PUNT OFFENSE", base:"Punt"},
+    {key:"punt_defense", label:"PUNT DEFENSE", base:"Punt Return"}
+  ];
+
+  function coach1206CurrentLine(){ return lines?.[currentLine] || null; }
+  function coach1206UnitName(line,type){ return `${line.name} — ${type.label}`; }
+
+  async function coach1206EnsureFourUnits(){
+    const line=coach1206CurrentLine();
+    if(!line) return [];
+    if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+
+    const ensured=[];
+    for(const type of COACH1206_SPECIAL_TYPES){
+      let unit=(specialUnits||[]).find(u=>String(u.name)===coach1206UnitName(line,type));
+      if(!unit && navigator.onLine){
+        const sort=Math.max(-1,...(specialUnits||[]).map(u=>Number(u.sort_order||0)))+1;
+        const r=await sb.from("special_team_units")
+          .insert({team_id:team.id,name:coach1206UnitName(line,type),sort_order:sort})
+          .select().single();
+        if(r.error){ console.error(r.error); continue; }
+        unit=r.data;
+
+        const defs=(typeof SPECIAL_DEFAULTS!=="undefined" && SPECIAL_DEFAULTS[type.base]) || [];
+        if(defs.length){
+          const sr=await sb.from("special_team_slots").insert(defs.map((x,i)=>({
+            unit_id:unit.id,slot_key:x[0],label:x[1],x_pct:x[2],y_pct:x[3],sort_order:i
+          })));
+          if(sr.error) console.error(sr.error);
+        }
+        if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+        unit=(specialUnits||[]).find(u=>String(u.id)===String(unit.id)) || unit;
+      }
+      if(unit) ensured.push({type,unit});
+    }
+    return ensured;
+  }
+
+  async function coach1206RefreshNativeSpecialSelector(){
+    const select=document.getElementById("specialUnitSelect");
+    if(!select) return;
+
+    const line=coach1206CurrentLine();
+    if(!line) return;
+
+    const units=await coach1206EnsureFourUnits();
+    if(!units.length) return;
+
+    const currentId=specialUnits?.[currentSpecialUnit]?.id;
+    let desiredIndex=units.findIndex(x=>String(x.unit.id)===String(currentId));
+    if(desiredIndex<0) desiredIndex=0;
+
+    select.innerHTML=units.map((x,i)=>
+      `<option value="${i}" ${i===desiredIndex?"selected":""}>${x.type.label}</option>`
+    ).join("");
+
+    select.onchange=()=>{
+      const picked=units[Number(select.value)];
+      if(!picked) return;
+      const idx=(specialUnits||[]).findIndex(u=>String(u.id)===String(picked.unit.id));
+      if(idx<0) return;
+      currentSpecialUnit=idx;
+      activeView="special";
+      unifiedFieldView=false;
+      editFieldMode=false;
+      if(typeof renderField==="function") renderField();
+      setTimeout(coach1206RefreshNativeSpecialSelector,30);
+    };
+
+    const selected=units[desiredIndex];
+    if(selected){
+      const idx=(specialUnits||[]).findIndex(u=>String(u.id)===String(selected.unit.id));
+      if(idx>=0 && currentSpecialUnit!==idx){
+        currentSpecialUnit=idx;
+      }
+    }
+
+    coach1206EnsureSpecialTools();
+  }
+
+  function coach1206EnsureSpecialTools(){
+    const select=document.getElementById("specialUnitSelect");
+    if(!select) return;
+    const host=select.parentElement;
+    if(!host) return;
+
+    let tools=document.getElementById("coach1206SpecialTools");
+    if(!tools){
+      tools=document.createElement("div");
+      tools.id="coach1206SpecialTools";
+      tools.innerHTML=`
+        <button type="button" onclick="coach1206RenameSpots()">RENAME SPOTS</button>
+        <button type="button" onclick="coach1206MoveSpots()">MOVE SPOTS</button>`;
+      host.appendChild(tools);
+    }
+  }
+
+  function coach1206CurrentSpecialUnit(){
+    return specialUnits?.[currentSpecialUnit] || null;
+  }
+
+  function coach1206CloseRename(){
+    document.getElementById("coach1206RenameOverlay")?.remove();
+  }
+
+  async function coach1206RenameSpots(){
+    const unit=coach1206CurrentSpecialUnit();
+    if(!unit) return alert("Choose a Special Teams unit first.");
+    if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+
+    const slots=(specialSlots||[])
+      .filter(s=>String(s.unit_id)===String(unit.id))
+      .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+
+    coach1206CloseRename();
+    const overlay=document.createElement("div");
+    overlay.id="coach1206RenameOverlay";
+    overlay.innerHTML=`
+      <div class="coach1206RenameCard">
+        <div class="coach1205Head">
+          <div><small>${coach11819Esc(unit.name)}</small><h2>Rename Spots</h2></div>
+          <button class="secondary" onclick="coach1206CloseRename()">✕ CLOSE</button>
+        </div>
+        <div class="coach1206RenameList">
+          ${slots.map((s,i)=>`
+            <label><b>${coach11819Esc(s.slot_key)}</b>
+              <input id="coach1206Spot${i}" value="${coach11819Esc(s.label||s.slot_key||"")}">
+            </label>`).join("")}
+        </div>
+        <div class="coach1205ManageRow">
+          <button class="primary" onclick="coach1206SaveSpotNames('${coach11819Esc(String(unit.id))}')">SAVE NAMES</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+  }
+
+  async function coach1206SaveSpotNames(unitId){
+    const slots=(specialSlots||[])
+      .filter(s=>String(s.unit_id)===String(unitId))
+      .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+
+    for(let i=0;i<slots.length;i++){
+      const label=document.getElementById(`coach1206Spot${i}`)?.value.trim() || slots[i].slot_key;
+      const r=await sb.from("special_team_slots").update({label}).eq("id",slots[i].id);
+      if(r.error){ alert(r.error.message); return; }
+    }
+
+    if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+    if(typeof renderField==="function") renderField();
+    coach1206CloseRename();
+    setTimeout(coach1206RefreshNativeSpecialSelector,30);
+  }
+
+  function coach1206MoveSpots(){
+    if(activeView!=="special") return alert("Choose a Special Teams unit first.");
+    editFieldMode=true;
+    if(typeof renderField==="function") renderField();
+    alert("MOVE SPOTS is on. Drag any Special Teams spot box to a new location.");
+  }
+
+  function coach1206WatchSpecialMode(){
+    if(!document.body.classList.contains("coach1200-game-dashboard")) return;
+    if(activeView==="special"){
+      coach1206RefreshNativeSpecialSelector();
+    }else{
+      document.getElementById("coach1206SpecialTools")?.remove();
+    }
+  }
+
+  window.coach1206RenameSpots=coach1206RenameSpots;
+  window.coach1206CloseRename=coach1206CloseRename;
+  window.coach1206SaveSpotNames=coach1206SaveSpotNames;
+  window.coach1206MoveSpots=coach1206MoveSpots;
+  window.coach1206RefreshNativeSpecialSelector=coach1206RefreshNativeSpecialSelector;
 
   const COACH1205_SPECIAL_TYPES = [
     {key:"kickoff_offense", label:"KICKOFF OFFENSE", base:"Kickoff"},
@@ -6610,6 +6874,7 @@ window.COACH_UPDATE_VERSION = "120.5";
         coach1200InstallSwapPicker();
         if(document.body.classList.contains("coach1200-game-dashboard")){
           coach1201EnforceCleanField();
+          coach1206WatchSpecialMode();
         }
         mirrorDashboardField();
       }, 1400);
