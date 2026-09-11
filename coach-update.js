@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v120.7 — COMBINED SPECIAL TEAMS
+   v120.8 — COMBINED SPECIAL TEAMS FIX
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "120.7";
+window.COACH_UPDATE_VERSION = "120.8";
 
 (function () {
   "use strict";
@@ -5501,7 +5501,7 @@ window.COACH_UPDATE_VERSION = "120.7";
         <button type="button" class="coach1204MoveBtn" onclick="coach1204ToggleMoveMode()">MOVE PLAYERS</button>
         <button type="button" onclick="coach1200OpenStats()">STATS</button>
         <button type="button" onclick="coach1200OpenPlaybook()">PLAYBOOK</button>
-        <button type="button" onclick="coach1201OpenSpecialTeams();setTimeout(coach1206RefreshNativeSpecialSelector,60)">SPECIAL TEAMS</button>
+        <button type="button" onclick="coach1208OpenSpecialTeams()">SPECIAL TEAMS</button>
       </div>`;
     bar.querySelectorAll(".coach1204MoveBtn").forEach(b=>b.classList.toggle("active",coach1204MoveMode));
   }
@@ -6898,7 +6898,7 @@ window.COACH_UPDATE_VERSION = "120.7";
    Includes line-only Auto Fill, rename spots, move spots, and clean snap.
    ================================================================ */
 (function(){
-  const STYLE_ID_1207='coach-update-1207-combined-special-style';
+  const STYLE_ID_1207='coach-update-1208-combined-special-style';
   if(!document.getElementById(STYLE_ID_1207)){
     const s=document.createElement('style');
     s.id=STYLE_ID_1207;
@@ -7103,5 +7103,169 @@ window.COACH_UPDATE_VERSION = "120.7";
     const b=e.target.closest?.('#coach1200DashboardBar button');
     if(!b||!/SPECIAL TEAMS/i.test(String(b.textContent||'')))return;
     e.preventDefault();e.stopImmediatePropagation();open1207();
+  },true);
+})();
+
+
+/* =========================================================
+   120.8 — force combined Special Teams from BOTH entry points,
+   and auto-fill empty spots from the selected line.
+   ========================================================= */
+(function(){
+  async function get1207UnitsForMode(){
+    const rootApi=window;
+    // 120.7 owns the combined UI; opening it creates the two units if needed.
+    // We use the loaded globals to find the visible pair after open.
+    const line=lines?.[currentLine];
+    if(!line) return [];
+    const labels = window.coach1208Mode==="punt"
+      ? ["PUNT OFFENSE","PUNT DEFENSE"]
+      : ["KICKOFF OFFENSE","KICKOFF DEFENSE"];
+
+    if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+
+    const units=[];
+    for(const label of labels){
+      let unit=(specialUnits||[]).find(u=>{
+        const n=String(u.name||"");
+        return (n===`${line.name} — ${label}` || n===`${line.name} • ${label}`);
+      });
+      units.push(unit||null);
+    }
+    return units;
+  }
+
+  function linePlayers1208(side){
+    const line=lines?.[currentLine];
+    if(!line) return [];
+    const posIds=new Set((positions||[]).filter(p=>p.side===side).map(p=>String(p.id)));
+    const otherIds=new Set((positions||[]).filter(p=>p.side!=="special" && p.side!==side).map(p=>String(p.id)));
+
+    const first=(assignments||[])
+      .filter(a=>String(a.line_id)===String(line.id) && posIds.has(String(a.position_label_id)))
+      .map(a=>players.find(p=>String(p.id)===String(a.player_id)))
+      .filter(Boolean);
+
+    const second=(assignments||[])
+      .filter(a=>String(a.line_id)===String(line.id) && otherIds.has(String(a.position_label_id)))
+      .map(a=>players.find(p=>String(p.id)===String(a.player_id)))
+      .filter(Boolean);
+
+    const seen=new Set(), out=[];
+    [...first,...second].forEach(p=>{
+      if(!p || seen.has(String(p.id))) return;
+      seen.add(String(p.id));
+      out.push(p);
+    });
+    return out;
+  }
+
+  async function fillEmptyUnit1208(unit,side){
+    if(!unit) return;
+    if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+
+    const slots=(specialSlots||[])
+      .filter(s=>String(s.unit_id)===String(unit.id))
+      .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+
+    const ua=(specialAssignments||[]).filter(a=>String(a.unit_id)===String(unit.id));
+    const used=new Set(ua.map(a=>String(a.player_id)));
+    const pool=linePlayers1208(side).filter(p=>!used.has(String(p.id)));
+
+    let pi=0;
+    for(const slot of slots){
+      const existing=ua.find(a=>String(a.slot_id)===String(slot.id));
+      if(existing) continue;
+      const p=pool[pi++];
+      if(!p) break;
+      const r=await sb.from("special_team_assignments").insert({
+        unit_id:unit.id,
+        slot_id:slot.id,
+        player_id:p.id
+      });
+      if(r.error) console.error("120.8 auto fill:",r.error);
+    }
+  }
+
+  async function autoFillVisiblePair1208(){
+    if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+    const units=await get1207UnitsForMode();
+    if(units[0]) await fillEmptyUnit1208(units[0],"offense");
+    if(units[1]) await fillEmptyUnit1208(units[1],"defense");
+    if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+  }
+
+  async function open1208(){
+    window.coach1208Mode=window.coach1208Mode||"kickoff";
+
+    // Open the actual combined 120.7 overlay.
+    if(typeof window.coach1207OpenSpecialTeams==="function"){
+      await window.coach1207OpenSpecialTeams();
+    }else{
+      alert("Combined Special Teams could not be opened.");
+      return;
+    }
+
+    // Let unit creation/render finish, then auto-fill EMPTY spots only.
+    setTimeout(async()=>{
+      try{
+        await autoFillVisiblePair1208();
+        if(typeof window.coach1207OpenSpecialTeams==="function"){
+          // re-render so the player names appear immediately
+          const existing=document.getElementById("coach1207SpecialDashboard");
+          if(existing){
+            await window.coach1207OpenSpecialTeams();
+          }
+        }
+      }catch(e){ console.error("120.8 auto-fill open:",e); }
+    },180);
+  }
+
+  async function setMode1208(mode){
+    window.coach1208Mode=mode;
+    if(typeof window.coach1207SetMode==="function"){
+      window.coach1207SetMode(mode);
+    }
+    setTimeout(async()=>{
+      try{
+        await autoFillVisiblePair1208();
+        // force a fresh render of the chosen pair
+        if(typeof window.coach1207SetMode==="function"){
+          window.coach1207SetMode(mode);
+        }
+      }catch(e){console.error("120.8 auto-fill mode:",e);}
+    },160);
+  }
+
+  window.coach1208OpenSpecialTeams=open1208;
+  window.coach1208SetMode=setMode1208;
+
+  // Force BOTH Special Teams entry points into the combined page:
+  // 1) bottom dashboard menu, 2) native top SPECIAL TEAMS tab.
+  document.addEventListener("click",function(e){
+    const nativeTab=e.target.closest?.("#specialTab");
+    const dashboardBtn=e.target.closest?.("#coach1200DashboardBar button");
+    const isDashboardSpecial=dashboardBtn && /SPECIAL TEAMS/i.test(String(dashboardBtn.textContent||""));
+
+    if(!nativeTab && !isDashboardSpecial) return;
+
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    open1208();
+  },true);
+
+  // Intercept KICKOFF/PUNT buttons inside combined overlay so auto-fill happens
+  // automatically when the coach switches between the two pairs.
+  document.addEventListener("click",function(e){
+    const root=e.target.closest?.("#coach1207SpecialDashboard");
+    if(!root) return;
+    const b=e.target.closest?.("button");
+    if(!b) return;
+    const t=String(b.textContent||"").trim().toUpperCase();
+    if(t==="KICKOFF"){
+      e.preventDefault(); e.stopImmediatePropagation(); setMode1208("kickoff");
+    }else if(t==="PUNT"){
+      e.preventDefault(); e.stopImmediatePropagation(); setMode1208("punt");
+    }
   },true);
 })();
