@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v120.8 — COMBINED SPECIAL TEAMS FIX
+   v120.9 — SINGLE FIELD SPECIAL TEAMS
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "120.8";
+window.COACH_UPDATE_VERSION = "120.9";
 
 (function () {
   "use strict";
@@ -3178,6 +3178,191 @@ window.COACH_UPDATE_VERSION = "120.8";
         padding:7px!important;
       }
 
+
+      /* =========================================================
+         120.9 — SPECIAL TEAMS MIMICS THE NORMAL COMBINED FIELD
+         One full field: offense on top, defense on bottom.
+         ========================================================= */
+
+      #coach1209SpecialDashboard{
+        position:fixed!important;
+        inset:0!important;
+        z-index:2147483500!important;
+        display:grid!important;
+        grid-template-rows:auto 1fr!important;
+        background:#03101e!important;
+        color:#fff!important;
+      }
+
+      .coach1209Top{
+        display:flex!important;
+        justify-content:space-between!important;
+        align-items:center!important;
+        gap:8px!important;
+        padding:6px 8px!important;
+        background:#071b32!important;
+        border-bottom:1px solid #4a83ad!important;
+      }
+
+      .coach1209TopLeft,
+      .coach1209TopRight{
+        display:flex!important;
+        align-items:center!important;
+        gap:6px!important;
+        flex-wrap:wrap!important;
+      }
+
+      .coach1209Top button{
+        min-height:32px!important;
+        padding:4px 8px!important;
+        border:1px solid #79bde9!important;
+        border-radius:6px!important;
+        background:#0a4f89!important;
+        color:#fff!important;
+        font-size:9px!important;
+        font-weight:1000!important;
+      }
+
+      .coach1209Top button.active{
+        background:#1482d5!important;
+        box-shadow:0 0 0 2px #fff inset!important;
+      }
+
+      .coach1209Field{
+        position:relative!important;
+        min-height:0!important;
+        overflow:hidden!important;
+        background:
+          linear-gradient(to bottom,rgba(255,255,255,.2) 1px,transparent 1px) 0 0/100% 10%,
+          linear-gradient(90deg,transparent 49.8%,rgba(255,255,255,.22) 49.8% 50.2%,transparent 50.2%),
+          #16923a!important;
+        border:2px solid #e7eee2!important;
+      }
+
+      .coach1209Field:before{
+        content:""!important;
+        position:absolute!important;
+        left:0!important;
+        right:0!important;
+        top:50%!important;
+        height:4px!important;
+        background:#e6eee3!important;
+        z-index:1!important;
+      }
+
+      .coach1209FieldLabel{
+        position:absolute!important;
+        left:50%!important;
+        transform:translateX(-50%)!important;
+        z-index:5!important;
+        padding:3px 12px!important;
+        border-radius:5px!important;
+        font-size:9px!important;
+        font-weight:1000!important;
+        letter-spacing:.4px!important;
+      }
+
+      .coach1209FieldLabel.offense{
+        top:7px!important;
+        background:#b82c28!important;
+      }
+
+      .coach1209FieldLabel.defense{
+        top:calc(50% + 7px)!important;
+        background:#1768c8!important;
+      }
+
+      .coach1209Spot{
+        position:absolute!important;
+        transform:translate(-50%,-50%)!important;
+        min-width:66px!important;
+        min-height:44px!important;
+        padding:5px 6px!important;
+        border:2px solid #e43b32!important;
+        border-radius:6px!important;
+        background:#090d12ed!important;
+        color:#fff!important;
+        text-align:center!important;
+        font-size:9px!important;
+        font-weight:1000!important;
+        z-index:4!important;
+        touch-action:none!important;
+        user-select:none!important;
+      }
+
+      .coach1209Spot.defense{
+        border-color:#1493ff!important;
+      }
+
+      .coach1209Spot small{
+        display:block!important;
+        color:#cbd5e1!important;
+        font-size:7px!important;
+        margin-top:2px!important;
+      }
+
+      .coach1209Spot.moveMode{
+        box-shadow:0 0 0 3px #ffd34e!important;
+        cursor:move!important;
+      }
+
+      .coach1209Hint{
+        position:absolute!important;
+        left:8px!important;
+        bottom:6px!important;
+        z-index:6!important;
+        font-size:8px!important;
+        color:#d5e7f4!important;
+        background:#05111dcc!important;
+        padding:3px 6px!important;
+        border-radius:4px!important;
+      }
+
+      .coach1209RenameOverlay{
+        position:fixed!important;
+        inset:0!important;
+        z-index:2147483600!important;
+        background:#000c!important;
+        display:grid!important;
+        place-items:center!important;
+        padding:12px!important;
+      }
+
+      .coach1209RenameCard{
+        width:min(780px,95vw)!important;
+        max-height:90dvh!important;
+        overflow:auto!important;
+        background:#0a294a!important;
+        border:2px solid #64c3ff!important;
+        border-radius:9px!important;
+        padding:14px!important;
+      }
+
+      .coach1209RenameGrid{
+        display:grid!important;
+        grid-template-columns:1fr 1fr!important;
+        gap:8px!important;
+        margin-top:10px!important;
+      }
+
+      .coach1209RenameGrid label{
+        display:grid!important;
+        grid-template-columns:70px 1fr!important;
+        gap:7px!important;
+        align-items:center!important;
+        font-size:9px!important;
+        font-weight:900!important;
+      }
+
+      .coach1209RenameGrid input{
+        min-height:36px!important;
+        background:#071b31!important;
+        color:#fff!important;
+        border:1px solid #5aa6d6!important;
+        border-radius:5px!important;
+        padding:6px!important;
+      }
+
     `;
 
     document.head.appendChild(style);
@@ -5501,7 +5686,7 @@ window.COACH_UPDATE_VERSION = "120.8";
         <button type="button" class="coach1204MoveBtn" onclick="coach1204ToggleMoveMode()">MOVE PLAYERS</button>
         <button type="button" onclick="coach1200OpenStats()">STATS</button>
         <button type="button" onclick="coach1200OpenPlaybook()">PLAYBOOK</button>
-        <button type="button" onclick="coach1208OpenSpecialTeams()">SPECIAL TEAMS</button>
+        <button type="button" onclick="coach1209OpenSpecialTeams()">SPECIAL TEAMS</button>
       </div>`;
     bar.querySelectorAll(".coach1204MoveBtn").forEach(b=>b.classList.toggle("active",coach1204MoveMode));
   }
@@ -6898,7 +7083,7 @@ window.COACH_UPDATE_VERSION = "120.8";
    Includes line-only Auto Fill, rename spots, move spots, and clean snap.
    ================================================================ */
 (function(){
-  const STYLE_ID_1207='coach-update-1208-combined-special-style';
+  const STYLE_ID_1207='coach-update-1209-combined-special-style';
   if(!document.getElementById(STYLE_ID_1207)){
     const s=document.createElement('style');
     s.id=STYLE_ID_1207;
@@ -7267,5 +7452,326 @@ window.COACH_UPDATE_VERSION = "120.8";
     }else if(t==="PUNT"){
       e.preventDefault(); e.stopImmediatePropagation(); setMode1208("punt");
     }
+  },true);
+})();
+
+
+/* =========================================================
+   120.9 — single-field Special Teams, matching normal field view.
+   ========================================================= */
+(function(){
+  const TYPES={
+    kickoff:{
+      offense:{label:"KICKOFF OFFENSE",base:"Kickoff"},
+      defense:{label:"KICKOFF DEFENSE",base:"Kick Return"}
+    },
+    punt:{
+      offense:{label:"PUNT OFFENSE",base:"Punt"},
+      defense:{label:"PUNT DEFENSE",base:"Punt Return"}
+    }
+  };
+
+  let mode="kickoff";
+  let moveMode=false;
+
+  function line(){ return lines?.[currentLine]||null; }
+  function unitName(type){ const l=line(); return l?`${l.name} — ${type.label}`:""; }
+
+  async function ensureUnit(type){
+    const l=line(); if(!l) return null;
+    if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+
+    let u=(specialUnits||[]).find(x=>{
+      const n=String(x.name||"");
+      return n===unitName(type) || n===`${l.name} • ${type.label}`;
+    });
+    if(u) return u;
+    if(!navigator.onLine) return null;
+
+    const sort=Math.max(-1,...(specialUnits||[]).map(x=>Number(x.sort_order||0)))+1;
+    const r=await sb.from("special_team_units")
+      .insert({team_id:team.id,name:unitName(type),sort_order:sort})
+      .select().single();
+    if(r.error){ alert(r.error.message); return null; }
+    u=r.data;
+
+    const defs=(typeof SPECIAL_DEFAULTS!=="undefined" && SPECIAL_DEFAULTS[type.base])||[];
+    if(defs.length){
+      const sr=await sb.from("special_team_slots").insert(defs.map((x,i)=>({
+        unit_id:u.id,slot_key:x[0],label:x[1],x_pct:x[2],y_pct:x[3],sort_order:i
+      })));
+      if(sr.error){ alert(sr.error.message); return null; }
+    }
+    if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+    return (specialUnits||[]).find(x=>String(x.id)===String(u.id))||u;
+  }
+
+  function linePool(side){
+    const l=line(); if(!l) return [];
+    const ids=new Set((positions||[]).filter(p=>p.side===side).map(p=>String(p.id)));
+    const otherIds=new Set((positions||[]).filter(p=>p.side!==side && p.side!=="special").map(p=>String(p.id)));
+
+    const preferred=(assignments||[])
+      .filter(a=>String(a.line_id)===String(l.id) && ids.has(String(a.position_label_id)))
+      .map(a=>players.find(p=>String(p.id)===String(a.player_id)))
+      .filter(Boolean);
+
+    const fallback=(assignments||[])
+      .filter(a=>String(a.line_id)===String(l.id) && otherIds.has(String(a.position_label_id)))
+      .map(a=>players.find(p=>String(p.id)===String(a.player_id)))
+      .filter(Boolean);
+
+    const seen=new Set(), out=[];
+    [...preferred,...fallback].forEach(p=>{
+      if(seen.has(String(p.id))) return;
+      seen.add(String(p.id)); out.push(p);
+    });
+    return out;
+  }
+
+  async function fillEmpty(unit,side){
+    if(!unit) return;
+    if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+    const slots=(specialSlots||[]).filter(s=>String(s.unit_id)===String(unit.id))
+      .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+    const ua=(specialAssignments||[]).filter(a=>String(a.unit_id)===String(unit.id));
+    const used=new Set(ua.map(a=>String(a.player_id)));
+    const pool=linePool(side).filter(p=>!used.has(String(p.id)));
+    let pi=0;
+    for(const slot of slots){
+      if(ua.some(a=>String(a.slot_id)===String(slot.id))) continue;
+      const p=pool[pi++]; if(!p) break;
+      const r=await sb.from("special_team_assignments").insert({
+        unit_id:unit.id,slot_id:slot.id,player_id:p.id
+      });
+      if(r.error) console.error(r.error);
+    }
+  }
+
+  function assignmentMap(unitId){
+    const map=new Map();
+    (specialAssignments||[]).filter(a=>String(a.unit_id)===String(unitId)).forEach(a=>{
+      map.set(String(a.slot_id),players.find(p=>String(p.id)===String(a.player_id)));
+    });
+    return map;
+  }
+
+  // Convert unit-local 0-100 Y into top-half / bottom-half coordinates.
+  function yFor(side,y){
+    const yy=Math.max(4,Math.min(96,Number(y)||50));
+    return side==="offense" ? 5 + yy*0.43 : 52 + yy*0.43;
+  }
+
+  function spotHtml(slot,player,side){
+    return `<button type="button"
+      class="coach1209Spot ${side==="defense"?"defense":""} ${moveMode?"moveMode":""}"
+      data-slot-id="${coach11819Esc(String(slot.id))}"
+      data-unit-id="${coach11819Esc(String(slot.unit_id))}"
+      data-side="${side}"
+      style="left:${Number(slot.x_pct)}%;top:${yFor(side,slot.y_pct)}%">
+      ${coach11819Esc(slot.label||slot.slot_key||"SPOT")}
+      <small>${player?coach11819Esc(player.name||"PLAYER"):"OPEN"}</small>
+    </button>`;
+  }
+
+  async function render(){
+    const root=document.getElementById("coach1209SpecialDashboard");
+    if(!root) return;
+    const l=line(); if(!l) return;
+
+    const pair=TYPES[mode];
+    const off=await ensureUnit(pair.offense);
+    const def=await ensureUnit(pair.defense);
+    if(!off||!def) return;
+
+    await fillEmpty(off,"offense");
+    await fillEmpty(def,"defense");
+    if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+
+    const offSlots=(specialSlots||[]).filter(s=>String(s.unit_id)===String(off.id))
+      .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+    const defSlots=(specialSlots||[]).filter(s=>String(s.unit_id)===String(def.id))
+      .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+
+    const offMap=assignmentMap(off.id), defMap=assignmentMap(def.id);
+
+    root.innerHTML=`
+      <div class="coach1209Top">
+        <div class="coach1209TopLeft">
+          <b>${coach11819Esc(l.name)} — SPECIAL TEAMS</b>
+          <button class="${mode==="kickoff"?"active":""}" onclick="coach1209SetMode('kickoff')">KICKOFF</button>
+          <button class="${mode==="punt"?"active":""}" onclick="coach1209SetMode('punt')">PUNT</button>
+        </div>
+        <div class="coach1209TopRight">
+          <button onclick="coach1209AutoFill()">AUTO FILL FROM ${coach11819Esc(l.name.toUpperCase())}</button>
+          <button class="${moveMode?"active":""}" onclick="coach1209ToggleMove()">MOVE SPOTS</button>
+          <button onclick="coach1209Rename()">RENAME SPOTS</button>
+          <button onclick="coach1209Close()">✕ CLOSE</button>
+        </div>
+      </div>
+      <div class="coach1209Field">
+        <div class="coach1209FieldLabel offense">${coach11819Esc(pair.offense.label)}</div>
+        <div class="coach1209FieldLabel defense">${coach11819Esc(pair.defense.label)}</div>
+        ${offSlots.map(s=>spotHtml(s,offMap.get(String(s.id)),"offense")).join("")}
+        ${defSlots.map(s=>spotHtml(s,defMap.get(String(s.id)),"defense")).join("")}
+        <div class="coach1209Hint">${moveMode?"Drag any spot to reposition it.":"Tap MOVE SPOTS to rearrange. Empty spots auto-fill from the selected line."}</div>
+      </div>`;
+
+    bindDrag();
+  }
+
+  async function autoFill(){
+    const pair=TYPES[mode];
+    const off=await ensureUnit(pair.offense);
+    const def=await ensureUnit(pair.defense);
+    if(!off||!def) return;
+    // Explicit auto-fill resets these two units using selected line players.
+    for(const unit of [off,def]){
+      await sb.from("special_team_assignments").delete().eq("unit_id",unit.id);
+    }
+    if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+    await fillEmpty(off,"offense");
+    await fillEmpty(def,"defense");
+    await render();
+  }
+
+  function bindDrag(){
+    if(!moveMode) return;
+    document.querySelectorAll("#coach1209SpecialDashboard .coach1209Spot").forEach(spot=>{
+      const field=spot.closest(".coach1209Field");
+      if(!field) return;
+      let dragging=false;
+
+      const move=e=>{
+        if(!dragging) return;
+        const rect=field.getBoundingClientRect();
+        const px=e.touches?.[0]?.clientX ?? e.clientX;
+        const py=e.touches?.[0]?.clientY ?? e.clientY;
+        const x=Math.max(3,Math.min(97,(px-rect.left)/rect.width*100));
+        const overallY=Math.max(4,Math.min(96,(py-rect.top)/rect.height*100));
+        const side=spot.dataset.side;
+        const localY=side==="offense"
+          ? Math.max(0,Math.min(100,(overallY-5)/0.43))
+          : Math.max(0,Math.min(100,(overallY-52)/0.43));
+        spot.style.left=x+"%";
+        spot.style.top=overallY+"%";
+        spot.dataset.x=x;
+        spot.dataset.localY=localY;
+        e.preventDefault();
+      };
+
+      const end=async()=>{
+        if(!dragging) return;
+        dragging=false;
+        document.removeEventListener("mousemove",move,true);
+        document.removeEventListener("mouseup",end,true);
+        document.removeEventListener("touchmove",move,true);
+        document.removeEventListener("touchend",end,true);
+
+        const id=spot.dataset.slotId;
+        const x=Number(spot.dataset.x||parseFloat(spot.style.left));
+        const y=Number(spot.dataset.localY);
+        if(id && Number.isFinite(x) && Number.isFinite(y)){
+          const r=await sb.from("special_team_slots").update({x_pct:x,y_pct:y}).eq("id",id);
+          if(r.error) alert(r.error.message);
+          if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+        }
+      };
+
+      const start=e=>{
+        dragging=true;
+        document.addEventListener("mousemove",move,true);
+        document.addEventListener("mouseup",end,true);
+        document.addEventListener("touchmove",move,{capture:true,passive:false});
+        document.addEventListener("touchend",end,true);
+        e.preventDefault(); e.stopPropagation();
+      };
+
+      spot.addEventListener("mousedown",start,true);
+      spot.addEventListener("touchstart",start,{capture:true,passive:false});
+    });
+  }
+
+  async function rename(){
+    const pair=TYPES[mode];
+    const off=await ensureUnit(pair.offense), def=await ensureUnit(pair.defense);
+    if(!off||!def) return;
+    if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+
+    const groups=[{label:pair.offense.label,unit:off},{label:pair.defense.label,unit:def}];
+    document.querySelector(".coach1209RenameOverlay")?.remove();
+
+    const overlay=document.createElement("div");
+    overlay.className="coach1209RenameOverlay";
+    overlay.innerHTML=`
+      <div class="coach1209RenameCard">
+        <div class="coach1209Top">
+          <b>RENAME ${coach11819Esc(mode.toUpperCase())} SPOTS</b>
+          <button onclick="document.querySelector('.coach1209RenameOverlay')?.remove()">✕ CLOSE</button>
+        </div>
+        <div class="coach1209RenameGrid">
+          ${groups.map(g=>{
+            const slots=(specialSlots||[]).filter(s=>String(s.unit_id)===String(g.unit.id))
+              .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+            return slots.map(s=>`
+              <label>
+                <b>${coach11819Esc(s.slot_key||"SPOT")}</b>
+                <input data-slot-id="${coach11819Esc(String(s.id))}" value="${coach11819Esc(s.label||s.slot_key||"")}">
+              </label>`).join("");
+          }).join("")}
+        </div>
+        <div class="coach1209TopRight" style="margin-top:12px">
+          <button onclick="coach1209SaveRename()">SAVE NAMES</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+  }
+
+  async function saveRename(){
+    for(const input of document.querySelectorAll(".coach1209RenameOverlay input[data-slot-id]")){
+      const r=await sb.from("special_team_slots")
+        .update({label:input.value.trim()||"SPOT"})
+        .eq("id",input.dataset.slotId);
+      if(r.error){ alert(r.error.message); return; }
+    }
+    if(typeof loadSpecialTeams==="function") await loadSpecialTeams();
+    document.querySelector(".coach1209RenameOverlay")?.remove();
+    await render();
+  }
+
+  async function open(){
+    close();
+    const l=line(); if(!l) return alert("Select a line first.");
+    const root=document.createElement("div");
+    root.id="coach1209SpecialDashboard";
+    root.innerHTML='<div style="display:grid;place-items:center">Loading Special Teams…</div>';
+    document.body.appendChild(root);
+    await render();
+  }
+
+  function close(){
+    document.getElementById("coach1209SpecialDashboard")?.remove();
+    moveMode=false;
+  }
+
+  function setMode(m){ if(!TYPES[m]) return; mode=m; moveMode=false; render(); }
+  function toggleMove(){ moveMode=!moveMode; render(); }
+
+  window.coach1209OpenSpecialTeams=open;
+  window.coach1209Close=close;
+  window.coach1209SetMode=setMode;
+  window.coach1209ToggleMove=toggleMove;
+  window.coach1209AutoFill=autoFill;
+  window.coach1209Rename=rename;
+  window.coach1209SaveRename=saveRename;
+
+  // Both Special Teams entry points open the single-field version.
+  document.addEventListener("click",function(e){
+    const native=e.target.closest?.("#specialTab");
+    const dash=e.target.closest?.("#coach1200DashboardBar button");
+    const dashSpecial=dash && /SPECIAL TEAMS/i.test(String(dash.textContent||""));
+    if(!native && !dashSpecial) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    open();
   },true);
 })();
