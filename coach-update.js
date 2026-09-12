@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v120.9 — SINGLE FIELD SPECIAL TEAMS
+   v121.0 — SPECIAL TEAMS SAME FIELD
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "120.9";
+window.COACH_UPDATE_VERSION = "121.0";
 
 (function () {
   "use strict";
@@ -3363,6 +3363,62 @@ window.COACH_UPDATE_VERSION = "120.9";
         padding:6px!important;
       }
 
+
+      /* =========================================================
+         121.0 — Special Teams uses ONE full field, matching normal
+         offense/defense Game Day view.
+         ========================================================= */
+
+      #coach1207SpecialDashboard,
+      #coach1205SpecialPanel,
+      #coach1206RenameOverlay{
+        display:none!important;
+        pointer-events:none!important;
+      }
+
+      #coach1209SpecialDashboard{
+        background:#07100a!important;
+      }
+
+      #coach1209SpecialDashboard .coach1209Field{
+        margin:0!important;
+        width:100%!important;
+        height:100%!important;
+        border:3px solid #e7eee2!important;
+        background:repeating-linear-gradient(0deg,#236f2e 0 44px,#2c8138 44px 88px)!important;
+      }
+
+      #coach1209SpecialDashboard .coach1209Field:after{
+        content:""!important;
+        position:absolute!important;
+        inset:0!important;
+        background:repeating-linear-gradient(90deg,transparent 0 9.6%,#ffffffaa 9.6% 9.9%)!important;
+        opacity:.35!important;
+        pointer-events:none!important;
+      }
+
+      #coach1209SpecialDashboard .coach1209FieldLabel.offense{
+        top:7px!important;
+        background:#b82c28!important;
+      }
+
+      #coach1209SpecialDashboard .coach1209FieldLabel.defense{
+        top:51%!important;
+        background:#1768c8!important;
+      }
+
+      #coach1209SpecialDashboard .coach1209Spot{
+        min-width:70px!important;
+        min-height:48px!important;
+        padding:5px 5px!important;
+        font-size:10px!important;
+        border-radius:5px!important;
+      }
+
+      #coach1209SpecialDashboard .coach1209Spot small{
+        font-size:8px!important;
+      }
+
     `;
 
     document.head.appendChild(style);
@@ -5686,7 +5742,7 @@ window.COACH_UPDATE_VERSION = "120.9";
         <button type="button" class="coach1204MoveBtn" onclick="coach1204ToggleMoveMode()">MOVE PLAYERS</button>
         <button type="button" onclick="coach1200OpenStats()">STATS</button>
         <button type="button" onclick="coach1200OpenPlaybook()">PLAYBOOK</button>
-        <button type="button" onclick="coach1209OpenSpecialTeams()">SPECIAL TEAMS</button>
+        <button type="button" onclick="coach1210OpenSpecialTeams()">SPECIAL TEAMS</button>
       </div>`;
     bar.querySelectorAll(".coach1204MoveBtn").forEach(b=>b.classList.toggle("active",coach1204MoveMode));
   }
@@ -7083,7 +7139,7 @@ window.COACH_UPDATE_VERSION = "120.9";
    Includes line-only Auto Fill, rename spots, move spots, and clean snap.
    ================================================================ */
 (function(){
-  const STYLE_ID_1207='coach-update-1209-combined-special-style';
+  const STYLE_ID_1207='coach-update-1210-combined-special-style';
   if(!document.getElementById(STYLE_ID_1207)){
     const s=document.createElement('style');
     s.id=STYLE_ID_1207;
@@ -7432,11 +7488,7 @@ window.COACH_UPDATE_VERSION = "120.9";
     const dashboardBtn=e.target.closest?.("#coach1200DashboardBar button");
     const isDashboardSpecial=dashboardBtn && /SPECIAL TEAMS/i.test(String(dashboardBtn.textContent||""));
 
-    if(!nativeTab && !isDashboardSpecial) return;
-
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    open1208();
+    if(true) return;
   },true);
 
   // Intercept KICKOFF/PUNT buttons inside combined overlay so auto-fill happens
@@ -7444,6 +7496,7 @@ window.COACH_UPDATE_VERSION = "120.9";
   document.addEventListener("click",function(e){
     const root=e.target.closest?.("#coach1207SpecialDashboard");
     if(!root) return;
+    return;
     const b=e.target.closest?.("button");
     if(!b) return;
     const t=String(b.textContent||"").trim().toUpperCase();
@@ -7774,4 +7827,61 @@ window.COACH_UPDATE_VERSION = "120.9";
     e.preventDefault(); e.stopImmediatePropagation();
     open();
   },true);
+})();
+
+
+/* =========================================================
+   121.0 — FINAL SPECIAL TEAMS ROUTING
+   ========================================================= */
+(function(){
+  async function open1210(){
+    document.getElementById("coach1207SpecialDashboard")?.remove();
+    document.getElementById("coach1205SpecialPanel")?.remove();
+    document.getElementById("coach1209SpecialDashboard")?.remove();
+
+    if(typeof window.coach1209OpenSpecialTeams==="function"){
+      await window.coach1209OpenSpecialTeams();
+    }else{
+      alert("Special Teams could not be opened.");
+    }
+  }
+
+  window.coach1210OpenSpecialTeams=open1210;
+
+  function rewireNativeSpecialTab(){
+    const old=document.getElementById("specialTab");
+    if(!old || old.dataset.coach1210==="1") return;
+    old.id="specialTab1210";
+    old.dataset.coach1210="1";
+    old.onclick=null;
+    old.addEventListener("click",function(e){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      open1210();
+    },true);
+  }
+
+  function rewireDashboardButton(){
+    const bar=document.getElementById("coach1200DashboardBar");
+    if(!bar) return;
+    const btn=[...bar.querySelectorAll("button")].find(b=>/SPECIAL TEAMS/i.test(String(b.textContent||"")));
+    if(!btn || btn.dataset.coach1210==="1") return;
+    btn.dataset.coach1210="1";
+    btn.textContent="SPECIAL";
+    btn.onclick=null;
+    btn.addEventListener("click",function(e){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      open1210();
+    },true);
+  }
+
+  function enforce(){
+    rewireNativeSpecialTab();
+    rewireDashboardButton();
+    document.getElementById("coach1207SpecialDashboard")?.remove();
+  }
+
+  setInterval(enforce,250);
+  setTimeout(enforce,50);
 })();
