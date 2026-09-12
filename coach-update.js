@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v121.0 — SPECIAL TEAMS SAME FIELD
+   v121.1 — SPECIAL TEAMS LOAD FIX
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "121.0";
+window.COACH_UPDATE_VERSION = "121.1";
 
 (function () {
   "use strict";
@@ -3419,6 +3419,27 @@ window.COACH_UPDATE_VERSION = "121.0";
         font-size:8px!important;
       }
 
+
+      /* 121.1 loading/error states */
+      #coach1211Loading{
+        position:absolute!important;
+        inset:0!important;
+        display:grid!important;
+        place-items:center!important;
+        z-index:20!important;
+        background:#07100a!important;
+        color:#fff!important;
+        font-weight:1000!important;
+      }
+      #coach1211Error{
+        max-width:520px!important;
+        padding:18px!important;
+        border:2px solid #ff8b8b!important;
+        border-radius:9px!important;
+        background:#2b1115!important;
+        text-align:center!important;
+      }
+
     `;
 
     document.head.appendChild(style);
@@ -5742,7 +5763,7 @@ window.COACH_UPDATE_VERSION = "121.0";
         <button type="button" class="coach1204MoveBtn" onclick="coach1204ToggleMoveMode()">MOVE PLAYERS</button>
         <button type="button" onclick="coach1200OpenStats()">STATS</button>
         <button type="button" onclick="coach1200OpenPlaybook()">PLAYBOOK</button>
-        <button type="button" onclick="coach1210OpenSpecialTeams()">SPECIAL TEAMS</button>
+        <button type="button" onclick="coach1211OpenSpecialTeams()">SPECIAL TEAMS</button>
       </div>`;
     bar.querySelectorAll(".coach1204MoveBtn").forEach(b=>b.classList.toggle("active",coach1204MoveMode));
   }
@@ -7139,7 +7160,7 @@ window.COACH_UPDATE_VERSION = "121.0";
    Includes line-only Auto Fill, rename spots, move spots, and clean snap.
    ================================================================ */
 (function(){
-  const STYLE_ID_1207='coach-update-1210-combined-special-style';
+  const STYLE_ID_1207='coach-update-1211-combined-special-style';
   if(!document.getElementById(STYLE_ID_1207)){
     const s=document.createElement('style');
     s.id=STYLE_ID_1207;
@@ -7884,4 +7905,251 @@ window.COACH_UPDATE_VERSION = "121.0";
 
   setInterval(enforce,250);
   setTimeout(enforce,50);
+})();
+
+
+/* =========================================================
+   121.1 — NON-BLOCKING SPECIAL TEAMS LOAD
+   Render immediately from cached/live arrays; refresh in background.
+   ========================================================= */
+(function(){
+  const TYPES={
+    kickoff:{off:["KICKOFF OFFENSE","Kickoff"],def:["KICKOFF DEFENSE","Kick Return"]},
+    punt:{off:["PUNT OFFENSE","Punt"],def:["PUNT DEFENSE","Punt Return"]}
+  };
+  let mode="kickoff";
+  let moveMode=false;
+
+  function esc1211(v){ return typeof coach11819Esc==="function" ? coach11819Esc(String(v??"")) : String(v??""); }
+  function currentLine1211(){ return lines?.[currentLine]||null; }
+
+  function findUnit1211(kind){
+    const l=currentLine1211();
+    if(!l) return null;
+    const names=TYPES[mode][kind];
+    const preferred=[
+      `${l.name} — ${names[0]}`,
+      `${l.name} • ${names[0]}`,
+      `${l.name} — ${names[1]}`,
+      `${l.name} • ${names[1]}`,
+      names[0],
+      names[1]
+    ];
+    for(const n of preferred){
+      const u=(specialUnits||[]).find(x=>String(x.name||"").toUpperCase()===String(n).toUpperCase());
+      if(u) return u;
+    }
+    return null;
+  }
+
+  function amap1211(unitId){
+    const map=new Map();
+    (specialAssignments||[]).filter(a=>String(a.unit_id)===String(unitId)).forEach(a=>{
+      map.set(String(a.slot_id),players.find(p=>String(p.id)===String(a.player_id)));
+    });
+    return map;
+  }
+
+  function y1211(side,y){
+    const yy=Math.max(4,Math.min(96,Number(y)||50));
+    return side==="offense"?5+yy*.43:52+yy*.43;
+  }
+
+  function spot1211(slot,player,side){
+    return `<button type="button"
+      class="coach1209Spot ${side==="defense"?"defense":""} ${moveMode?"moveMode":""}"
+      data-slot-id="${esc1211(slot.id)}" data-side="${side}"
+      style="left:${Number(slot.x_pct)||50}%;top:${y1211(side,slot.y_pct)}%">
+      ${esc1211(slot.label||slot.slot_key||"SPOT")}
+      <small>${player?esc1211(player.name||"PLAYER"):"OPEN"}</small>
+    </button>`;
+  }
+
+  function render1211(){
+    const root=document.getElementById("coach1209SpecialDashboard");
+    if(!root) return;
+    const l=currentLine1211();
+    if(!l) return;
+
+    const off=findUnit1211("off");
+    const def=findUnit1211("def");
+
+    if(!off || !def){
+      root.innerHTML=`
+        <div class="coach1209Top">
+          <div class="coach1209TopLeft"><b>${esc1211(l.name)} — SPECIAL TEAMS</b></div>
+          <div class="coach1209TopRight"><button onclick="coach1211Close()">✕ CLOSE</button></div>
+        </div>
+        <div class="coach1209Field">
+          <div id="coach1211Loading">
+            <div id="coach1211Error">
+              Special Teams data is not ready yet.<br><br>
+              <button onclick="coach1211Retry()">RETRY LOAD</button>
+            </div>
+          </div>
+        </div>`;
+      return;
+    }
+
+    const offSlots=(specialSlots||[]).filter(s=>String(s.unit_id)===String(off.id)).sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+    const defSlots=(specialSlots||[]).filter(s=>String(s.unit_id)===String(def.id)).sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+    const om=amap1211(off.id), dm=amap1211(def.id);
+    const labels=mode==="kickoff"?["KICKOFF OFFENSE","KICKOFF DEFENSE"]:["PUNT OFFENSE","PUNT DEFENSE"];
+
+    root.innerHTML=`
+      <div class="coach1209Top">
+        <div class="coach1209TopLeft">
+          <b>${esc1211(l.name)} — SPECIAL TEAMS</b>
+          <button class="${mode==="kickoff"?"active":""}" onclick="coach1211SetMode('kickoff')">KICKOFF</button>
+          <button class="${mode==="punt"?"active":""}" onclick="coach1211SetMode('punt')">PUNT</button>
+        </div>
+        <div class="coach1209TopRight">
+          <button onclick="coach1211AutoFill()">AUTO FILL FROM ${esc1211(l.name.toUpperCase())}</button>
+          <button class="${moveMode?"active":""}" onclick="coach1211ToggleMove()">MOVE SPOTS</button>
+          <button onclick="coach1209Rename()">RENAME SPOTS</button>
+          <button onclick="coach1211Close()">✕ CLOSE</button>
+        </div>
+      </div>
+      <div class="coach1209Field">
+        <div class="coach1209FieldLabel offense">${labels[0]}</div>
+        <div class="coach1209FieldLabel defense">${labels[1]}</div>
+        ${offSlots.map(s=>spot1211(s,om.get(String(s.id)),"offense")).join("")}
+        ${defSlots.map(s=>spot1211(s,dm.get(String(s.id)),"defense")).join("")}
+        <div class="coach1209Hint">${moveMode?"Drag any spot to reposition it.":"One field: offense top, defense bottom."}</div>
+      </div>`;
+    bindDrag1211();
+  }
+
+  async function refresh1211(){
+    try{
+      const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),3500));
+      if(typeof loadSpecialTeams==="function") await Promise.race([loadSpecialTeams(),timeout]);
+    }catch(e){
+      console.warn("121.1 Special Teams refresh:",e);
+    }
+    render1211();
+  }
+
+  async function open1211(){
+    document.getElementById("coach1207SpecialDashboard")?.remove();
+    document.getElementById("coach1205SpecialPanel")?.remove();
+    document.getElementById("coach1209SpecialDashboard")?.remove();
+
+    const root=document.createElement("div");
+    root.id="coach1209SpecialDashboard";
+    root.innerHTML=`
+      <div class="coach1209Top">
+        <div class="coach1209TopLeft"><b>${esc1211(currentLine1211()?.name||"LINE")} — SPECIAL TEAMS</b></div>
+        <div class="coach1209TopRight"><button onclick="coach1211Close()">✕ CLOSE</button></div>
+      </div>
+      <div class="coach1209Field"><div id="coach1211Loading">Loading Special Teams…</div></div>`;
+    document.body.appendChild(root);
+
+    // Paint immediately from current in-memory data.
+    render1211();
+    // Then refresh without blocking the screen.
+    refresh1211();
+  }
+
+  async function retry1211(){ await refresh1211(); }
+
+  function linePool1211(side){
+    const l=currentLine1211(); if(!l) return [];
+    const ids=new Set((positions||[]).filter(p=>p.side===side).map(p=>String(p.id)));
+    const other=new Set((positions||[]).filter(p=>p.side!==side&&p.side!=="special").map(p=>String(p.id)));
+    const arr=[...(assignments||[]).filter(a=>String(a.line_id)===String(l.id)&&ids.has(String(a.position_label_id))),
+               ...(assignments||[]).filter(a=>String(a.line_id)===String(l.id)&&other.has(String(a.position_label_id)))];
+    const seen=new Set(), out=[];
+    arr.forEach(a=>{
+      const p=players.find(x=>String(x.id)===String(a.player_id));
+      if(p&&!seen.has(String(p.id))){seen.add(String(p.id));out.push(p);}
+    });
+    return out;
+  }
+
+  async function fillUnit1211(unit,side){
+    if(!unit) return;
+    const slots=(specialSlots||[]).filter(s=>String(s.unit_id)===String(unit.id)).sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+    const pool=linePool1211(side);
+    await sb.from("special_team_assignments").delete().eq("unit_id",unit.id);
+    for(let i=0;i<slots.length && i<pool.length;i++){
+      const r=await sb.from("special_team_assignments").upsert(
+        {unit_id:unit.id,slot_id:slots[i].id,player_id:pool[i].id},
+        {onConflict:"unit_id,slot_id"}
+      );
+      if(r.error) console.error(r.error);
+    }
+  }
+
+  async function autoFill1211(){
+    const off=findUnit1211("off"), def=findUnit1211("def");
+    if(!off||!def) return alert("Special Teams units are not loaded yet.");
+    await fillUnit1211(off,"offense");
+    await fillUnit1211(def,"defense");
+    await refresh1211();
+  }
+
+  function setMode1211(m){ mode=m; moveMode=false; render1211(); refresh1211(); }
+  function toggleMove1211(){ moveMode=!moveMode; render1211(); }
+
+  function bindDrag1211(){
+    if(!moveMode) return;
+    document.querySelectorAll("#coach1209SpecialDashboard .coach1209Spot").forEach(spot=>{
+      const field=spot.closest(".coach1209Field"); if(!field) return;
+      let drag=false;
+      const mv=e=>{
+        if(!drag) return;
+        const r=field.getBoundingClientRect();
+        const x0=e.touches?.[0]?.clientX??e.clientX, y0=e.touches?.[0]?.clientY??e.clientY;
+        const x=Math.max(3,Math.min(97,(x0-r.left)/r.width*100));
+        const oy=Math.max(4,Math.min(96,(y0-r.top)/r.height*100));
+        const side=spot.dataset.side;
+        const ly=side==="offense"?Math.max(0,Math.min(100,(oy-5)/.43)):Math.max(0,Math.min(100,(oy-52)/.43));
+        spot.style.left=x+"%"; spot.style.top=oy+"%"; spot.dataset.x=x; spot.dataset.ly=ly;
+        e.preventDefault();
+      };
+      const end=async()=>{
+        if(!drag) return; drag=false;
+        document.removeEventListener("mousemove",mv,true);document.removeEventListener("mouseup",end,true);
+        document.removeEventListener("touchmove",mv,true);document.removeEventListener("touchend",end,true);
+        const id=spot.dataset.slotId,x=Number(spot.dataset.x),y=Number(spot.dataset.ly);
+        if(id&&Number.isFinite(x)&&Number.isFinite(y)){
+          await sb.from("special_team_slots").update({x_pct:x,y_pct:y}).eq("id",id);
+          const s=(specialSlots||[]).find(v=>String(v.id)===String(id)); if(s){s.x_pct=x;s.y_pct=y;}
+        }
+      };
+      const start=e=>{drag=true;document.addEventListener("mousemove",mv,true);document.addEventListener("mouseup",end,true);
+        document.addEventListener("touchmove",mv,{capture:true,passive:false});document.addEventListener("touchend",end,true);
+        e.preventDefault();e.stopPropagation();};
+      spot.addEventListener("mousedown",start,true);spot.addEventListener("touchstart",start,{capture:true,passive:false});
+    });
+  }
+
+  function close1211(){ document.getElementById("coach1209SpecialDashboard")?.remove(); moveMode=false; }
+
+  window.coach1211OpenSpecialTeams=open1211;
+  window.coach1211Retry=retry1211;
+  window.coach1211SetMode=setMode1211;
+  window.coach1211ToggleMove=toggleMove1211;
+  window.coach1211AutoFill=autoFill1211;
+  window.coach1211Close=close1211;
+
+  // Rewire dashboard button and native tab to this non-blocking opener.
+  setInterval(()=>{
+    const native=document.getElementById("specialTab1210")||document.getElementById("specialTab");
+    if(native && native.dataset.coach1211!=="1"){
+      native.dataset.coach1211="1";
+      native.onclick=null;
+      native.addEventListener("click",e=>{e.preventDefault();e.stopImmediatePropagation();open1211();},true);
+    }
+    const bar=document.getElementById("coach1200DashboardBar");
+    if(bar){
+      const b=[...bar.querySelectorAll("button")].find(x=>/SPECIAL/i.test(String(x.textContent||"")));
+      if(b && b.dataset.coach1211!=="1"){
+        b.dataset.coach1211="1"; b.textContent="SPECIAL";
+        b.onclick=null;
+        b.addEventListener("click",e=>{e.preventDefault();e.stopImmediatePropagation();open1211();},true);
+      }
+    }
+  },250);
 })();
