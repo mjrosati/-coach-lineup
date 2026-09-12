@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v122.0 — SIDELINE STABILIZATION
+   v122.1 — RESUME GAME FIX
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "122.0";
+window.COACH_UPDATE_VERSION = "122.1";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "122.0";
 (function(){
   "use strict";
 
-  const VERSION="122.0";
+  const VERSION="122.1";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -6964,17 +6964,9 @@ window.COACH_UPDATE_VERSION = "122.0";
     }
   }
 
-  /* Keep this observer small: it only re-applies direct controls when native
-     render functions replace their DOM nodes. No document-wide click interception. */
-  if(!window[OBSERVER_KEY]){
-    let timer=null;
-    const ob=new MutationObserver(()=>{
-      clearTimeout(timer);
-      timer=setTimeout(stabilize,80);
-    });
-    ob.observe(document.documentElement,{subtree:true,childList:true});
-    window[OBSERVER_KEY]=ob;
-  }
+  /* 122.1: removed the 122.0 document-wide MutationObserver.
+     It could retrigger itself when the toolbar was rebuilt and interfere
+     with the native Resume Game transition on iPad Safari. */
 
   /* ---------- public functions ---------- */
   window.coach1220OpenPlayers=openPlayers;
@@ -7046,4 +7038,80 @@ window.COACH_UPDATE_VERSION = "122.0";
 
   setTimeout(stabilize,50);
   setTimeout(stabilize,400);
+})();
+
+
+/* =========================================================
+   122.1 — RESUME GAME / GAME DAY ENTRY FIX
+   Keep native dashboard transition intact, then open the already-stable
+   120.4 live-field dashboard after the app becomes visible.
+   No document-wide click interception.
+   ========================================================= */
+(function(){
+  "use strict";
+
+  function appIsReady(){
+    const app=document.getElementById("app");
+    return !!(app && !app.classList.contains("hidden"));
+  }
+
+  function openLiveFieldWhenReady(){
+    let tries=0;
+    const attempt=()=>{
+      tries++;
+      if(appIsReady() && typeof coach1200OpenGameDashboard==="function"){
+        try{
+          coach1200OpenGameDashboard();
+          return;
+        }catch(e){
+          console.warn("122.1 Game Day open retry",e);
+        }
+      }
+      if(tries<8) setTimeout(attempt,80);
+    };
+    setTimeout(attempt,20);
+  }
+
+  function bindOne(el){
+    if(!el || el.dataset.coach1221Resume==="1") return;
+    el.dataset.coach1221Resume="1";
+
+    // Let the app's original click handler run first. We only follow it.
+    el.addEventListener("click",function(){
+      openLiveFieldWhenReady();
+    },false);
+  }
+
+  function bindResumeButtons(){
+    ["gameDayCard","fivePanelBtn"].forEach(id=>bindOne(document.getElementById(id)));
+
+    // Covers buttons whose text is RESUME GAME even if the native id changes.
+    document.querySelectorAll("button,a").forEach(el=>{
+      const t=String(el.textContent||"").trim().toUpperCase();
+      if(t==="RESUME GAME" || t==="GAME DAY" || t==="OPEN GAME DAY"){
+        bindOne(el);
+      }
+    });
+  }
+
+  // Small bounded binder: it never rebuilds DOM and stops after startup.
+  let passes=0;
+  const timer=setInterval(()=>{
+    bindResumeButtons();
+    passes++;
+    if(passes>=20) clearInterval(timer);
+  },250);
+
+  bindResumeButtons();
+
+  // If native rendering recreates the dashboard later, re-bind only when
+  // returning to the main dashboard.
+  window.coach1221BindResumeButtons=bindResumeButtons;
+
+  // Keep toolbar clean without observing the whole document.
+  setTimeout(()=>{
+    try{
+      if(typeof hideUnusedStatus==="function") hideUnusedStatus();
+    }catch(e){}
+  },500);
 })();
