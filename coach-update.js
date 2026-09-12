@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v121.1 — SPECIAL TEAMS LOAD FIX
+   v121.2 — SPECIAL TEAMS HARD RESET
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "121.1";
+window.COACH_UPDATE_VERSION = "121.2";
 
 (function () {
   "use strict";
@@ -3440,6 +3440,110 @@ window.COACH_UPDATE_VERSION = "121.1";
         text-align:center!important;
       }
 
+
+      /* 121.2 hard-reset Special Teams view */
+      #coach1212Special{
+        position:fixed!important;
+        inset:0!important;
+        z-index:2147483640!important;
+        display:grid!important;
+        grid-template-rows:auto 1fr!important;
+        background:#06110a!important;
+        color:#fff!important;
+      }
+      #coach1212Special .coach1212Top{
+        display:flex!important;
+        align-items:center!important;
+        justify-content:space-between!important;
+        gap:8px!important;
+        padding:6px 8px!important;
+        background:#071b32!important;
+        border-bottom:1px solid #4b86b0!important;
+      }
+      #coach1212Special .coach1212Top>div{
+        display:flex!important;
+        gap:6px!important;
+        align-items:center!important;
+        flex-wrap:wrap!important;
+      }
+      #coach1212Special button{
+        min-height:32px!important;
+        padding:4px 8px!important;
+        border:1px solid #78bde9!important;
+        border-radius:6px!important;
+        background:#0a4f89!important;
+        color:#fff!important;
+        font-size:9px!important;
+        font-weight:1000!important;
+      }
+      #coach1212Special button.active{
+        background:#1482d5!important;
+        box-shadow:0 0 0 2px #fff inset!important;
+      }
+      #coach1212Special .coach1212Field{
+        position:relative!important;
+        min-height:0!important;
+        overflow:hidden!important;
+        border:3px solid #e7eee2!important;
+        background:
+          linear-gradient(to bottom,rgba(255,255,255,.20) 1px,transparent 1px) 0 0/100% 10%,
+          linear-gradient(90deg,transparent 49.8%,rgba(255,255,255,.24) 49.8% 50.2%,transparent 50.2%),
+          #16923a!important;
+      }
+      #coach1212Special .coach1212Field:before{
+        content:""!important;
+        position:absolute!important;
+        left:0!important;right:0!important;top:50%!important;
+        height:4px!important;background:#fff!important;opacity:.85!important;
+      }
+      #coach1212Special .coach1212Label{
+        position:absolute!important;
+        left:50%!important;
+        transform:translateX(-50%)!important;
+        z-index:4!important;
+        padding:3px 12px!important;
+        border-radius:5px!important;
+        font-size:9px!important;
+        font-weight:1000!important;
+      }
+      #coach1212Special .coach1212Label.off{top:7px!important;background:#b82c28!important}
+      #coach1212Special .coach1212Label.def{top:calc(50% + 7px)!important;background:#1768c8!important}
+      #coach1212Special .coach1212Spot{
+        position:absolute!important;
+        transform:translate(-50%,-50%)!important;
+        min-width:68px!important;
+        min-height:46px!important;
+        padding:5px 6px!important;
+        border:2px solid #e43b32!important;
+        border-radius:6px!important;
+        background:#091018ee!important;
+        color:#fff!important;
+        text-align:center!important;
+        font-size:9px!important;
+        font-weight:1000!important;
+        z-index:3!important;
+        touch-action:none!important;
+      }
+      #coach1212Special .coach1212Spot.def{border-color:#1493ff!important}
+      #coach1212Special .coach1212Spot small{
+        display:block!important;
+        margin-top:2px!important;
+        color:#d3e2ed!important;
+        font-size:7px!important;
+      }
+      #coach1212Special .coach1212Spot.move{
+        box-shadow:0 0 0 3px #ffd34e!important;
+      }
+      #coach1212Special .coach1212Empty{
+        position:absolute!important;
+        inset:0!important;
+        display:grid!important;
+        place-items:center!important;
+        font-size:14px!important;
+        font-weight:1000!important;
+        color:#fff!important;
+      }
+
     `;
 
     document.head.appendChild(style);
@@ -5763,7 +5867,7 @@ window.COACH_UPDATE_VERSION = "121.1";
         <button type="button" class="coach1204MoveBtn" onclick="coach1204ToggleMoveMode()">MOVE PLAYERS</button>
         <button type="button" onclick="coach1200OpenStats()">STATS</button>
         <button type="button" onclick="coach1200OpenPlaybook()">PLAYBOOK</button>
-        <button type="button" onclick="coach1211OpenSpecialTeams()">SPECIAL TEAMS</button>
+        <button type="button" onclick="coach1212Open()">SPECIAL TEAMS</button>
       </div>`;
     bar.querySelectorAll(".coach1204MoveBtn").forEach(b=>b.classList.toggle("active",coach1204MoveMode));
   }
@@ -7160,7 +7264,7 @@ window.COACH_UPDATE_VERSION = "121.1";
    Includes line-only Auto Fill, rename spots, move spots, and clean snap.
    ================================================================ */
 (function(){
-  const STYLE_ID_1207='coach-update-1211-combined-special-style';
+  const STYLE_ID_1207='coach-update-1212-combined-special-style';
   if(!document.getElementById(STYLE_ID_1207)){
     const s=document.createElement('style');
     s.id=STYLE_ID_1207;
@@ -8152,4 +8256,231 @@ window.COACH_UPDATE_VERSION = "121.1";
       }
     }
   },250);
+})();
+
+
+/* =========================================================
+   121.2 — HARD RESET SPECIAL TEAMS
+   No old overlay functions are called.
+   ========================================================= */
+(function(){
+  let mode="kickoff";
+  let move=false;
+
+  const SPEC={
+    kickoff:{off:["KICKOFF OFFENSE","Kickoff"],def:["KICKOFF DEFENSE","Kick Return"]},
+    punt:{off:["PUNT OFFENSE","Punt"],def:["PUNT DEFENSE","Punt Return"]}
+  };
+
+  function line(){ return lines?.[currentLine]||null; }
+
+  function findUnit(kind){
+    const l=line(); if(!l) return null;
+    const [full,generic]=SPEC[mode][kind];
+    const names=[
+      `${l.name} — ${full}`,`${l.name} • ${full}`,
+      `${l.name} — ${generic}`,`${l.name} • ${generic}`,
+      full,generic
+    ].map(x=>x.toUpperCase());
+    return (specialUnits||[]).find(u=>names.includes(String(u.name||"").toUpperCase()))||null;
+  }
+
+  function amap(unit){
+    const m=new Map();
+    if(!unit) return m;
+    (specialAssignments||[]).filter(a=>String(a.unit_id)===String(unit.id)).forEach(a=>{
+      m.set(String(a.slot_id),players.find(p=>String(p.id)===String(a.player_id)));
+    });
+    return m;
+  }
+
+  function y(side,v){
+    const yy=Math.max(4,Math.min(96,Number(v)||50));
+    return side==="offense" ? 5+yy*.43 : 52+yy*.43;
+  }
+
+  function slotHtml(s,p,side){
+    return `<button type="button"
+      class="coach1212Spot ${side==="defense"?"def":""} ${move?"move":""}"
+      data-slot="${String(s.id)}" data-side="${side}"
+      style="left:${Number(s.x_pct)||50}%;top:${y(side,s.y_pct)}%">
+      ${String(s.label||s.slot_key||"SPOT")}
+      <small>${p?String(p.name||"PLAYER"):"OPEN"}</small>
+    </button>`;
+  }
+
+  function render(){
+    const root=document.getElementById("coach1212Special");
+    if(!root) return;
+    const l=line(); if(!l) return;
+
+    const off=findUnit("off"), def=findUnit("def");
+    const labels=mode==="kickoff"?["KICKOFF OFFENSE","KICKOFF DEFENSE"]:["PUNT OFFENSE","PUNT DEFENSE"];
+
+    if(!off || !def){
+      root.innerHTML=`
+        <div class="coach1212Top">
+          <div><b>${l.name} — SPECIAL TEAMS</b></div>
+          <div><button onclick="coach1212Close()">✕ CLOSE</button></div>
+        </div>
+        <div class="coach1212Field">
+          <div class="coach1212Empty">No saved ${labels[0]} / ${labels[1]} units were found.</div>
+        </div>`;
+      return;
+    }
+
+    const os=(specialSlots||[]).filter(s=>String(s.unit_id)===String(off.id)).sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+    const ds=(specialSlots||[]).filter(s=>String(s.unit_id)===String(def.id)).sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+    const om=amap(off), dm=amap(def);
+
+    root.innerHTML=`
+      <div class="coach1212Top">
+        <div>
+          <b>${l.name} — SPECIAL TEAMS</b>
+          <button class="${mode==="kickoff"?"active":""}" onclick="coach1212Mode('kickoff')">KICKOFF</button>
+          <button class="${mode==="punt"?"active":""}" onclick="coach1212Mode('punt')">PUNT</button>
+        </div>
+        <div>
+          <button onclick="coach1212AutoFill()">AUTO FILL FROM ${l.name.toUpperCase()}</button>
+          <button class="${move?"active":""}" onclick="coach1212Move()">MOVE SPOTS</button>
+          <button onclick="coach1212Close()">✕ CLOSE</button>
+        </div>
+      </div>
+      <div class="coach1212Field">
+        <div class="coach1212Label off">${labels[0]}</div>
+        <div class="coach1212Label def">${labels[1]}</div>
+        ${os.map(s=>slotHtml(s,om.get(String(s.id)),"offense")).join("")}
+        ${ds.map(s=>slotHtml(s,dm.get(String(s.id)),"defense")).join("")}
+      </div>`;
+    bindDrag();
+  }
+
+  function linePool(side){
+    const l=line(); if(!l) return [];
+    const ids=new Set((positions||[]).filter(p=>p.side===side).map(p=>String(p.id)));
+    const other=new Set((positions||[]).filter(p=>p.side!==side && p.side!=="special").map(p=>String(p.id)));
+    const arr=[
+      ...(assignments||[]).filter(a=>String(a.line_id)===String(l.id)&&ids.has(String(a.position_label_id))),
+      ...(assignments||[]).filter(a=>String(a.line_id)===String(l.id)&&other.has(String(a.position_label_id)))
+    ];
+    const out=[],seen=new Set();
+    arr.forEach(a=>{
+      const p=players.find(x=>String(x.id)===String(a.player_id));
+      if(p&&!seen.has(String(p.id))){seen.add(String(p.id));out.push(p);}
+    });
+    return out;
+  }
+
+  async function fill(unit,side){
+    if(!unit) return;
+    const slots=(specialSlots||[]).filter(s=>String(s.unit_id)===String(unit.id)).sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+    const pool=linePool(side);
+    await sb.from("special_team_assignments").delete().eq("unit_id",unit.id);
+    for(let i=0;i<slots.length && i<pool.length;i++){
+      const r=await sb.from("special_team_assignments").upsert(
+        {unit_id:unit.id,slot_id:slots[i].id,player_id:pool[i].id},
+        {onConflict:"unit_id,slot_id"}
+      );
+      if(r.error) console.error(r.error);
+    }
+  }
+
+  async function autoFill(){
+    const off=findUnit("off"),def=findUnit("def");
+    if(!off||!def) return;
+    await fill(off,"offense");
+    await fill(def,"defense");
+    if(typeof loadSpecialTeams==="function") {
+      try{ await loadSpecialTeams(); }catch(e){ console.warn(e); }
+    }
+    render();
+  }
+
+  function bindDrag(){
+    if(!move) return;
+    document.querySelectorAll("#coach1212Special .coach1212Spot").forEach(spot=>{
+      const field=spot.closest(".coach1212Field"); if(!field) return;
+      let drag=false;
+      const mv=e=>{
+        if(!drag) return;
+        const r=field.getBoundingClientRect();
+        const cx=e.touches?.[0]?.clientX??e.clientX;
+        const cy=e.touches?.[0]?.clientY??e.clientY;
+        const x=Math.max(3,Math.min(97,(cx-r.left)/r.width*100));
+        const oy=Math.max(4,Math.min(96,(cy-r.top)/r.height*100));
+        const side=spot.dataset.side;
+        const ly=side==="offense"?Math.max(0,Math.min(100,(oy-5)/.43)):Math.max(0,Math.min(100,(oy-52)/.43));
+        spot.style.left=x+"%";spot.style.top=oy+"%";spot.dataset.x=x;spot.dataset.ly=ly;
+        e.preventDefault();
+      };
+      const end=async()=>{
+        if(!drag) return; drag=false;
+        document.removeEventListener("mousemove",mv,true);document.removeEventListener("mouseup",end,true);
+        document.removeEventListener("touchmove",mv,true);document.removeEventListener("touchend",end,true);
+        const id=spot.dataset.slot,x=Number(spot.dataset.x),yy=Number(spot.dataset.ly);
+        if(id&&Number.isFinite(x)&&Number.isFinite(yy)){
+          await sb.from("special_team_slots").update({x_pct:x,y_pct:yy}).eq("id",id);
+          const s=(specialSlots||[]).find(q=>String(q.id)===String(id));if(s){s.x_pct=x;s.y_pct=yy;}
+        }
+      };
+      const st=e=>{drag=true;document.addEventListener("mousemove",mv,true);document.addEventListener("mouseup",end,true);
+        document.addEventListener("touchmove",mv,{capture:true,passive:false});document.addEventListener("touchend",end,true);
+        e.preventDefault();e.stopPropagation();};
+      spot.addEventListener("mousedown",st,true);spot.addEventListener("touchstart",st,{capture:true,passive:false});
+    });
+  }
+
+  function open(){
+    // remove every prior special-teams overlay
+    ["coach1205SpecialPanel","coach1207SpecialDashboard","coach1209SpecialDashboard","coach1212Special"].forEach(id=>document.getElementById(id)?.remove());
+
+    const root=document.createElement("div");
+    root.id="coach1212Special";
+    document.body.appendChild(root);
+    render();
+
+    // background refresh only, never blocks the screen
+    if(typeof loadSpecialTeams==="function"){
+      Promise.resolve(loadSpecialTeams()).then(render).catch(()=>{});
+    }
+  }
+
+  function close(){document.getElementById("coach1212Special")?.remove();move=false;}
+  function setMode(m){mode=m;move=false;render();}
+  function toggleMove(){move=!move;render();}
+
+  window.coach1212Open=open;
+  window.coach1212Close=close;
+  window.coach1212Mode=setMode;
+  window.coach1212Move=toggleMove;
+  window.coach1212AutoFill=autoFill;
+
+  function hardRewire(){
+    // Replace nodes entirely to remove every old click listener.
+    const oldTab=document.getElementById("specialTab1210")||document.getElementById("specialTab");
+    if(oldTab && oldTab.dataset.coach1212!=="1"){
+      const n=oldTab.cloneNode(true);
+      n.id="specialTab1212";
+      n.dataset.coach1212="1";
+      n.onclick=null;
+      n.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();open();},true);
+      oldTab.replaceWith(n);
+    }
+
+    const bar=document.getElementById("coach1200DashboardBar");
+    if(bar){
+      const oldBtn=[...bar.querySelectorAll("button")].find(b=>/SPECIAL/i.test(String(b.textContent||"")));
+      if(oldBtn && oldBtn.dataset.coach1212!=="1"){
+        const n=oldBtn.cloneNode(true);
+        n.dataset.coach1212="1";
+        n.textContent="SPECIAL TEAMS";
+        n.onclick=null;
+        n.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();open();},true);
+        oldBtn.replaceWith(n);
+      }
+    }
+  }
+
+  setInterval(hardRewire,250);
+  setTimeout(hardRewire,40);
 })();
