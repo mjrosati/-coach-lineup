@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v121.4 — SPECIAL TEAMS DIAGRAM LAYOUT
+   v121.3 — RESTORE SPECIAL TEAMS
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "121.4";
+window.COACH_UPDATE_VERSION = "121.3";
 
 (function () {
   "use strict";
@@ -5888,7 +5888,7 @@ window.COACH_UPDATE_VERSION = "121.4";
         <button type="button" class="coach1204MoveBtn" onclick="coach1204ToggleMoveMode()">MOVE PLAYERS</button>
         <button type="button" onclick="coach1200OpenStats()">STATS</button>
         <button type="button" onclick="coach1200OpenPlaybook()">PLAYBOOK</button>
-        <button type="button" onclick="coach1214Open()">SPECIAL TEAMS</button>
+        <button type="button" onclick="coach1213Open()">SPECIAL TEAMS</button>
       </div>`;
     bar.querySelectorAll(".coach1204MoveBtn").forEach(b=>b.classList.toggle("active",coach1204MoveMode));
   }
@@ -7285,7 +7285,7 @@ window.COACH_UPDATE_VERSION = "121.4";
    Includes line-only Auto Fill, rename spots, move spots, and clean snap.
    ================================================================ */
 (function(){
-  const STYLE_ID_1207='coach-update-1214-combined-special-style';
+  const STYLE_ID_1207='coach-update-1213-combined-special-style';
   if(!document.getElementById(STYLE_ID_1207)){
     const s=document.createElement('style');
     s.id=STYLE_ID_1207;
@@ -8710,194 +8710,4 @@ window.COACH_UPDATE_VERSION = "121.4";
      this custom Special Teams view does not call any play-recording or
      participation-count functions, so Special Teams assignments never add
      to player stats. Stats remain offense/defense Game Day participation only. */
-})();
-
-
-/* =========================================================
-   121.4 — DIAGRAM-BASED SPECIAL TEAMS LAYOUT
-   Reference formations:
-   Kickoff / Kick Return / Punt / Punt Return.
-   One full field; selected line can change without closing.
-   Special Teams is display/assignment only — no stats recording.
-   ========================================================= */
-(function(){
-  const LAYOUTS={
-    kickoff:{
-      off:[
-        ["RE",5,18],["LE",14,18],["BC",23,18],["FC",32,18],["NG",41,18],
-        ["R",50,18],["D",59,18],["FS",68,18],["SS/RD",77,18],["W",86,18],["S",95,18],
-        ["K",50,34]
-      ],
-      def:[
-        ["D",13,60],["FC",31,60],["RE",50,60],["BC",68,60],["R",86,60],
-        ["S",22,72],["LE",50,72],["W",77,72],
-        ["SS/RD",31,86],["NG",50,86],["FS",68,86]
-      ]
-    },
-    punt:{
-      off:[
-        ["X",8,60],["H",18,52],["LT",31,60],["LG",40,60],["C",50,60],
-        ["RG",60,60],["RT",69,60],["Y",78,60],["Z",94,55],
-        ["F",40,43],["P",50,37]
-      ],
-      def:[
-        ["D",22,62],["T",40,62],["T",61,62],["R",77,62],
-        ["SS/RD",22,73],["NG",50,73],["FS",77,73],
-        ["FC",5,82],["BC",95,82],["W",40,92],["S",61,92]
-      ]
-    }
-  };
-
-  let mode="kickoff";
-  let move=false;
-  let renamed={};
-  const LSKEY=()=>`coachLineup:stDiagram:v1214:${team?.id||"team"}:${lines?.[currentLine]?.id||currentLine}`;
-
-  function loadPrefs(){
-    try{
-      const x=JSON.parse(localStorage.getItem(LSKEY())||"{}");
-      renamed=x.renamed||{};
-      return x.positions||{};
-    }catch(e){renamed={};return{};}
-  }
-  function savePrefs(positions){
-    try{localStorage.setItem(LSKEY(),JSON.stringify({renamed,positions}));}catch(e){}
-  }
-
-  function currentLine(){return lines?.[currentLine]||null;}
-  function roster(side){
-    const l=currentLine(); if(!l) return [];
-    const sideIds=new Set((positions||[]).filter(p=>p.side===side).map(p=>String(p.id)));
-    const arr=(assignments||[]).filter(a=>String(a.line_id)===String(l.id)&&sideIds.has(String(a.position_label_id)));
-    const seen=new Set(),out=[];
-    arr.forEach(a=>{
-      const p=players.find(x=>String(x.id)===String(a.player_id));
-      if(p&&!seen.has(String(p.id))){seen.add(String(p.id));out.push(p);}
-    });
-    // Fill any shortage with remaining players from same line, but do not affect stats.
-    (assignments||[]).filter(a=>String(a.line_id)===String(l.id)).forEach(a=>{
-      const p=players.find(x=>String(x.id)===String(a.player_id));
-      if(p&&!seen.has(String(p.id))){seen.add(String(p.id));out.push(p);}
-    });
-    return out;
-  }
-
-  function lineButtons(){
-    return (lines||[]).map((l,i)=>`<button class="coach1213LineBtn ${i===currentLine?"current":""}"
-      style="border-color:${String(l.color||"#168cff")}!important"
-      onclick="coach1214Switch(${i})">${String(l.name||`LINE ${i+1}`)}</button>`).join("");
-  }
-
-  function render(){
-    const root=document.getElementById("coach1214Special"); if(!root) return;
-    const l=currentLine(); if(!l) return;
-    const prefs=loadPrefs();
-    const lay=LAYOUTS[mode];
-    const op=roster("offense"),dp=roster("defense");
-    const labels=mode==="kickoff"?["KICKOFF","KICK RETURN"]:["PUNT","PUNT RETURN"];
-
-    function spots(list,side,pool){
-      return list.map((d,i)=>{
-        const key=`${mode}:${side}:${i}`;
-        const xy=prefs[key]||[d[1], side==="offense"?5+d[2]*.43:52+(d[2]-50)*.9];
-        const label=renamed[key]||d[0];
-        const p=pool[i]||null;
-        return `<button class="coach1212Spot ${side==="defense"?"def":""} ${move?"move":""}"
-          data-key="${key}" data-side="${side}"
-          style="left:${xy[0]}%;top:${xy[1]}%"
-          onclick="coach1214Spot('${key}')">${label}<small>${p?String(p.name||"PLAYER"):"OPEN"}</small></button>`;
-      }).join("");
-    }
-
-    root.innerHTML=`
-      <div class="coach1212Top">
-        <div>
-          <b>${String(l.name)} — SPECIAL TEAMS</b>
-          <button class="${mode==="kickoff"?"active":""}" onclick="coach1214Mode('kickoff')">KICKOFF</button>
-          <button class="${mode==="punt"?"active":""}" onclick="coach1214Mode('punt')">PUNT</button>
-          <div class="coach1213Lines">${lineButtons()}</div>
-        </div>
-        <div>
-          <button class="${move?"active":""}" onclick="coach1214Move()">MOVE SPOTS</button>
-          <button onclick="coach1214Rename()">RENAME SPOTS</button>
-          <button onclick="coach1214Close()">✕ CLOSE</button>
-        </div>
-      </div>
-      <div class="coach1212Field">
-        <div class="coach1212Label off">${labels[0]}</div>
-        <div class="coach1212Label def">${labels[1]}</div>
-        ${spots(lay.off,"offense",op)}
-        ${spots(lay.def,"defense",dp)}
-      </div>`;
-    bindDrag();
-  }
-
-  function bindDrag(){
-    if(!move) return;
-    const root=document.getElementById("coach1214Special");
-    root?.querySelectorAll(".coach1212Spot").forEach(el=>{
-      const field=el.closest(".coach1212Field"); let drag=false;
-      const mv=e=>{
-        if(!drag)return;
-        const r=field.getBoundingClientRect(),t=e.touches?.[0]||e;
-        const x=Math.max(3,Math.min(97,(t.clientX-r.left)/r.width*100));
-        const y=Math.max(5,Math.min(95,(t.clientY-r.top)/r.height*100));
-        el.style.left=x+"%";el.style.top=y+"%";el.dataset.x=x;el.dataset.y=y;e.preventDefault();
-      };
-      const end=()=>{
-        if(!drag)return;drag=false;
-        ["mousemove","mouseup","touchmove","touchend"].forEach(n=>document.removeEventListener(n,n.includes("move")?mv:end,true));
-        const prefs=loadPrefs();prefs[el.dataset.key]=[Number(el.dataset.x),Number(el.dataset.y)];savePrefs(prefs);
-      };
-      const st=e=>{drag=true;document.addEventListener("mousemove",mv,true);document.addEventListener("mouseup",end,true);
-        document.addEventListener("touchmove",mv,{capture:true,passive:false});document.addEventListener("touchend",end,true);
-        e.preventDefault();e.stopPropagation();};
-      el.addEventListener("mousedown",st,true);el.addEventListener("touchstart",st,{capture:true,passive:false});
-    });
-  }
-
-  function open(){
-    ["coach1205SpecialPanel","coach1207SpecialDashboard","coach1209SpecialDashboard","coach1212Special","coach1214Special"].forEach(id=>document.getElementById(id)?.remove());
-    const root=document.createElement("div");root.id="coach1214Special";root.style.cssText="position:fixed;inset:0;z-index:2147483641;display:grid;grid-template-rows:auto 1fr;background:#06110a;color:white";
-    document.body.appendChild(root);render();
-  }
-  function close(){document.getElementById("coach1214Special")?.remove();move=false;}
-  function setMode(m){mode=m==="punt"?"punt":"kickoff";move=false;render();}
-  function sw(i){if(lines?.[i]){currentLine=Number(i);try{const s=document.getElementById("lineSelect");if(s)s.value=String(i);}catch(e){}render();}}
-  function mv(){move=!move;render();}
-  function rename(){
-    const key=prompt("Enter spot to rename (example: SS/RD):");if(!key)return;
-    const els=[...document.querySelectorAll("#coach1214Special .coach1212Spot")];
-    const el=els.find(x=>x.textContent.trim().toUpperCase().startsWith(key.trim().toUpperCase()));
-    if(!el)return alert("Spot not found.");
-    const old=(renamed[el.dataset.key]||key).trim();
-    const n=prompt("New spot name:",old);if(!n)return;
-    const prefs=loadPrefs();renamed[el.dataset.key]=n.trim();savePrefs(prefs);render();
-  }
-  function spot(key){
-    if(move)return;
-    // Player changes are intentionally assignment-only; no play/stat count is recorded here.
-    const el=document.querySelector(`#coach1214Special [data-key="${CSS.escape(key)}"]`);
-    if(!el)return;
-    alert("Special Teams spot: "+el.textContent.trim()+"\nPlayer assignments here do not count toward stats.");
-  }
-
-  window.coach1214Open=open;window.coach1214Close=close;window.coach1214Mode=setMode;
-  window.coach1214Switch=sw;window.coach1214Move=mv;window.coach1214Rename=rename;window.coach1214Spot=spot;
-
-  setInterval(()=>{
-    const bar=document.getElementById("coach1200DashboardBar");
-    if(bar){
-      const old=[...bar.querySelectorAll("button")].find(b=>/SPECIAL/i.test(String(b.textContent||"")));
-      if(old&&old.dataset.coach1214!=="1"){
-        const n=old.cloneNode(true);n.dataset.coach1214="1";n.textContent="SPECIAL TEAMS";n.onclick=null;
-        n.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();open();},true);old.replaceWith(n);
-      }
-    }
-    const tab=document.getElementById("specialTab1212")||document.getElementById("specialTab1210")||document.getElementById("specialTab");
-    if(tab&&tab.dataset.coach1214!=="1"){
-      const n=tab.cloneNode(true);n.dataset.coach1214="1";n.onclick=null;
-      n.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();open();},true);tab.replaceWith(n);
-    }
-  },250);
 })();
