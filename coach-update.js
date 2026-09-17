@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v122.5 — SPECIAL TEAMS MODAL LAYER FIX
+   v122.6 — SPECIAL TEAMS RENAME FIX
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "122.5";
+window.COACH_UPDATE_VERSION = "122.6";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "122.5";
 (function(){
   "use strict";
 
-  const VERSION="122.5";
+  const VERSION="122.6";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -7569,4 +7569,108 @@ window.COACH_UPDATE_VERSION = "122.5";
     }
   `;
   document.head.appendChild(style);
+})();
+
+/* =========================================================
+   122.6 — SPECIAL TEAMS RENAME FIX
+   Rename mode gets priority over the 122.4 manual-player tap binding.
+   Everything else stays unchanged.
+   ========================================================= */
+(function(){
+  "use strict";
+
+  function root(){ return document.getElementById("coach1220Special"); }
+
+  function renameIsActive(){
+    const r=root(); if(!r) return false;
+    return [...r.querySelectorAll(".coach1220STActions button.active")]
+      .some(b=>/RENAME/i.test(String(b.textContent||"")));
+  }
+
+  function renameSpot(el){
+    if(!el) return;
+    const side=el.dataset.side||"offense";
+    const index=Number(el.dataset.index||0);
+    const slotId=el.dataset.slot||"";
+
+    // Use the same persisted preference key/schema as the 122.0 renderer.
+    try{
+      const l=(Array.isArray(lines)?lines[currentLine]:null);
+      const modeBtn=[...(root()?.querySelectorAll(".coach1220Tabs button")||[])]
+        .find(b=>b.classList.contains("active"));
+      const mode=modeBtn&&/PUNT/i.test(String(modeBtn.textContent||""))?"punt":"kickoff";
+      const key=`coach1220:st:${team?.id||"team"}:${l?.id||currentLine}:${mode}:${side}:${slotId||index}`;
+
+      let pref={};
+      try{ pref=JSON.parse(localStorage.getItem(key)||"{}"); }catch(e){}
+
+      // Read the displayed label only, excluding the player name in <small>.
+      let current="";
+      for(const node of el.childNodes){
+        if(node.nodeType===Node.TEXT_NODE && String(node.textContent||"").trim()){
+          current=String(node.textContent||"").trim();
+          break;
+        }
+      }
+      if(!current) current="POSITION";
+
+      const next=prompt("New position name:",current);
+      if(!next || !next.trim()) return;
+
+      pref={...pref,label:next.trim()};
+      localStorage.setItem(key,JSON.stringify(pref));
+
+      // Update immediately so Rename works even before a full field redraw.
+      for(const node of el.childNodes){
+        if(node.nodeType===Node.TEXT_NODE && String(node.textContent||"").trim()){
+          node.textContent=next.trim();
+          break;
+        }
+      }
+
+      // Exit Rename mode after one successful rename, matching a quick
+      // sideline workflow and preventing the next tap from renaming by accident.
+      if(typeof coach1220ToggleRename==="function"){
+        try{ coach1220ToggleRename(); }catch(e){}
+      }
+    }catch(e){
+      console.error("122.6 rename",e);
+      alert("That position name could not be changed.");
+    }
+  }
+
+  function bind(el){
+    if(!el || el.dataset.coach1226Rename==="1") return;
+    el.dataset.coach1226Rename="1";
+
+    // Capture before 122.4's manual-player pointerup handler. When Rename is
+    // active this owns the tap; otherwise it does nothing and player change works.
+    el.addEventListener("pointerup",function(e){
+      if(!renameIsActive()) return;
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation?.();
+      renameSpot(el);
+    },true);
+
+    if(!window.PointerEvent){
+      el.addEventListener("touchend",function(e){
+        if(!renameIsActive()) return;
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation?.();
+        renameSpot(el);
+      },{capture:true,passive:false});
+    }
+  }
+
+  function bindAll(){
+    document.querySelectorAll("#coach1220Special .coach1220STSpot").forEach(bind);
+  }
+
+  // Bind existing and newly rendered Special Teams spots without changing DOM.
+  let count=0;
+  const timer=setInterval(()=>{
+    bindAll();
+    if(++count>=240) clearInterval(timer);
+  },250);
+  bindAll();
 })();
