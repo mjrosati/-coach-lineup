@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v122.9 — BLACK PUNT MASTER SYNC
+   v123.0 — PUNT INDEX SYNC FIX
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "122.9";
+window.COACH_UPDATE_VERSION = "123.0";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "122.9";
 (function(){
   "use strict";
 
-  const VERSION="122.9";
+  const VERSION="123.0";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -7966,4 +7966,141 @@ window.COACH_UPDATE_VERSION = "122.9";
     }
     if(checks>=240) clearInterval(watcher);
   },500);
+})();
+
+/* =========================================================
+   123.0 — PUNT INDEX SYNC FIX
+   Kickoff worked because labels were standardized by rendered position.
+   Punt now mirrors Black the same way: source and target are matched by
+   rendered spot INDEX, not by database slot ID.
+   Player assignments are untouched.
+   ========================================================= */
+(function(){
+  "use strict";
+
+  function lineIndexByName(name){
+    const ls=Array.isArray(lines)?lines:[];
+    const i=ls.findIndex(l=>String(l.name||"").toUpperCase().includes(name));
+    return i>=0?i:0;
+  }
+
+  function scoreUnitForLine(unit,line,side){
+    if(!unit||!line) return -999;
+    const n=String(unit.name||"").toUpperCase();
+    const ln=String(line.name||"").toUpperCase();
+    let score=n.includes(ln)?20:0;
+    if(!n.includes("PUNT")) return -999;
+    if(side==="offense"){
+      if(!n.includes("RETURN")&&!n.includes("DEFENSE")) score+=36;
+    }else{
+      if(n.includes("PUNT RETURN")) score+=40;
+      else if(n.includes("RETURN")||n.includes("DEFENSE")) score+=25;
+    }
+    return score;
+  }
+
+  function unitFor(line,side){
+    return (Array.isArray(specialUnits)?specialUnits:[]).slice()
+      .sort((a,b)=>scoreUnitForLine(b,line,side)-scoreUnitForLine(a,line,side))[0]||null;
+  }
+
+  function slotsFor(unit){
+    if(!unit) return [];
+    return (Array.isArray(specialSlots)?specialSlots:[])
+      .filter(x=>String(x.unit_id)===String(unit.id))
+      .slice().sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+  }
+
+  function readPref(teamId,lineId,side,slotId,index){
+    const keys=[
+      `coach1220:st:${teamId}:${lineId}:punt:${side}:${slotId}`,
+      `coach1220:st:${teamId}:${lineId}:punt:${side}:${index}`
+    ];
+    for(const k of keys){
+      try{
+        const raw=localStorage.getItem(k);
+        if(raw){
+          const p=JSON.parse(raw);
+          if(p&&(p.label||Number.isFinite(p.x)||Number.isFinite(p.y))) return p;
+        }
+      }catch(e){}
+    }
+    return null;
+  }
+
+  function writePref(teamId,lineId,side,slotId,index,pref){
+    localStorage.setItem(
+      `coach1220:st:${teamId}:${lineId}:punt:${side}:${slotId}`,
+      JSON.stringify(pref)
+    );
+    localStorage.setItem(
+      `coach1220:st:${teamId}:${lineId}:punt:${side}:${index}`,
+      JSON.stringify(pref)
+    );
+  }
+
+  function sync(){
+    const ls=Array.isArray(lines)?lines:[];
+    if(ls.length<2) return false;
+    const black=ls[lineIndexByName("BLACK")];
+    if(!black) return false;
+    const teamId=team?.id||"team";
+    let copied=0;
+
+    ["offense","defense"].forEach(side=>{
+      const srcUnit=unitFor(black,side);
+      const srcSlots=slotsFor(srcUnit);
+
+      ls.forEach(target=>{
+        if(String(target.id)===String(black.id)) return;
+        const dstUnit=unitFor(target,side);
+        const dstSlots=slotsFor(dstUnit);
+
+        const count=Math.max(srcSlots.length,dstSlots.length,11);
+        for(let i=0;i<count;i++){
+          const srcSlot=srcSlots[i];
+          const dstSlot=dstSlots[i];
+          const pref=readPref(teamId,black.id,side,srcSlot?.id||i,i);
+          if(!pref) continue;
+          writePref(teamId,target.id,side,dstSlot?.id||i,i,pref);
+          copied++;
+        }
+      });
+    });
+
+    return copied>0;
+  }
+
+  function puntVisible(){
+    const root=document.getElementById("coach1220Special");
+    if(!root) return false;
+    const active=[...root.querySelectorAll(".coach1220Tabs button")]
+      .find(b=>b.classList.contains("active"));
+    return !!(active&&/PUNT/i.test(String(active.textContent||"")));
+  }
+
+  let tries=0,completed=false;
+  const t=setInterval(()=>{
+    tries++;
+    if(!completed && sync()){
+      completed=true;
+      if(puntVisible() && typeof coach1220STMode==="function"){
+        setTimeout(()=>coach1220STMode("punt"),30);
+      }
+    }
+    if(completed||tries>=80) clearInterval(t);
+  },250);
+
+  // Re-run when switching lines so the target line is always rendered
+  // from Black's indexed Punt layout.
+  if(typeof coach1220SwitchLine==="function"&&!window.__coach1230LineWrapped){
+    const old=coach1220SwitchLine;
+    window.coach1220SwitchLine=function(){
+      sync();
+      const r=old.apply(this,arguments);
+      setTimeout(sync,20);
+      return r;
+    };
+    window.__coach1230LineWrapped=true;
+  }
 })();
