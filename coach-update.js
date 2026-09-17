@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v122.8 — AUTOMATIC PUNT LAYOUT SYNC
+   v122.9 — BLACK PUNT MASTER SYNC
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "122.8";
+window.COACH_UPDATE_VERSION = "122.9";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "122.8";
 (function(){
   "use strict";
 
-  const VERSION="122.8";
+  const VERSION="122.9";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -7868,4 +7868,102 @@ window.COACH_UPDATE_VERSION = "122.8";
 
   // Also run once at startup in case the saved customization is already present.
   setTimeout(autoSync,300);
+})();
+
+/* =========================================================
+   122.9 — BLACK LINE PUNT IS THE MASTER
+   Copies Black Line's exact saved Punt labels + coordinates to
+   Blue, Green, and Gold. Player assignments are never copied.
+   ========================================================= */
+(function(){
+  "use strict";
+
+  function blackLineIndex(){
+    const ls=Array.isArray(lines)?lines:[];
+    let i=ls.findIndex(l=>/BLACK/i.test(String(l.name||"")));
+    return i>=0?i:0;
+  }
+
+  function copyBlackPunt(){
+    const ls=Array.isArray(lines)?lines:[];
+    if(ls.length<2) return false;
+    const bi=blackLineIndex(), source=ls[bi];
+    if(!source) return false;
+
+    const teamId=team?.id||"team";
+    const prefix=`coach1220:st:${teamId}:${source.id}:punt:`;
+    const items=[];
+
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(!k || !k.startsWith(prefix)) continue;
+      try{
+        const pref=JSON.parse(localStorage.getItem(k)||"{}");
+        if(pref && (pref.label || Number.isFinite(pref.x) || Number.isFinite(pref.y))){
+          items.push({suffix:k.slice(prefix.length),pref});
+        }
+      }catch(e){}
+    }
+    if(!items.length) return false;
+
+    ls.forEach((ln,i)=>{
+      if(i===bi) return;
+      const target=`coach1220:st:${teamId}:${ln.id}:punt:`;
+      items.forEach(x=>localStorage.setItem(target+x.suffix,JSON.stringify(x.pref)));
+    });
+
+    localStorage.setItem(`coach1229:blackPuntSynced:${teamId}`,String(Date.now()));
+    return true;
+  }
+
+  function refreshIfPunt(){
+    const root=document.getElementById("coach1220Special");
+    if(!root) return;
+    const active=[...root.querySelectorAll(".coach1220Tabs button")]
+      .find(b=>b.classList.contains("active"));
+    if(!(active && /PUNT/i.test(String(active.textContent||"")))) return;
+
+    // Remove the old temporary copy button if present.
+    document.getElementById("coach1227SyncPunt")?.remove();
+
+    // Re-render current Punt line after Black master values have been copied.
+    try{
+      if(typeof coach1220STMode==="function") coach1220STMode("punt");
+    }catch(e){}
+  }
+
+  let done=false, attempts=0;
+  const timer=setInterval(()=>{
+    attempts++;
+    if(!done && copyBlackPunt()){
+      done=true;
+      setTimeout(refreshIfPunt,30);
+    }
+    if(done || attempts>=80) clearInterval(timer);
+  },250);
+
+  // Re-sync whenever Black's saved Punt layout changes later in this session.
+  // This is bounded and touches only local layout preferences, never players.
+  let last="";
+  let checks=0;
+  const watcher=setInterval(()=>{
+    checks++;
+    const ls=Array.isArray(lines)?lines:[];
+    const source=ls[blackLineIndex()];
+    if(source){
+      const prefix=`coach1220:st:${team?.id||"team"}:${source.id}:punt:`;
+      const vals=[];
+      for(let i=0;i<localStorage.length;i++){
+        const k=localStorage.key(i);
+        if(k&&k.startsWith(prefix)) vals.push(k+"="+localStorage.getItem(k));
+      }
+      vals.sort();
+      const sig=vals.join("|");
+      if(sig && sig!==last){
+        last=sig;
+        if(copyBlackPunt()) setTimeout(refreshIfPunt,30);
+      }
+    }
+    if(checks>=240) clearInterval(watcher);
+  },500);
 })();
