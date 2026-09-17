@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v122.1 — RESUME GAME FIX
+   v122.2 — KICKOFF 11 POSITION SYNC
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "122.1";
+window.COACH_UPDATE_VERSION = "122.2";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "122.1";
 (function(){
   "use strict";
 
-  const VERSION="122.1";
+  const VERSION="122.2";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -6570,9 +6570,8 @@ window.COACH_UPDATE_VERSION = "122.1";
   const DIAGRAM={
     kickoff:{
       offense:[
-        ["RE",5,18],["LE",14,18],["BC",23,18],["FC",32,18],["NG",41,18],
-        ["R",50,18],["D",59,18],["FS",68,18],["SS/RD",77,18],["W",86,18],["S",95,18],
-        ["K",50,34]
+        ["RE",5,24],["LE",14,24],["BC",23,24],["FC",32,24],["NG",41,24],
+        ["R",50,24],["D",59,24],["FS",68,24],["RD",77,24],["W",86,24],["S",95,24]
       ],
       defense:[
         ["D",13,60],["FC",31,60],["RE",50,60],["BC",68,60],["R",86,60],
@@ -6669,7 +6668,9 @@ window.COACH_UPDATE_VERSION = "122.1";
   function spotHtml(side,slot,index,player){
     const model=(DIAGRAM[stMode]?.[side]||[])[index]||[`SPOT ${index+1}`,50,side==="offense"?28:72];
     const pref=getPref(side,slot?.id,index);
-    const label=pref.label||slot?.label||slot?.slot_key||model[0];
+    const label=(stMode==="kickoff")
+      ? model[0]
+      : (pref.label||slot?.label||slot?.slot_key||model[0]);
     const x=Number.isFinite(pref.x)?pref.x:model[1];
     const y=Number.isFinite(pref.y)?pref.y:model[2];
     return `<button type="button"
