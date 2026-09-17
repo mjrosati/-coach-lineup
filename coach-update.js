@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v122.2 — KICKOFF 11 POSITION SYNC
+   v122.3 — SPECIAL TEAMS MANUAL PLAYER CHANGE
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "122.2";
+window.COACH_UPDATE_VERSION = "122.3";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "122.2";
 (function(){
   "use strict";
 
-  const VERSION="122.2";
+  const VERSION="122.3";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -7115,4 +7115,280 @@ window.COACH_UPDATE_VERSION = "122.2";
       if(typeof hideUnusedStatus==="function") hideUnusedStatus();
     }catch(e){}
   },500);
+})();
+
+
+/* =========================================================
+   122.3 — SPECIAL TEAMS MANUAL PLAYER CHANGE
+   Match Game Day offense/defense substitution rules:
+   - tap a Special Teams player/spot to change it
+   - show the full active roster
+   - show current player and recommended/position-fit information
+   - allow a player already used on the SAME Special Teams unit by swapping
+     the two assignments rather than rejecting the selection
+   - preserve each line/unit assignment
+   - never record Special Teams participation in Game Day stats
+   ========================================================= */
+(function(){
+  "use strict";
+
+  function esc(v){
+    return String(v??"").replace(/[&<>"']/g,c=>({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
+  }
+
+  function getSlot(slotId){
+    return (Array.isArray(specialSlots)?specialSlots:[])
+      .find(s=>String(s.id)===String(slotId))||null;
+  }
+
+  function getAssignment(slotId){
+    return (Array.isArray(specialAssignments)?specialAssignments:[])
+      .find(a=>String(a.slot_id)===String(slotId))||null;
+  }
+
+  function getPlayer(id){
+    return (Array.isArray(players)?players:[])
+      .find(p=>String(p.id)===String(id))||null;
+  }
+
+  function availableRoster(){
+    return (Array.isArray(players)?players:[])
+      .filter(p=>String(p.availability_status||"active").toLowerCase()!=="out")
+      .slice()
+      .sort((a,b)=>{
+        const an=Number(a.jersey_number),bn=Number(b.jersey_number);
+        if(Number.isFinite(an)&&Number.isFinite(bn)&&an!==bn) return an-bn;
+        return String(a.name||"").localeCompare(String(b.name||""));
+      });
+  }
+
+  function sideForSlot(slot){
+    if(!slot) return "offense";
+    const unit=(Array.isArray(specialUnits)?specialUnits:[])
+      .find(u=>String(u.id)===String(slot.unit_id));
+    const n=String(unit?.name||"").toUpperCase();
+    if(n.includes("RETURN")||n.includes("BLOCK")||n.includes("DEFENSE")) return "defense";
+    return "offense";
+  }
+
+  function desiredPosition(slot){
+    return String(slot?.label||slot?.slot_key||"").trim();
+  }
+
+  function fitScore(player,slot){
+    const wanted=desiredPosition(slot);
+    if(!wanted) return 0;
+    try{
+      if(typeof playerPositionMatchScore==="function"){
+        const side=sideForSlot(slot);
+        const result=playerPositionMatchScore(player,wanted,side);
+        if(Number.isFinite(Number(result))) return Number(result);
+      }
+    }catch(e){}
+    const side=sideForSlot(slot);
+    const saved=side==="defense"?player?.defense_positions:player?.offense_positions;
+    if(Array.isArray(saved)&&saved.some(x=>String(x).toUpperCase()===wanted.toUpperCase())) return 100;
+    return 0;
+  }
+
+  function fitLabel(score){
+    if(score>=80) return "BEST FIT";
+    if(score>0) return "POSITION FIT";
+    return "AVAILABLE";
+  }
+
+  function unitAssignmentForPlayer(unitId,playerId){
+    return (Array.isArray(specialAssignments)?specialAssignments:[])
+      .find(a=>String(a.unit_id)===String(unitId)&&String(a.player_id)===String(playerId))||null;
+  }
+
+  function openPicker(slotId){
+    const slot=getSlot(slotId);
+    if(!slot || typeof openModal!=="function") return;
+
+    const currentA=getAssignment(slot.id);
+    const currentP=currentA?getPlayer(currentA.player_id):null;
+    const roster=availableRoster().map(p=>({
+      p,
+      score:fitScore(p,slot),
+      used:unitAssignmentForPlayer(slot.unit_id,p.id)
+    })).sort((a,b)=>{
+      if(String(a.p.id)===String(currentP?.id)) return -1;
+      if(String(b.p.id)===String(currentP?.id)) return 1;
+      if(b.score!==a.score) return b.score-a.score;
+      return Number(a.p.jersey_number||999)-Number(b.p.jersey_number||999);
+    });
+
+    const recommended=roster.find(x=>!x.used && String(x.p.id)!==String(currentP?.id)) || roster[0];
+
+    openModal(`
+      <div class="coach1223Head">
+        <div>
+          <small>SPECIAL TEAMS • ${esc(sideForSlot(slot).toUpperCase())}</small>
+          <h2>Change ${esc(desiredPosition(slot)||"Player")}</h2>
+          <div class="coach1223Current">
+            CURRENT: ${currentP?`#${esc(currentP.jersey_number??"")} ${esc(currentP.name||"Player")}`:"OPEN"}
+          </div>
+          ${recommended?`<div class="coach1223Recommend">
+            RECOMMENDED: #${esc(recommended.p.jersey_number??"")} ${esc(recommended.p.name||"Player")}
+          </div>`:""}
+        </div>
+        <button class="secondary" onclick="closeModal()">✕ CLOSE</button>
+      </div>
+
+      <div class="coach1223TableHead">
+        <span>PLAYER</span><span>POSITION FIT</span><span>STATUS</span>
+      </div>
+
+      <div class="coach1223Roster">
+        ${roster.map(x=>{
+          const p=x.p;
+          const isCurrent=String(p.id)===String(currentP?.id);
+          const usedElsewhere=x.used && String(x.used.slot_id)!==String(slot.id);
+          return `<button type="button"
+            class="coach1223Row ${isCurrent?"current":""}"
+            onclick="coach1223Select('${esc(slot.id)}','${esc(p.id)}')">
+            <span><b>#${esc(p.jersey_number??"")} ${esc(p.name||"Player")}</b>
+              <small>${isCurrent?"CURRENT PLAYER":usedElsewhere?"ALREADY ON THIS UNIT — WILL SWAP":"TAP TO SELECT"}</small>
+            </span>
+            <b>${esc(fitLabel(x.score))}</b>
+            <b>${isCurrent?"CURRENT":usedElsewhere?"SWAP":"SELECT"}</b>
+          </button>`;
+        }).join("")}
+      </div>
+      <div class="coach1223Note">
+        Same rule as Game Day: players already on this Special Teams unit can be selected.
+        Their two spots will swap. Special Teams does not count toward participation stats.
+      </div>
+    `);
+  }
+
+  async function directUpsert(unitId,slotId,playerId){
+    if(typeof sb==="undefined") throw new Error("Database unavailable");
+    const {error}=await sb.from("special_team_assignments").upsert(
+      {unit_id:unitId,slot_id:slotId,player_id:playerId},
+      {onConflict:"unit_id,slot_id"}
+    );
+    if(error) throw error;
+  }
+
+  async function selectPlayer(slotId,newPlayerId){
+    const slot=getSlot(slotId);
+    if(!slot) return;
+
+    const oldA=getAssignment(slot.id);
+    const oldPlayerId=oldA?.player_id||null;
+    if(String(oldPlayerId||"")===String(newPlayerId)) {
+      try{ closeModal?.(); }catch(e){}
+      return;
+    }
+
+    const otherA=unitAssignmentForPlayer(slot.unit_id,newPlayerId);
+
+    try{
+      // If the selected player is already on this unit, perform a true swap.
+      if(otherA && String(otherA.slot_id)!==String(slot.id)){
+        if(!oldPlayerId){
+          // Move selected player into an open spot and clear the old spot.
+          if(typeof sb==="undefined") throw new Error("Database unavailable");
+          await sb.from("special_team_assignments").delete()
+            .eq("unit_id",slot.unit_id).eq("slot_id",otherA.slot_id);
+          await directUpsert(slot.unit_id,slot.id,newPlayerId);
+        }else{
+          // Two-step swap using a temporary delete avoids same-unit duplicate constraint.
+          if(typeof sb==="undefined") throw new Error("Database unavailable");
+          const {error:delErr}=await sb.from("special_team_assignments").delete()
+            .eq("unit_id",slot.unit_id).eq("slot_id",otherA.slot_id);
+          if(delErr) throw delErr;
+          await directUpsert(slot.unit_id,slot.id,newPlayerId);
+          await directUpsert(slot.unit_id,otherA.slot_id,oldPlayerId);
+        }
+      }else{
+        // Normal manual replacement.
+        if(typeof assignSpecialPlayer==="function"){
+          await assignSpecialPlayer(slot.id,newPlayerId);
+        }else{
+          await directUpsert(slot.unit_id,slot.id,newPlayerId);
+        }
+      }
+
+      // Refresh assignments only. No Game Day play/stat recording is called.
+      if(typeof loadSpecialTeams==="function"){
+        try{ await loadSpecialTeams(); }catch(e){}
+      }
+      try{ closeModal?.(); }catch(e){}
+      if(typeof coach1220OpenST==="function"){
+        // If the Special Teams page remains mounted, redraw it instead of reopening.
+        const root=document.getElementById("coach1220Special");
+        if(root && typeof coach1220STMode==="function"){
+          const active=[...root.querySelectorAll(".coach1220Tabs button")]
+            .find(b=>b.classList.contains("active"));
+          coach1220STMode(active&&/PUNT/i.test(active.textContent)?"punt":"kickoff");
+        }
+      }
+    }catch(e){
+      console.error("122.3 manual Special Teams change",e);
+      alert("That player change could not be saved. Please try again.");
+    }
+  }
+
+  /* Replace only the 122.0/122.2 Special Teams picker path. */
+  window.coach1220AssignSpecial=selectPlayer;
+  window.coach1223Select=selectPlayer;
+  window.coach1223OpenPicker=openPicker;
+
+  // The existing spot handler calls openSTPlayerPicker. Override it with
+  // the Game-Day-style manual picker while preserving Move/Rename behavior.
+  try{
+    window.openSTPlayerPicker=function(side,index,slot){
+      if(slot) openPicker(slot.id);
+    };
+  }catch(e){}
+
+  // Directly bind rendered spots after each Special Teams render so the
+  // manual picker wins without adding a document-level click interceptor.
+  function bindSpots(){
+    document.querySelectorAll("#coach1220Special .coach1220STSpot").forEach(el=>{
+      if(el.dataset.coach1223==="1") return;
+      el.dataset.coach1223="1";
+      el.addEventListener("click",function(e){
+        const root=document.getElementById("coach1220Special");
+        if(!root) return;
+        const move=root.querySelector(".coach1220STActions button.active");
+        // Let MOVE/RENAME continue to use the existing 122.2 handlers.
+        if(move && /MOVE SPOTS|RENAME/i.test(String(move.textContent||""))) return;
+        const slotId=el.dataset.slot;
+        if(slotId){
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          openPicker(slotId);
+        }
+      },true);
+    });
+  }
+
+  let passes=0;
+  const timer=setInterval(()=>{
+    bindSpots();
+    passes++;
+    if(passes>240) clearInterval(timer);
+  },250);
+
+  const style=document.createElement("style");
+  style.textContent=`
+    .coach1223Head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:9px}
+    .coach1223Head h2{margin:1px 0 4px}.coach1223Head small{color:#7dc4ff;font-weight:1000}
+    .coach1223Current,.coach1223Recommend{font-size:9px;font-weight:900;margin-top:3px}
+    .coach1223Recommend{color:#8ed0ff}
+    .coach1223TableHead,.coach1223Row{display:grid;grid-template-columns:minmax(0,1fr) 100px 76px;gap:8px;align-items:center}
+    .coach1223TableHead{padding:4px 8px;color:#91a9bf;font-size:8px;font-weight:1000}
+    .coach1223Roster{display:grid;gap:5px;max-height:60vh;overflow:auto}
+    .coach1223Row{width:100%;text-align:left;padding:8px;border:1px solid #314965;border-radius:7px;background:#07111d;color:#fff}
+    .coach1223Row span{display:grid}.coach1223Row small{font-size:7px;color:#9fb3c7}
+    .coach1223Row.current{box-shadow:0 0 0 2px #fff inset}
+    .coach1223Note{margin-top:8px;padding:7px;border-radius:6px;background:#0a1a29;color:#a9bfd2;font-size:8px;font-weight:800}
+  `;
+  document.head.appendChild(style);
 })();
