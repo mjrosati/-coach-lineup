@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v122.3 — SPECIAL TEAMS MANUAL PLAYER CHANGE
+   v122.4 — SPECIAL TEAMS TAP FIX
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "122.3";
+window.COACH_UPDATE_VERSION = "122.4";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "122.3";
 (function(){
   "use strict";
 
-  const VERSION="122.3";
+  const VERSION="122.4";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -7391,4 +7391,106 @@ window.COACH_UPDATE_VERSION = "122.3";
     .coach1223Note{margin-top:8px;padding:7px;border-radius:6px;background:#0a1a29;color:#a9bfd2;font-size:8px;font-weight:800}
   `;
   document.head.appendChild(style);
+})();
+
+
+/* =========================================================
+   122.4 — SPECIAL TEAMS TAP FIX
+   Fix only the manual-player tap path.
+   The 122.2/122.3 field, Auto Fill, line switching, Move/Rename,
+   and no-Special-Teams-stats behavior are left unchanged.
+   ========================================================= */
+(function(){
+  "use strict";
+
+  function getSlot(slotId){
+    return (Array.isArray(specialSlots)?specialSlots:[])
+      .find(s=>String(s.id)===String(slotId))||null;
+  }
+
+  function openManual(slotId){
+    if(!slotId) return;
+    const slot=getSlot(slotId);
+    if(!slot) return;
+    if(typeof coach1223OpenPicker==="function"){
+      coach1223OpenPicker(slot.id);
+    }
+  }
+
+  function bindSpot(el){
+    if(!el || el.dataset.coach1224Tap==="1") return;
+    el.dataset.coach1224Tap="1";
+
+    // Pointer/touch path for iPad Safari.
+    const fire=function(e){
+      const root=document.getElementById("coach1220Special");
+      if(!root) return;
+
+      // Preserve the existing Move and Rename modes.
+      const active=[...root.querySelectorAll(".coach1220STActions button.active")]
+        .map(b=>String(b.textContent||"").toUpperCase()).join(" ");
+      if(active.includes("MOVE SPOTS") || active.includes("RENAME")) return;
+
+      const slotId=el.dataset.slot;
+      if(!slotId) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      if(typeof e.stopImmediatePropagation==="function") e.stopImmediatePropagation();
+      openManual(slotId);
+    };
+
+    // pointerup is the most reliable route on current iPad Safari.
+    el.addEventListener("pointerup",fire,true);
+
+    // Fallback for browsers/devices where pointer events are unavailable.
+    if(!window.PointerEvent){
+      el.addEventListener("touchend",fire,{capture:true,passive:false});
+      el.addEventListener("click",fire,true);
+    }
+  }
+
+  function bindAll(){
+    document.querySelectorAll("#coach1220Special .coach1220STSpot").forEach(bindSpot);
+  }
+
+  // Patch the renderer itself so every freshly-rendered Special Teams field
+  // gets its tap handlers immediately after rendering.
+  if(typeof renderST==="function" && !window.__coach1224RenderWrapped){
+    const originalRenderST=renderST;
+    try{
+      renderST=function(){
+        const result=originalRenderST.apply(this,arguments);
+        setTimeout(bindAll,0);
+        return result;
+      };
+      window.__coach1224RenderWrapped=true;
+    }catch(e){}
+  }
+
+  // Also wrap the public Special Teams opener/mode/line functions because
+  // those functions can redraw the field without exposing renderST globally.
+  ["coach1220OpenST","coach1220STMode","coach1220SwitchLine"].forEach(name=>{
+    const fn=window[name];
+    if(typeof fn!=="function" || fn.__coach1224Wrapped) return;
+    const wrapped=function(){
+      const result=fn.apply(this,arguments);
+      setTimeout(bindAll,20);
+      setTimeout(bindAll,250);
+      return result;
+    };
+    wrapped.__coach1224Wrapped=true;
+    window[name]=wrapped;
+  });
+
+  // Bounded startup/re-render binder. It never intercepts document clicks
+  // and never rebuilds the Special Teams DOM.
+  let count=0;
+  const timer=setInterval(()=>{
+    bindAll();
+    count++;
+    if(count>=120) clearInterval(timer);
+  },250);
+
+  bindAll();
 })();
