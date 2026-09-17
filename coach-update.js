@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v122.4 — SPECIAL TEAMS TAP FIX
+   v122.5 — SPECIAL TEAMS MODAL LAYER FIX
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "122.4";
+window.COACH_UPDATE_VERSION = "122.5";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "122.4";
 (function(){
   "use strict";
 
-  const VERSION="122.4";
+  const VERSION="122.5";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -7493,4 +7493,80 @@ window.COACH_UPDATE_VERSION = "122.4";
   },250);
 
   bindAll();
+})();
+
+/* =========================================================
+   122.5 — SPECIAL TEAMS MODAL LAYER FIX
+   Keep the replacement picker visually inside/above Special Teams.
+   No assignment/stat logic changes.
+   ========================================================= */
+(function(){
+  "use strict";
+
+  function liftModal(){
+    const st=document.getElementById("coach1220Special");
+    if(!st) return;
+
+    // Native modal implementations in this app use a modal/backdrop pair.
+    // Rather than moving nodes (which can break close/save handlers), place
+    // those layers above the fixed Special Teams screen.
+    const selectors=[
+      ".modalBackdrop",".modal-backdrop","#modalBackdrop",
+      ".modalOverlay",".modal-overlay","#modalOverlay",
+      ".modal",".modalShell",".modal-shell","#modal"
+    ];
+    selectors.forEach(sel=>{
+      document.querySelectorAll(sel).forEach(el=>{
+        if(el.closest("#coach1220Special")) return;
+        el.classList.add("coach1225AboveSpecial");
+      });
+    });
+  }
+
+  // Wrap the working 122.3 picker. Assignment behavior remains untouched.
+  if(typeof coach1223OpenPicker==="function" && !window.__coach1225PickerWrapped){
+    const old=coach1223OpenPicker;
+    window.coach1223OpenPicker=function(){
+      const r=old.apply(this,arguments);
+      setTimeout(liftModal,0);
+      setTimeout(liftModal,30);
+      return r;
+    };
+    window.__coach1225PickerWrapped=true;
+  }
+
+  // 122.4's tap path calls coach1223OpenPicker dynamically, so the wrapper
+  // above is enough. This bounded fallback catches a native modal rendered
+  // one frame later on iPad.
+  let n=0;
+  const t=setInterval(()=>{
+    if(document.getElementById("coach1220Special")) liftModal();
+    if(++n>=80) clearInterval(t);
+  },100);
+
+  const style=document.createElement("style");
+  style.id="coach1225ModalLayer";
+  style.textContent=`
+    .coach1225AboveSpecial{
+      z-index:2147483600!important;
+    }
+    .modalBackdrop.coach1225AboveSpecial,
+    .modal-backdrop.coach1225AboveSpecial,
+    #modalBackdrop.coach1225AboveSpecial,
+    .modalOverlay.coach1225AboveSpecial,
+    .modal-overlay.coach1225AboveSpecial,
+    #modalOverlay.coach1225AboveSpecial{
+      position:fixed!important;
+      inset:0!important;
+      z-index:2147483500!important;
+    }
+    .modal.coach1225AboveSpecial,
+    .modalShell.coach1225AboveSpecial,
+    .modal-shell.coach1225AboveSpecial,
+    #modal.coach1225AboveSpecial{
+      position:fixed!important;
+      z-index:2147483600!important;
+    }
+  `;
+  document.head.appendChild(style);
 })();
