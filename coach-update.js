@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v122.6 — SPECIAL TEAMS RENAME FIX
+   v122.8 — AUTOMATIC PUNT LAYOUT SYNC
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "122.6";
+window.COACH_UPDATE_VERSION = "122.8";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "122.6";
 (function(){
   "use strict";
 
-  const VERSION="122.6";
+  const VERSION="122.8";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -7673,4 +7673,199 @@ window.COACH_UPDATE_VERSION = "122.6";
     if(++count>=240) clearInterval(timer);
   },250);
   bindAll();
+})();
+
+/* =========================================================
+   122.7 — PUNT LAYOUT SYNC
+   Copies the CURRENT line's saved Punt spot names + coordinates to
+   the other three lines. Player assignments are NOT copied.
+   This runs on the user's device, so it uses the exact renames/moves
+   already saved in localStorage by 122.6.
+   ========================================================= */
+(function(){
+  "use strict";
+
+  function currentMode(){
+    const root=document.getElementById("coach1220Special");
+    const active=root && [...root.querySelectorAll(".coach1220Tabs button")]
+      .find(b=>b.classList.contains("active"));
+    return active && /PUNT/i.test(String(active.textContent||"")) ? "punt" : "kickoff";
+  }
+
+  function syncPuntFromCurrent(){
+    if(currentMode()!=="punt") return;
+    const allLines=Array.isArray(lines)?lines:[];
+    const source=allLines[currentLine];
+    if(!source || allLines.length<2) return;
+
+    const teamId=team?.id||"team";
+    const sides=["offense","defense"];
+    let copied=0;
+
+    for(const side of sides){
+      // Punt diagram currently has 11 spots per side. Read both slot-id and
+      // index-key variants so renamed/moved spots survive regardless of how
+      // the saved unit was originally created.
+      const unit=(Array.isArray(specialUnits)?specialUnits:[])
+        .filter(u=>{
+          const n=String(u.name||"").toUpperCase();
+          if(!n.includes("PUNT")) return false;
+          if(side==="defense") return n.includes("RETURN")||n.includes("DEFENSE");
+          return !n.includes("RETURN")&&!n.includes("DEFENSE");
+        })[0]||null;
+
+      const slots=(Array.isArray(specialSlots)?specialSlots:[])
+        .filter(sl=>unit && String(sl.unit_id)===String(unit.id))
+        .slice()
+        .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+
+      for(let i=0;i<11;i++){
+        const sourceSlotId=slots[i]?.id||i;
+        const sourceKey=`coach1220:st:${teamId}:${source.id}:${"punt"}:${side}:${sourceSlotId}`;
+        const sourceIndexKey=`coach1220:st:${teamId}:${source.id}:${"punt"}:${side}:${i}`;
+
+        let raw=localStorage.getItem(sourceKey);
+        if(!raw) raw=localStorage.getItem(sourceIndexKey);
+        if(!raw) continue;
+
+        let pref;
+        try{ pref=JSON.parse(raw); }catch(e){ continue; }
+        if(!pref || (!pref.label && !Number.isFinite(pref.x) && !Number.isFinite(pref.y))) continue;
+
+        allLines.forEach((ln,li)=>{
+          if(li===currentLine) return;
+          const targetSlotId=slots[i]?.id||i;
+          const targetKey=`coach1220:st:${teamId}:${ln.id}:${"punt"}:${side}:${targetSlotId}`;
+          const targetIndexKey=`coach1220:st:${teamId}:${ln.id}:${"punt"}:${side}:${i}`;
+          localStorage.setItem(targetKey,JSON.stringify(pref));
+          localStorage.setItem(targetIndexKey,JSON.stringify(pref));
+          copied++;
+        });
+      }
+    }
+
+    // Redraw current view; other lines will use the copied layout when selected.
+    try{
+      if(typeof coach1220STMode==="function") coach1220STMode("punt");
+    }catch(e){}
+
+    return copied;
+  }
+
+  function addSyncButton(){
+    const root=document.getElementById("coach1220Special");
+    if(!root || currentMode()!=="punt") return;
+    const actions=root.querySelector(".coach1220STActions");
+    if(!actions || actions.querySelector("#coach1227SyncPunt")) return;
+
+    const b=document.createElement("button");
+    b.id="coach1227SyncPunt";
+    b.type="button";
+    b.textContent="COPY PUNT LAYOUT TO ALL LINES";
+    b.addEventListener("click",function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      const n=syncPuntFromCurrent();
+      alert(n ? "Punt position names and locations copied to the other lines. Player assignments were not changed."
+              : "No saved Punt renames or moved spots were found on this line.");
+    });
+    actions.insertBefore(b,actions.firstChild);
+  }
+
+  // Add the button whenever Punt is visible. This avoids guessing which line
+  // contains the user's customized layout; the user simply opens that Punt line
+  // and taps one button.
+  let passes=0;
+  const timer=setInterval(()=>{
+    addSyncButton();
+    if(++passes>=240) clearInterval(timer);
+  },250);
+
+  window.coach1227SyncPuntFromCurrent=syncPuntFromCurrent;
+})();
+
+/* =========================================================
+   122.8 — AUTOMATIC PUNT LAYOUT SYNC
+   Finds the line with the most saved Punt customizations on this device
+   and copies ONLY labels/coordinates to the other lines automatically.
+   Player assignments are never copied.
+   Runs once per customization signature so it will not keep overwriting.
+   ========================================================= */
+(function(){
+  "use strict";
+
+  function allPrefsForLine(lineId){
+    const teamId=team?.id||"team";
+    const prefix=`coach1220:st:${teamId}:${lineId}:punt:`;
+    const found=[];
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(!k || !k.startsWith(prefix)) continue;
+      try{
+        const p=JSON.parse(localStorage.getItem(k)||"{}");
+        if(p && (p.label || Number.isFinite(p.x) || Number.isFinite(p.y))){
+          found.push({key:k,pref:p,suffix:k.slice(prefix.length)});
+        }
+      }catch(e){}
+    }
+    return found;
+  }
+
+  function signature(items){
+    return JSON.stringify(items.map(x=>[x.suffix,x.pref.label||"",x.pref.x??"",x.pref.y??""]).sort());
+  }
+
+  function autoSync(){
+    const ls=Array.isArray(lines)?lines:[];
+    if(ls.length<2) return false;
+
+    const candidates=ls.map((ln,i)=>({ln,i,items:allPrefsForLine(ln.id)}))
+      .sort((a,b)=>b.items.length-a.items.length);
+
+    const source=candidates[0];
+    if(!source || !source.items.length) return false;
+
+    const sig=signature(source.items);
+    const doneKey=`coach1228:puntSync:${team?.id||"team"}`;
+    if(localStorage.getItem(doneKey)===sig) return true;
+
+    const sourcePrefix=`coach1220:st:${team?.id||"team"}:${source.ln.id}:punt:`;
+
+    ls.forEach((ln,i)=>{
+      if(i===source.i) return;
+      const targetPrefix=`coach1220:st:${team?.id||"team"}:${ln.id}:punt:`;
+      source.items.forEach(item=>{
+        const suffix=item.key.slice(sourcePrefix.length);
+        localStorage.setItem(targetPrefix+suffix,JSON.stringify(item.pref));
+      });
+    });
+
+    localStorage.setItem(doneKey,sig);
+    return true;
+  }
+
+  function puntVisible(){
+    const root=document.getElementById("coach1220Special");
+    if(!root) return false;
+    const active=[...root.querySelectorAll(".coach1220Tabs button")]
+      .find(b=>b.classList.contains("active"));
+    return !!(active && /PUNT/i.test(String(active.textContent||"")));
+  }
+
+  function runAndRefresh(){
+    if(!puntVisible()) return;
+    if(autoSync()){
+      // Remove the temporary 122.7 manual-copy button; 122.8 does it itself.
+      document.getElementById("coach1227SyncPunt")?.remove();
+    }
+  }
+
+  let n=0;
+  const timer=setInterval(()=>{
+    runAndRefresh();
+    if(++n>=240) clearInterval(timer);
+  },250);
+
+  // Also run once at startup in case the saved customization is already present.
+  setTimeout(autoSync,300);
 })();
