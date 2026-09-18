@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v123.4 — NUMBER UNDER NAME
+   v123.5 — FIELD + NUMBER LAYOUT
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "123.4";
+window.COACH_UPDATE_VERSION = "123.5";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "123.4";
 (function(){
   "use strict";
 
-  const VERSION="123.4";
+  const VERSION="123.5";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -8431,10 +8431,73 @@ window.COACH_UPDATE_VERSION = "123.4";
     }
     #field .coach1234Number{
       display:block!important;
-      margin-top:2px!important;
-      font-size:clamp(7px,.9vw,11px)!important;
+      margin-top:3px!important;
+      font-size:clamp(7px,.82vw,10px)!important;
       font-weight:900!important;
       opacity:.9!important;
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+/* =========================================================
+   123.5 — COMBINED FIELD + NUMBER LAYOUT
+   Built from working 123.4.
+   1) Player cards: position, name, then jersey number underneath.
+   2) Extend the live field down through the unused blue gap.
+   No Special Teams / substitution / stats behavior changed.
+   ========================================================= */
+(function(){
+  "use strict";
+  const style=document.createElement("style");
+  style.id="coach1235CombinedLayout";
+  style.textContent=`
+    /* Keep all three lines readable inside the existing player card. */
+    #field .coach1233Player{
+      display:flex!important;
+      flex-direction:column!important;
+      align-items:center!important;
+      justify-content:center!important;
+      line-height:1!important;
+      white-space:normal!important;
+      overflow:visible!important;
+    }
+    #field .coach1234Name{
+      display:block!important;
+      font-size:clamp(8px,1vw,12px)!important;
+      font-weight:800!important;
+      line-height:1.05!important;
+    }
+    #field .coach1234Number{
+      display:block!important;
+      margin-top:3px!important;
+      font-size:clamp(7px,.82vw,10px)!important;
+      font-weight:900!important;
+      line-height:1!important;
+      opacity:.92!important;
+    }
+
+    /* Use the blue dead-space below the field, stopping above the controls. */
+    body.coach1200-game-dashboard.fieldFullscreen .fieldArea{
+      padding-bottom:0!important;
+      height:calc(100dvh - 88px)!important;
+      max-height:calc(100dvh - 88px)!important;
+    }
+    body.coach1200-game-dashboard.fieldFullscreen #field.field{
+      width:100%!important;
+      height:100%!important;
+      max-width:none!important;
+      max-height:none!important;
+      min-height:0!important;
+      aspect-ratio:auto!important;
+      margin:0!important;
+    }
+
+    @media (orientation:landscape) and (max-height:700px){
+      body.coach1200-game-dashboard.fieldFullscreen .fieldArea{
+        height:calc(100dvh - 82px)!important;
+        max-height:calc(100dvh - 82px)!important;
+      }
     }
   `;
   document.head.appendChild(style);
