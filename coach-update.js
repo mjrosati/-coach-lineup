@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v123.2 — PUNT RETURN LIVE MIRROR
+   v123.4 — NUMBER UNDER NAME
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "123.2";
+window.COACH_UPDATE_VERSION = "123.4";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "123.2";
 (function(){
   "use strict";
 
-  const VERSION="123.2";
+  const VERSION="123.4";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -8318,4 +8318,124 @@ window.COACH_UPDATE_VERSION = "123.2";
     }
     if(++n>=480) clearInterval(timer);
   },250);
+})();
+
+/* =========================================================
+   123.3 — FIELD PLAYER NUMBERS
+   Show jersey number together with the player name on the live
+   Offense/Defense field for every line. Existing NAMES/NUMBERS
+   controls and all assignment/stat logic remain unchanged.
+   ========================================================= */
+(function(){
+  "use strict";
+
+  function playerForName(name){
+    const n=String(name||"").trim().toLowerCase();
+    if(!n) return null;
+    return (Array.isArray(players)?players:[]).find(p=>{
+      const full=String(p.name||"").trim().toLowerCase();
+      const last=full.split(/\s+/).pop();
+      return full===n || last===n;
+    })||null;
+  }
+
+  function enhanceField(){
+    const field=document.getElementById("field");
+    if(!field) return;
+
+    field.querySelectorAll(".slot").forEach(slot=>{
+      // Native slot cards contain the position plus player-name text.
+      // Find the smallest text element that resolves to a roster player.
+      const candidates=[...slot.querySelectorAll("small,.playerName,.name,span,div")];
+      let target=null,player=null;
+
+      for(const el of candidates){
+        if(el.children.length) continue;
+        const txt=String(el.textContent||"").trim();
+        const p=playerForName(txt);
+        if(p){ target=el; player=p; break; }
+      }
+      if(!target||!player) return;
+
+      const num=player.jersey_number ?? player.number ?? "";
+      if(String(num).trim()==="") return;
+
+      const original=String(player.name||target.textContent||"").trim();
+      target.dataset.coach1233Name=original;
+      target.innerHTML=`<span class="coach1234Name">${original}</span><span class="coach1234Number">#${num}</span>`;
+      target.classList.add("coach1233Player");
+    });
+  }
+
+  // Wrap the native field renderer so all Black/Blue/Green/Gold lines
+  // receive numbers whenever the field redraws.
+  if(typeof renderField==="function"&&!window.__coach1233RenderWrapped){
+    const old=renderField;
+    try{
+      renderField=function(){
+        const r=old.apply(this,arguments);
+        setTimeout(enhanceField,0);
+        return r;
+      };
+      window.__coach1233RenderWrapped=true;
+    }catch(e){}
+  }
+
+  if(typeof renderUnifiedField==="function"&&!window.__coach1233UnifiedWrapped){
+    const old=renderUnifiedField;
+    try{
+      renderUnifiedField=function(){
+        const r=old.apply(this,arguments);
+        setTimeout(enhanceField,0);
+        return r;
+      };
+      window.__coach1233UnifiedWrapped=true;
+    }catch(e){}
+  }
+
+  // Bounded redraw catcher for line switches/substitutions on iPad.
+  let n=0;
+  const t=setInterval(()=>{
+    enhanceField();
+    if(++n>=240) clearInterval(t);
+  },250);
+
+  const style=document.createElement("style");
+  style.textContent=`
+    #field .coach1233Player{
+      white-space:nowrap!important;
+      font-size:clamp(8px,1.05vw,13px)!important;
+      font-weight:800!important;
+      letter-spacing:-.15px!important;
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+/* 123.4 — stack player name above jersey number on live field cards */
+(function(){
+  const style=document.createElement("style");
+  style.textContent=`
+    #field .coach1233Player{
+      display:flex!important;
+      flex-direction:column!important;
+      align-items:center!important;
+      justify-content:center!important;
+      line-height:1.05!important;
+      white-space:normal!important;
+    }
+    #field .coach1234Name{
+      display:block!important;
+      font-size:clamp(8px,1.05vw,13px)!important;
+      font-weight:800!important;
+    }
+    #field .coach1234Number{
+      display:block!important;
+      margin-top:2px!important;
+      font-size:clamp(7px,.9vw,11px)!important;
+      font-weight:900!important;
+      opacity:.9!important;
+    }
+  `;
+  document.head.appendChild(style);
 })();
