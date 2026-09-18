@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v123.1 — PUNT RETURN SYNC FIX
+   v123.2 — PUNT RETURN LIVE MIRROR
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "123.1";
+window.COACH_UPDATE_VERSION = "123.2";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "123.1";
 (function(){
   "use strict";
 
-  const VERSION="123.1";
+  const VERSION="123.2";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -8213,4 +8213,109 @@ window.COACH_UPDATE_VERSION = "123.1";
     };
     window.__coach1231ReturnWrapped=true;
   }
+})();
+
+/* =========================================================
+   123.2 — PUNT RETURN LIVE MIRROR
+   Stop guessing database/unit mappings. Capture the ACTUAL rendered
+   Black Punt Return boxes (label + x/y) and mirror those 11 rendered
+   positions onto Blue/Green/Gold. Player assignments remain untouched.
+   ========================================================= */
+(function(){
+  "use strict";
+  const SNAPKEY=()=>`coach1232:blackPuntReturn:${team?.id||"team"}`;
+
+  function isPunt(){
+    const r=document.getElementById("coach1220Special");
+    if(!r) return false;
+    const a=[...r.querySelectorAll(".coach1220Tabs button")].find(b=>b.classList.contains("active"));
+    return !!(a&&/PUNT/i.test(String(a.textContent||"")));
+  }
+  function isBlack(){
+    const l=Array.isArray(lines)?lines[currentLine]:null;
+    return !!(l&&/BLACK/i.test(String(l.name||"")));
+  }
+  function defenseEls(){
+    return [...document.querySelectorAll("#coach1220Special .coach1220STSpot.def")]
+      .sort((a,b)=>Number(a.dataset.index||0)-Number(b.dataset.index||0));
+  }
+  function labelOf(el){
+    for(const n of el.childNodes){
+      if(n.nodeType===Node.TEXT_NODE&&String(n.textContent||"").trim())
+        return String(n.textContent||"").trim();
+    }
+    return "";
+  }
+  function capture(){
+    if(!isPunt()||!isBlack()) return false;
+    const els=defenseEls();
+    if(els.length<1) return false;
+    const snap=els.map((el,i)=>({
+      i,
+      label:labelOf(el),
+      x:parseFloat(el.style.left),
+      y:parseFloat(el.style.top)
+    }));
+    localStorage.setItem(SNAPKEY(),JSON.stringify(snap));
+    return true;
+  }
+  function loadSnap(){
+    try{return JSON.parse(localStorage.getItem(SNAPKEY())||"[]");}catch(e){return[];}
+  }
+  function applyToCurrent(){
+    if(!isPunt()||isBlack()) return false;
+    const snap=loadSnap(),els=defenseEls();
+    if(!snap.length||!els.length) return false;
+    const line=Array.isArray(lines)?lines[currentLine]:null;
+    if(!line) return false;
+    const teamId=team?.id||"team";
+
+    snap.forEach((p,i)=>{
+      const el=els[i]; if(!el) return;
+      const slotId=el.dataset.slot||i;
+      const key=`coach1220:st:${teamId}:${line.id}:punt:defense:${slotId}`;
+      const ikey=`coach1220:st:${teamId}:${line.id}:punt:defense:${i}`;
+      let old={}; try{old=JSON.parse(localStorage.getItem(key)||"{}");}catch(e){}
+      const pref={...old,label:p.label,x:p.x,y:p.y};
+      localStorage.setItem(key,JSON.stringify(pref));
+      localStorage.setItem(ikey,JSON.stringify(pref));
+
+      // Apply directly to the rendered box now.
+      for(const n of el.childNodes){
+        if(n.nodeType===Node.TEXT_NODE&&String(n.textContent||"").trim()){
+          n.textContent=p.label; break;
+        }
+      }
+      if(Number.isFinite(p.x)) el.style.left=p.x+"%";
+      if(Number.isFinite(p.y)) el.style.top=p.y+"%";
+    });
+    return true;
+  }
+
+  function addMasterButton(){
+    const r=document.getElementById("coach1220Special");
+    if(!r||!isPunt()||!isBlack()) return;
+    const actions=r.querySelector(".coach1220STActions");
+    if(!actions||actions.querySelector("#coach1232Capture")) return;
+    const b=document.createElement("button");
+    b.id="coach1232Capture";
+    b.textContent="SET BLACK PUNT RETURN AS MASTER";
+    b.onclick=function(e){
+      e.preventDefault();e.stopPropagation();
+      if(capture()) alert("Black Punt Return saved as the master. Blue, Green, and Gold will now match its position names and locations.");
+    };
+    actions.insertBefore(b,actions.firstChild);
+  }
+
+  // Capture automatically whenever Black Punt is displayed; apply automatically
+  // whenever another Punt line is displayed. This works from rendered boxes,
+  // not database slot IDs.
+  let n=0;
+  const timer=setInterval(()=>{
+    if(isPunt()){
+      if(isBlack()) { capture(); addMasterButton(); }
+      else applyToCurrent();
+    }
+    if(++n>=480) clearInterval(timer);
+  },250);
 })();
