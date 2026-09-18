@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v123.5 — FIELD + NUMBER LAYOUT
+   v123.6 — FIELD GAP + NUMBER FIX
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "123.5";
+window.COACH_UPDATE_VERSION = "123.6";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "123.5";
 (function(){
   "use strict";
 
-  const VERSION="123.5";
+  const VERSION="123.6";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -8498,6 +8498,85 @@ window.COACH_UPDATE_VERSION = "123.5";
         height:calc(100dvh - 82px)!important;
         max-height:calc(100dvh - 82px)!important;
       }
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+/* =========================================================
+   123.6 — FIELD GAP + DUPLICATE NUMBER FIX
+   The visible blue gap is outside #field, so 123.5 changed the wrong
+   container. Extend the field wrapper itself down to the custom toolbar.
+   Also suppress duplicate jersey-number text.
+   ========================================================= */
+(function(){
+  "use strict";
+
+  function fixDuplicateNumbers(){
+    document.querySelectorAll("#field .slot").forEach(slot=>{
+      const nums=[...slot.querySelectorAll(".coach1234Number")];
+      nums.slice(1).forEach(n=>n.remove());
+
+      const playerLine=slot.querySelector(".coach1233Player");
+      if(!playerLine) return;
+      const jersey=playerLine.querySelector(".coach1234Number")?.textContent?.trim();
+      if(!jersey) return;
+
+      [...slot.querySelectorAll("small,span,div")].forEach(el=>{
+        if(el===playerLine || playerLine.contains(el) || el.children.length) return;
+        if(String(el.textContent||"").trim()===jersey) el.style.display="none";
+      });
+    });
+  }
+
+  function extendField(){
+    const field=document.getElementById("field");
+    if(!field) return;
+
+    const toolbar=document.querySelector(".coach1200MenuBar, #coach1200MenuBar, .coach1200BottomBar");
+    const rect=field.getBoundingClientRect();
+    const targetTop=toolbar ? toolbar.getBoundingClientRect().top : (window.innerHeight-92);
+    const extra=Math.max(0,targetTop-rect.bottom);
+
+    if(extra>2){
+      const current=rect.height;
+      field.style.setProperty("height",(current+extra)+"px","important");
+      field.style.setProperty("max-height","none","important");
+      field.style.setProperty("aspect-ratio","auto","important");
+
+      const parent=field.parentElement;
+      if(parent){
+        parent.style.setProperty("height",(parent.getBoundingClientRect().height+extra)+"px","important");
+        parent.style.setProperty("max-height","none","important");
+        parent.style.setProperty("padding-bottom","0","important");
+      }
+    }
+  }
+
+  function apply(){
+    fixDuplicateNumbers();
+    extendField();
+  }
+
+  setTimeout(apply,50);
+  setTimeout(apply,300);
+  setTimeout(apply,900);
+  window.addEventListener("resize",()=>setTimeout(apply,50),{passive:true});
+
+  let n=0;
+  const timer=setInterval(()=>{
+    apply();
+    if(++n>=80) clearInterval(timer);
+  },250);
+
+  const style=document.createElement("style");
+  style.textContent=`
+    body.coach1200-game-dashboard.fieldFullscreen #field{
+      margin-bottom:0!important;
+    }
+    body.coach1200-game-dashboard.fieldFullscreen .fieldArea{
+      padding-bottom:0!important;
+      margin-bottom:0!important;
     }
   `;
   document.head.appendChild(style);
