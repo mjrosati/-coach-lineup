@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v123.0 — PUNT INDEX SYNC FIX
+   v123.1 — PUNT RETURN SYNC FIX
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "123.0";
+window.COACH_UPDATE_VERSION = "123.1";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "123.0";
 (function(){
   "use strict";
 
-  const VERSION="123.0";
+  const VERSION="123.1";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -8102,5 +8102,115 @@ window.COACH_UPDATE_VERSION = "123.0";
       return r;
     };
     window.__coach1230LineWrapped=true;
+  }
+})();
+
+/* =========================================================
+   123.1 — PUNT RETURN SYNC FIX
+   123.0 synced the upper Punt side correctly but selected the wrong
+   source unit for the lower Punt Return side. This explicitly selects
+   Black's PUNT RETURN unit and maps its 11 rendered spots by index to
+   Blue/Green/Gold. Players are untouched.
+   ========================================================= */
+(function(){
+  "use strict";
+
+  function blackLine(){
+    const ls=Array.isArray(lines)?lines:[];
+    return ls.find(l=>/BLACK/i.test(String(l.name||"")))||ls[0]||null;
+  }
+
+  function puntReturnUnitFor(line){
+    if(!line) return null;
+    const ln=String(line.name||"").toUpperCase();
+    const units=(Array.isArray(specialUnits)?specialUnits:[]);
+    const candidates=units.filter(u=>{
+      const n=String(u.name||"").toUpperCase();
+      return n.includes("PUNT") && n.includes("RETURN");
+    });
+    return candidates.slice().sort((a,b)=>{
+      const an=String(a.name||"").toUpperCase(),bn=String(b.name||"").toUpperCase();
+      const as=an.includes(ln)?100:0, bs=bn.includes(ln)?100:0;
+      return bs-as;
+    })[0]||null;
+  }
+
+  function slots(unit){
+    if(!unit) return [];
+    return (Array.isArray(specialSlots)?specialSlots:[])
+      .filter(x=>String(x.unit_id)===String(unit.id))
+      .slice().sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+  }
+
+  function read(teamId,lineId,slotId,index){
+    const keys=[
+      `coach1220:st:${teamId}:${lineId}:punt:defense:${slotId}`,
+      `coach1220:st:${teamId}:${lineId}:punt:defense:${index}`
+    ];
+    for(const k of keys){
+      try{
+        const raw=localStorage.getItem(k);
+        if(!raw) continue;
+        const p=JSON.parse(raw);
+        if(p&&(p.label||Number.isFinite(p.x)||Number.isFinite(p.y))) return p;
+      }catch(e){}
+    }
+    return null;
+  }
+
+  function write(teamId,lineId,slotId,index,pref){
+    localStorage.setItem(
+      `coach1220:st:${teamId}:${lineId}:punt:defense:${slotId}`,
+      JSON.stringify(pref)
+    );
+    localStorage.setItem(
+      `coach1220:st:${teamId}:${lineId}:punt:defense:${index}`,
+      JSON.stringify(pref)
+    );
+  }
+
+  function syncReturn(){
+    const ls=Array.isArray(lines)?lines:[];
+    const black=blackLine();
+    if(!black||ls.length<2) return false;
+    const teamId=team?.id||"team";
+    const srcSlots=slots(puntReturnUnitFor(black));
+    let copied=0;
+
+    ls.forEach(target=>{
+      if(String(target.id)===String(black.id)) return;
+      const dstSlots=slots(puntReturnUnitFor(target));
+      for(let i=0;i<11;i++){
+        const pref=read(teamId,black.id,srcSlots[i]?.id||i,i);
+        if(!pref) continue;
+        write(teamId,target.id,dstSlots[i]?.id||i,i,pref);
+        copied++;
+      }
+    });
+    return copied>0;
+  }
+
+  let tries=0,done=false;
+  const timer=setInterval(()=>{
+    tries++;
+    if(!done&&syncReturn()){
+      done=true;
+      const root=document.getElementById("coach1220Special");
+      if(root&&typeof coach1220STMode==="function"){
+        setTimeout(()=>coach1220STMode("punt"),30);
+      }
+    }
+    if(done||tries>=80) clearInterval(timer);
+  },250);
+
+  if(typeof coach1220SwitchLine==="function"&&!window.__coach1231ReturnWrapped){
+    const old=coach1220SwitchLine;
+    window.coach1220SwitchLine=function(){
+      syncReturn();
+      const r=old.apply(this,arguments);
+      setTimeout(syncReturn,20);
+      return r;
+    };
+    window.__coach1231ReturnWrapped=true;
   }
 })();
