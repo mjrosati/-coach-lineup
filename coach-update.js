@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v124.5 — GAME DAY CLEANUP
+   v124.6 — SPECIAL TEAMS ANY PLAYER
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "124.5";
+window.COACH_UPDATE_VERSION = "124.6";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "124.5";
 (function(){
   "use strict";
 
-  const VERSION="124.5";
+  const VERSION="124.6";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -7171,8 +7171,9 @@ window.COACH_UPDATE_VERSION = "124.5";
   }
 
   function availableRoster(){
+    // 124.6: Special Teams may choose ANY rostered player.
+    // A player on Kickoff remains available for Punt because those are separate units.
     return (Array.isArray(players)?players:[])
-      .filter(p=>String(p.availability_status||"active").toLowerCase()!=="out")
       .slice()
       .sort((a,b)=>{
         const an=Number(a.jersey_number),bn=Number(b.jersey_number);
@@ -7264,20 +7265,23 @@ window.COACH_UPDATE_VERSION = "124.5";
           const p=x.p;
           const isCurrent=String(p.id)===String(currentP?.id);
           const usedElsewhere=x.used && String(x.used.slot_id)!==String(slot.id);
+          const availability=String(p.availability_status||"active").toLowerCase();
+          const mismatch=x.score<=0;
           return `<button type="button"
-            class="coach1223Row ${isCurrent?"current":""}"
+            class="coach1223Row ${isCurrent?"current":""} ${mismatch?"mismatch":""} ${availability!=="active"?"notactive":""}"
             onclick="coach1223Select('${esc(slot.id)}','${esc(p.id)}')">
             <span><b>#${esc(p.jersey_number??"")} ${esc(p.name||"Player")}</b>
               <small>${isCurrent?"CURRENT PLAYER":usedElsewhere?"ALREADY ON THIS UNIT — WILL SWAP":"TAP TO SELECT"}</small>
             </span>
-            <b>${esc(fitLabel(x.score))}</b>
+            <b>${mismatch?"⚠ NO POSITION MATCH":esc(fitLabel(x.score))}</b>
             <b>${isCurrent?"CURRENT":usedElsewhere?"SWAP":"SELECT"}</b>
           </button>`;
         }).join("")}
       </div>
       <div class="coach1223Note">
-        Same rule as Game Day: players already on this Special Teams unit can be selected.
-        Their two spots will swap. Special Teams does not count toward participation stats.
+        Any rostered player can be selected. A player may be on Kickoff and Punt.
+        Players already on THIS unit will swap spots. ⚠ marks a position mismatch.
+        Special Teams does not count toward participation stats.
       </div>
     `);
   }
@@ -7323,12 +7327,10 @@ window.COACH_UPDATE_VERSION = "124.5";
           await directUpsert(slot.unit_id,otherA.slot_id,oldPlayerId);
         }
       }else{
-        // Normal manual replacement.
-        if(typeof assignSpecialPlayer==="function"){
-          await assignSpecialPlayer(slot.id,newPlayerId);
-        }else{
-          await directUpsert(slot.unit_id,slot.id,newPlayerId);
-        }
+        // 124.6: normal replacement is scoped ONLY to this Special Teams unit.
+        // Do not use native assignSpecialPlayer here: its duplicate check can see
+        // the same player on Kickoff and incorrectly block selecting him for Punt.
+        await directUpsert(slot.unit_id,slot.id,newPlayerId);
       }
 
       // Refresh assignments only. No Game Day play/stat recording is called.
@@ -7405,6 +7407,9 @@ window.COACH_UPDATE_VERSION = "124.5";
     .coach1223Row{width:100%;text-align:left;padding:8px;border:1px solid #314965;border-radius:7px;background:#07111d;color:#fff}
     .coach1223Row span{display:grid}.coach1223Row small{font-size:7px;color:#9fb3c7}
     .coach1223Row.current{box-shadow:0 0 0 2px #fff inset}
+    .coach1223Row.mismatch{border-color:#f5b942!important;background:rgba(245,185,66,.12)!important}
+    .coach1223Row.mismatch>span small{color:#ffd36a!important}
+    .coach1223Row.notactive{opacity:.72}
     .coach1223Note{margin-top:8px;padding:7px;border-radius:6px;background:#0a1a29;color:#a9bfd2;font-size:8px;font-weight:800}
   `;
   document.head.appendChild(style);
@@ -8820,4 +8825,12 @@ window.COACH_UPDATE_VERSION = "124.5";
    Working 124.4 behavior preserved.
    Removed obsolete 124.2/124.3 Kickoff mirror timers/observers.
    No new game behavior added.
+*/
+
+/* 124.6 — Special Teams roster rules
+   - Kickoff participation does not block Punt selection.
+   - Any rostered player can be manually selected.
+   - Same-unit duplicate selection performs a swap.
+   - No-position-match players are highlighted as a warning, not blocked.
+   - Special Teams remains excluded from Game Day participation stats.
 */
