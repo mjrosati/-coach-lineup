@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v123.7 — FIELD TO TOOLBAR + SINGLE NUMBER
+   v123.8 — STOP NUMBER FLASH
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "123.7";
+window.COACH_UPDATE_VERSION = "123.8";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "123.7";
 (function(){
   "use strict";
 
-  const VERSION="123.7";
+  const VERSION="123.8";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -8647,7 +8647,7 @@ window.COACH_UPDATE_VERSION = "123.7";
   }
 
   function apply(){
-    cleanNumbers();
+    // 123.8: do not rebuild player labels on a timer; that caused flashing.
     extendExactly();
   }
 
@@ -8673,6 +8673,65 @@ window.COACH_UPDATE_VERSION = "123.7";
     }
     #field .coach1233Player > .coach1234Number ~ .coach1234Number{
       display:none!important;
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+/* =========================================================
+   123.8 — STOP NUMBER FLASH
+   123.7's cleanup loop rebuilt the name/number DOM every 250ms.
+   That repeated replacement caused the visible flashing.
+   Freeze already-correct cards and only repair cards when their
+   displayed player actually changes.
+   ========================================================= */
+(function(){
+  "use strict";
+
+  function stabilize(){
+    document.querySelectorAll("#field .slot").forEach(slot=>{
+      const line=slot.querySelector(".coach1233Player");
+      if(!line) return;
+      const name=line.querySelector(".coach1234Name");
+      const num=line.querySelector(".coach1234Number");
+      if(!name||!num) return;
+
+      const sig=(name.textContent||"").trim()+"|"+(num.textContent||"").trim();
+      if(line.dataset.coach1238Stable===sig) return;
+
+      // Remove duplicates once, but do not continuously rebuild the card.
+      [...line.querySelectorAll(".coach1234Number")].slice(1).forEach(x=>x.remove());
+      line.dataset.coach1238Stable=sig;
+    });
+  }
+
+  // Hide the old 123.7 cleanup function from causing visual churn by making
+  // repeated replaceChildren calls visually unnecessary: stable cards are
+  // normalized immediately after native redraws only.
+  const field=document.getElementById("field");
+  if(field && window.MutationObserver){
+    let queued=false;
+    const obs=new MutationObserver(()=>{
+      if(queued) return;
+      queued=true;
+      requestAnimationFrame(()=>{
+        queued=false;
+        stabilize();
+      });
+    });
+    obs.observe(field,{childList:true,subtree:true});
+  }
+
+  stabilize();
+
+  const style=document.createElement("style");
+  style.id="coach1238NoFlash";
+  style.textContent=`
+    #field .coach1233Player,
+    #field .coach1234Name,
+    #field .coach1234Number{
+      transition:none!important;
+      animation:none!important;
     }
   `;
   document.head.appendChild(style);
