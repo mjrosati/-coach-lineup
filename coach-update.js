@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v123.8 — STOP NUMBER FLASH
+   v123.9 — STATIC FIELD NUMBERS
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "123.8";
+window.COACH_UPDATE_VERSION = "123.9";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "123.8";
 (function(){
   "use strict";
 
-  const VERSION="123.8";
+  const VERSION="123.9";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -8395,12 +8395,9 @@ window.COACH_UPDATE_VERSION = "123.8";
     }catch(e){}
   }
 
-  // Bounded redraw catcher for line switches/substitutions on iPad.
-  let n=0;
-  const t=setInterval(()=>{
-    enhanceField();
-    if(++n>=240) clearInterval(t);
-  },250);
+  // 123.9: no polling. Repeated DOM writes caused the jersey numbers to flash.
+  // renderField/renderUnifiedField wrappers above update numbers only when the field truly redraws.
+  setTimeout(enhanceField,0);
 
   const style=document.createElement("style");
   style.textContent=`
@@ -8708,20 +8705,7 @@ window.COACH_UPDATE_VERSION = "123.8";
   // Hide the old 123.7 cleanup function from causing visual churn by making
   // repeated replaceChildren calls visually unnecessary: stable cards are
   // normalized immediately after native redraws only.
-  const field=document.getElementById("field");
-  if(field && window.MutationObserver){
-    let queued=false;
-    const obs=new MutationObserver(()=>{
-      if(queued) return;
-      queued=true;
-      requestAnimationFrame(()=>{
-        queued=false;
-        stabilize();
-      });
-    });
-    obs.observe(field,{childList:true,subtree:true});
-  }
-
+  // 123.9: no MutationObserver. Keep the rendered card static between real field redraws.
   stabilize();
 
   const style=document.createElement("style");
@@ -8732,6 +8716,31 @@ window.COACH_UPDATE_VERSION = "123.8";
     #field .coach1234Number{
       transition:none!important;
       animation:none!important;
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+/* =========================================================
+   123.9 — STATIC FIELD NUMBERS
+   Final anti-flash layer: no timer or observer is allowed to rewrite
+   player-card text. Numbers update only when native field rendering runs.
+   ========================================================= */
+(function(){
+  "use strict";
+
+  // Ensure any legacy CSS animation/transition cannot visually pulse text.
+  const style=document.createElement("style");
+  style.id="coach1239StaticNumbers";
+  style.textContent=`
+    #field .slot .coach1233Player,
+    #field .slot .coach1234Name,
+    #field .slot .coach1234Number{
+      animation:none!important;
+      transition:none!important;
+      opacity:1!important;
+      visibility:visible!important;
+      transform:none!important;
     }
   `;
   document.head.appendChild(style);
