@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v124.1 — KICKOFF RENAME DISPLAY FIX
+   v124.2 — BLACK KICKOFF LIVE MIRROR
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "124.1";
+window.COACH_UPDATE_VERSION = "124.2";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "124.1";
 (function(){
   "use strict";
 
-  const VERSION="124.1";
+  const VERSION="124.2";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -8763,4 +8763,130 @@ window.COACH_UPDATE_VERSION = "124.1";
     }
   `;
   document.head.appendChild(style);
+})();
+
+/* =========================================================
+   124.2 — BLACK KICKOFF + KICK RETURN LIVE MIRROR
+   Same proven method as 123.2 Punt Return:
+   capture the ACTUAL rendered Black Kickoff/Kick Return boxes
+   (saved labels + exact positions) and mirror them to Blue/Green/Gold.
+   Player assignments are NEVER copied.
+   ========================================================= */
+(function(){
+  "use strict";
+
+  const KEY=()=>`coach1242:blackKickoff:${team?.id||"team"}`;
+
+  function isKickoff(){
+    const r=document.getElementById("coach1220Special");
+    if(!r) return false;
+    const a=[...r.querySelectorAll(".coach1220Tabs button")]
+      .find(b=>b.classList.contains("active"));
+    return !!(a && /KICKOFF/i.test(String(a.textContent||"")));
+  }
+
+  function isBlack(){
+    const l=Array.isArray(lines)?lines[currentLine]:null;
+    return !!(l && /BLACK/i.test(String(l.name||"")));
+  }
+
+  function spots(side){
+    return [...document.querySelectorAll(
+      `#coach1220Special .coach1220STSpot.${side==="offense"?"off":"def"}`
+    )].sort((a,b)=>Number(a.dataset.index||0)-Number(b.dataset.index||0));
+  }
+
+  function labelOf(el){
+    for(const n of el.childNodes){
+      if(n.nodeType===Node.TEXT_NODE && String(n.textContent||"").trim())
+        return String(n.textContent||"").trim();
+    }
+    return "";
+  }
+
+  function captureBlack(){
+    if(!isKickoff() || !isBlack()) return false;
+    const off=spots("offense"), def=spots("defense");
+    if(!off.length || !def.length) return false;
+
+    const snap={
+      offense:off.map((el,i)=>({
+        i,label:labelOf(el),
+        x:parseFloat(el.style.left),y:parseFloat(el.style.top)
+      })),
+      defense:def.map((el,i)=>({
+        i,label:labelOf(el),
+        x:parseFloat(el.style.left),y:parseFloat(el.style.top)
+      }))
+    };
+    localStorage.setItem(KEY(),JSON.stringify(snap));
+    return true;
+  }
+
+  function snap(){
+    try{return JSON.parse(localStorage.getItem(KEY())||"null");}
+    catch(e){return null;}
+  }
+
+  function applySide(side,data){
+    const els=spots(side);
+    const line=Array.isArray(lines)?lines[currentLine]:null;
+    if(!line || !els.length || !Array.isArray(data)) return;
+
+    const teamId=team?.id||"team";
+
+    data.forEach((p,i)=>{
+      const el=els[i];
+      if(!el) return;
+      const slotId=el.dataset.slot||i;
+      const key=`coach1220:st:${teamId}:${line.id}:kickoff:${side}:${slotId}`;
+      const ikey=`coach1220:st:${teamId}:${line.id}:kickoff:${side}:${i}`;
+
+      let old={};
+      try{old=JSON.parse(localStorage.getItem(key)||"{}");}catch(e){}
+      const pref={...old,label:p.label,x:p.x,y:p.y};
+
+      // Persist the Black master layout under the target line's own keys.
+      localStorage.setItem(key,JSON.stringify(pref));
+      localStorage.setItem(ikey,JSON.stringify(pref));
+
+      // Update the rendered label/location immediately without touching player.
+      for(const n of el.childNodes){
+        if(n.nodeType===Node.TEXT_NODE && String(n.textContent||"").trim()){
+          n.textContent=p.label;
+          break;
+        }
+      }
+      if(Number.isFinite(p.x)) el.style.left=p.x+"%";
+      if(Number.isFinite(p.y)) el.style.top=p.y+"%";
+    });
+  }
+
+  function applyToCurrent(){
+    if(!isKickoff() || isBlack()) return false;
+    const data=snap();
+    if(!data) return false;
+    applySide("offense",data.offense);
+    applySide("defense",data.defense);
+    return true;
+  }
+
+  // Capture Black's actual displayed layout. On other lines, mirror it.
+  // No player assignment values are read or written here.
+  let n=0;
+  const timer=setInterval(()=>{
+    if(isKickoff()){
+      if(isBlack()) captureBlack();
+      else applyToCurrent();
+    }
+    if(++n>=480) clearInterval(timer);
+  },250);
+
+  // Run once after load as well.
+  setTimeout(()=>{
+    if(isKickoff()){
+      if(isBlack()) captureBlack();
+      else applyToCurrent();
+    }
+  },100);
 })();
