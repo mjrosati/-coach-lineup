@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v124.2 — BLACK KICKOFF LIVE MIRROR
+   v124.3 — AUTHORITATIVE BLACK KICKOFF MASTER
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "124.2";
+window.COACH_UPDATE_VERSION = "124.3";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "124.2";
 (function(){
   "use strict";
 
-  const VERSION="124.2";
+  const VERSION="124.3";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -8889,4 +8889,156 @@ window.COACH_UPDATE_VERSION = "124.2";
       else applyToCurrent();
     }
   },100);
+})();
+
+/* =========================================================
+   124.3 — AUTHORITATIVE BLACK KICKOFF MASTER
+   124.2 wrote the mirror too early; the Special Teams renderer then
+   rebuilt Blue/Green/Gold from their old saved templates.
+
+   This layer captures the ACTUAL Black rendered Kickoff + Kick Return
+   labels/coordinates, then reapplies that master AFTER every Special
+   Teams render. It never copies player assignments.
+   ========================================================= */
+(function(){
+  "use strict";
+
+  const MASTER=()=>`coach1243:blackKickMaster:${team?.id||"team"}`;
+
+  function root(){ return document.getElementById("coach1220Special"); }
+
+  function activeKickoff(){
+    const r=root(); if(!r) return false;
+    const a=[...r.querySelectorAll(".coach1220Tabs button")]
+      .find(b=>b.classList.contains("active"));
+    return !!(a && /KICKOFF/i.test(String(a.textContent||"")));
+  }
+
+  function black(){
+    const l=Array.isArray(lines)?lines[currentLine]:null;
+    return !!(l && /BLACK/i.test(String(l.name||"")));
+  }
+
+  function list(cls){
+    return [...document.querySelectorAll(`#coach1220Special .coach1220STSpot.${cls}`)]
+      .sort((a,b)=>Number(a.dataset.index||0)-Number(b.dataset.index||0));
+  }
+
+  function label(el){
+    for(const n of el.childNodes){
+      if(n.nodeType===Node.TEXT_NODE && String(n.textContent||"").trim())
+        return String(n.textContent||"").trim();
+    }
+    return "";
+  }
+
+  function readMaster(){
+    try{return JSON.parse(localStorage.getItem(MASTER())||"null");}
+    catch(e){return null;}
+  }
+
+  function capture(){
+    if(!activeKickoff() || !black()) return;
+    const off=list("off"), def=list("def");
+    if(!off.length || !def.length) return;
+
+    const take=els=>els.map((el,i)=>({
+      i,
+      label:label(el),
+      x:parseFloat(el.style.left),
+      y:parseFloat(el.style.top)
+    }));
+
+    localStorage.setItem(MASTER(),JSON.stringify({
+      offense:take(off),
+      defense:take(def)
+    }));
+  }
+
+  function persistAndPaint(side, data){
+    const els=list(side==="offense"?"off":"def");
+    const line=Array.isArray(lines)?lines[currentLine]:null;
+    if(!line || !els.length || !Array.isArray(data)) return;
+
+    const teamId=team?.id||"team";
+
+    data.forEach((p,i)=>{
+      const el=els[i]; if(!el) return;
+
+      // Paint AFTER renderer has finished, so old template cannot win.
+      for(const n of el.childNodes){
+        if(n.nodeType===Node.TEXT_NODE && String(n.textContent||"").trim()){
+          n.textContent=p.label;
+          break;
+        }
+      }
+      if(Number.isFinite(p.x)) el.style.left=p.x+"%";
+      if(Number.isFinite(p.y)) el.style.top=p.y+"%";
+
+      // Also overwrite every known per-line preference key used by this
+      // custom Special Teams screen, but preserve all player fields.
+      const slotId=el.dataset.slot||i;
+      const keys=[
+        `coach1220:st:${teamId}:${line.id}:kickoff:${side}:${slotId}`,
+        `coach1220:st:${teamId}:${line.id}:kickoff:${side}:${i}`
+      ];
+      keys.forEach(k=>{
+        let old={};
+        try{old=JSON.parse(localStorage.getItem(k)||"{}");}catch(e){}
+        localStorage.setItem(k,JSON.stringify({
+          ...old,label:p.label,x:p.x,y:p.y
+        }));
+      });
+    });
+  }
+
+  function enforce(){
+    if(!activeKickoff()) return;
+    if(black()){ capture(); return; }
+
+    const m=readMaster();
+    if(!m) return;
+    persistAndPaint("offense",m.offense);
+    persistAndPaint("defense",m.defense);
+  }
+
+  // The key difference from 124.2: watch the Special Teams screen itself.
+  // Whenever it rebuilds for a line/tab change, enforce Black's master
+  // immediately AFTER that rebuild.
+  let queued=false;
+  function queue(){
+    if(queued) return;
+    queued=true;
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        queued=false;
+        enforce();
+      });
+    });
+  }
+
+  function attach(){
+    const r=root();
+    if(!r) return false;
+
+    if(window.MutationObserver){
+      const obs=new MutationObserver(queue);
+      obs.observe(r,{childList:true,subtree:true});
+    }
+
+    r.addEventListener("click",()=>{
+      setTimeout(enforce,0);
+      setTimeout(enforce,80);
+    },true);
+
+    enforce();
+    return true;
+  }
+
+  if(!attach()){
+    let tries=0;
+    const t=setInterval(()=>{
+      if(attach() || ++tries>80) clearInterval(t);
+    },100);
+  }
 })();
