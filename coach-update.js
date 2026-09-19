@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v124.4 — FIXED KICKOFF FORMATION
+   v124.5 — GAME DAY CLEANUP
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "124.4";
+window.COACH_UPDATE_VERSION = "124.5";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "124.4";
 (function(){
   "use strict";
 
-  const VERSION="124.4";
+  const VERSION="124.5";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -8782,284 +8782,6 @@ window.COACH_UPDATE_VERSION = "124.4";
 })();
 
 /* =========================================================
-   124.2 — BLACK KICKOFF + KICK RETURN LIVE MIRROR
-   Same proven method as 123.2 Punt Return:
-   capture the ACTUAL rendered Black Kickoff/Kick Return boxes
-   (saved labels + exact positions) and mirror them to Blue/Green/Gold.
-   Player assignments are NEVER copied.
-   ========================================================= */
-(function(){
-  "use strict";
-
-  const KEY=()=>`coach1242:blackKickoff:${team?.id||"team"}`;
-
-  function isKickoff(){
-    const r=document.getElementById("coach1220Special");
-    if(!r) return false;
-    const a=[...r.querySelectorAll(".coach1220Tabs button")]
-      .find(b=>b.classList.contains("active"));
-    return !!(a && /KICKOFF/i.test(String(a.textContent||"")));
-  }
-
-  function isBlack(){
-    const l=Array.isArray(lines)?lines[currentLine]:null;
-    return !!(l && /BLACK/i.test(String(l.name||"")));
-  }
-
-  function spots(side){
-    return [...document.querySelectorAll(
-      `#coach1220Special .coach1220STSpot.${side==="offense"?"off":"def"}`
-    )].sort((a,b)=>Number(a.dataset.index||0)-Number(b.dataset.index||0));
-  }
-
-  function labelOf(el){
-    for(const n of el.childNodes){
-      if(n.nodeType===Node.TEXT_NODE && String(n.textContent||"").trim())
-        return String(n.textContent||"").trim();
-    }
-    return "";
-  }
-
-  function captureBlack(){
-    if(!isKickoff() || !isBlack()) return false;
-    const off=spots("offense"), def=spots("defense");
-    if(!off.length || !def.length) return false;
-
-    const snap={
-      offense:off.map((el,i)=>({
-        i,label:labelOf(el),
-        x:parseFloat(el.style.left),y:parseFloat(el.style.top)
-      })),
-      defense:def.map((el,i)=>({
-        i,label:labelOf(el),
-        x:parseFloat(el.style.left),y:parseFloat(el.style.top)
-      }))
-    };
-    localStorage.setItem(KEY(),JSON.stringify(snap));
-    return true;
-  }
-
-  function snap(){
-    try{return JSON.parse(localStorage.getItem(KEY())||"null");}
-    catch(e){return null;}
-  }
-
-  function applySide(side,data){
-    const els=spots(side);
-    const line=Array.isArray(lines)?lines[currentLine]:null;
-    if(!line || !els.length || !Array.isArray(data)) return;
-
-    const teamId=team?.id||"team";
-
-    data.forEach((p,i)=>{
-      const el=els[i];
-      if(!el) return;
-      const slotId=el.dataset.slot||i;
-      const key=`coach1220:st:${teamId}:${line.id}:kickoff:${side}:${slotId}`;
-      const ikey=`coach1220:st:${teamId}:${line.id}:kickoff:${side}:${i}`;
-
-      let old={};
-      try{old=JSON.parse(localStorage.getItem(key)||"{}");}catch(e){}
-      const pref={...old,label:p.label,x:p.x,y:p.y};
-
-      // Persist the Black master layout under the target line's own keys.
-      localStorage.setItem(key,JSON.stringify(pref));
-      localStorage.setItem(ikey,JSON.stringify(pref));
-
-      // Update the rendered label/location immediately without touching player.
-      for(const n of el.childNodes){
-        if(n.nodeType===Node.TEXT_NODE && String(n.textContent||"").trim()){
-          n.textContent=p.label;
-          break;
-        }
-      }
-      if(Number.isFinite(p.x)) el.style.left=p.x+"%";
-      if(Number.isFinite(p.y)) el.style.top=p.y+"%";
-    });
-  }
-
-  function applyToCurrent(){
-    if(!isKickoff() || isBlack()) return false;
-    const data=snap();
-    if(!data) return false;
-    applySide("offense",data.offense);
-    applySide("defense",data.defense);
-    return true;
-  }
-
-  // Capture Black's actual displayed layout. On other lines, mirror it.
-  // No player assignment values are read or written here.
-  let n=0;
-  const timer=setInterval(()=>{
-    if(isKickoff()){
-      if(isBlack()) captureBlack();
-      else applyToCurrent();
-    }
-    if(++n>=480) clearInterval(timer);
-  },250);
-
-  // Run once after load as well.
-  setTimeout(()=>{
-    if(isKickoff()){
-      if(isBlack()) captureBlack();
-      else applyToCurrent();
-    }
-  },100);
-})();
-
-/* =========================================================
-   124.3 — AUTHORITATIVE BLACK KICKOFF MASTER
-   124.2 wrote the mirror too early; the Special Teams renderer then
-   rebuilt Blue/Green/Gold from their old saved templates.
-
-   This layer captures the ACTUAL Black rendered Kickoff + Kick Return
-   labels/coordinates, then reapplies that master AFTER every Special
-   Teams render. It never copies player assignments.
-   ========================================================= */
-(function(){
-  "use strict";
-
-  const MASTER=()=>`coach1243:blackKickMaster:${team?.id||"team"}`;
-
-  function root(){ return document.getElementById("coach1220Special"); }
-
-  function activeKickoff(){
-    const r=root(); if(!r) return false;
-    const a=[...r.querySelectorAll(".coach1220Tabs button")]
-      .find(b=>b.classList.contains("active"));
-    return !!(a && /KICKOFF/i.test(String(a.textContent||"")));
-  }
-
-  function black(){
-    const l=Array.isArray(lines)?lines[currentLine]:null;
-    return !!(l && /BLACK/i.test(String(l.name||"")));
-  }
-
-  function list(cls){
-    return [...document.querySelectorAll(`#coach1220Special .coach1220STSpot.${cls}`)]
-      .sort((a,b)=>Number(a.dataset.index||0)-Number(b.dataset.index||0));
-  }
-
-  function label(el){
-    for(const n of el.childNodes){
-      if(n.nodeType===Node.TEXT_NODE && String(n.textContent||"").trim())
-        return String(n.textContent||"").trim();
-    }
-    return "";
-  }
-
-  function readMaster(){
-    try{return JSON.parse(localStorage.getItem(MASTER())||"null");}
-    catch(e){return null;}
-  }
-
-  function capture(){
-    if(!activeKickoff() || !black()) return;
-    const off=list("off"), def=list("def");
-    if(!off.length || !def.length) return;
-
-    const take=els=>els.map((el,i)=>({
-      i,
-      label:label(el),
-      x:parseFloat(el.style.left),
-      y:parseFloat(el.style.top)
-    }));
-
-    localStorage.setItem(MASTER(),JSON.stringify({
-      offense:take(off),
-      defense:take(def)
-    }));
-  }
-
-  function persistAndPaint(side, data){
-    const els=list(side==="offense"?"off":"def");
-    const line=Array.isArray(lines)?lines[currentLine]:null;
-    if(!line || !els.length || !Array.isArray(data)) return;
-
-    const teamId=team?.id||"team";
-
-    data.forEach((p,i)=>{
-      const el=els[i]; if(!el) return;
-
-      // Paint AFTER renderer has finished, so old template cannot win.
-      for(const n of el.childNodes){
-        if(n.nodeType===Node.TEXT_NODE && String(n.textContent||"").trim()){
-          n.textContent=p.label;
-          break;
-        }
-      }
-      if(Number.isFinite(p.x)) el.style.left=p.x+"%";
-      if(Number.isFinite(p.y)) el.style.top=p.y+"%";
-
-      // Also overwrite every known per-line preference key used by this
-      // custom Special Teams screen, but preserve all player fields.
-      const slotId=el.dataset.slot||i;
-      const keys=[
-        `coach1220:st:${teamId}:${line.id}:kickoff:${side}:${slotId}`,
-        `coach1220:st:${teamId}:${line.id}:kickoff:${side}:${i}`
-      ];
-      keys.forEach(k=>{
-        let old={};
-        try{old=JSON.parse(localStorage.getItem(k)||"{}");}catch(e){}
-        localStorage.setItem(k,JSON.stringify({
-          ...old,label:p.label,x:p.x,y:p.y
-        }));
-      });
-    });
-  }
-
-  function enforce(){
-    if(!activeKickoff()) return;
-    if(black()){ capture(); return; }
-
-    const m=readMaster();
-    if(!m) return;
-    persistAndPaint("offense",m.offense);
-    persistAndPaint("defense",m.defense);
-  }
-
-  // The key difference from 124.2: watch the Special Teams screen itself.
-  // Whenever it rebuilds for a line/tab change, enforce Black's master
-  // immediately AFTER that rebuild.
-  let queued=false;
-  function queue(){
-    if(queued) return;
-    queued=true;
-    requestAnimationFrame(()=>{
-      requestAnimationFrame(()=>{
-        queued=false;
-        enforce();
-      });
-    });
-  }
-
-  function attach(){
-    const r=root();
-    if(!r) return false;
-
-    if(window.MutationObserver){
-      const obs=new MutationObserver(queue);
-      obs.observe(r,{childList:true,subtree:true});
-    }
-
-    r.addEventListener("click",()=>{
-      setTimeout(enforce,0);
-      setTimeout(enforce,80);
-    },true);
-
-    enforce();
-    return true;
-  }
-
-  if(!attach()){
-    let tries=0;
-    const t=setInterval(()=>{
-      if(attach() || ++tries>80) clearInterval(t);
-    },100);
-  }
-})();
-
-/* =========================================================
    124.4 — SHARED KICKOFF FORMATION PERSISTENCE
    One 11-player Kickoff and one 11-player Kick Return formation
    are used by Black/Blue/Green/Gold. Players remain line-specific.
@@ -9093,3 +8815,9 @@ window.COACH_UPDATE_VERSION = "124.4";
   // Seed the authoritative formation immediately.
   saveShared();
 })();
+
+/* 124.5 GAME DAY CLEANUP
+   Working 124.4 behavior preserved.
+   Removed obsolete 124.2/124.3 Kickoff mirror timers/observers.
+   No new game behavior added.
+*/
