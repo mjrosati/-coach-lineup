@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v123.6 — FIELD GAP + NUMBER FIX
+   v123.7 — FIELD TO TOOLBAR + SINGLE NUMBER
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "123.6";
+window.COACH_UPDATE_VERSION = "123.7";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "123.6";
 (function(){
   "use strict";
 
-  const VERSION="123.6";
+  const VERSION="123.7";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -8344,6 +8344,8 @@ window.COACH_UPDATE_VERSION = "123.6";
     if(!field) return;
 
     field.querySelectorAll(".slot").forEach(slot=>{
+      // Once this card has the stacked name/number display, do not wrap it again.
+      if(slot.querySelector(".coach1234Number")) return;
       // Native slot cards contain the position plus player-name text.
       // Find the smallest text element that resolves to a roster player.
       const candidates=[...slot.querySelectorAll("small,.playerName,.name,span,div")];
@@ -8577,6 +8579,100 @@ window.COACH_UPDATE_VERSION = "123.6";
     body.coach1200-game-dashboard.fieldFullscreen .fieldArea{
       padding-bottom:0!important;
       margin-bottom:0!important;
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+/* =========================================================
+   123.7 — FIELD TO ACTUAL TOOLBAR + SINGLE NUMBER
+   Uses the real #coach1200DashboardBar as the lower edge of the field.
+   Cleans any number nesting left by 123.5/123.6.
+   ========================================================= */
+(function(){
+  "use strict";
+
+  function cleanNumbers(){
+    document.querySelectorAll("#field .slot").forEach(slot=>{
+      const playerLine=slot.querySelector(".coach1233Player");
+      if(!playerLine) return;
+
+      const nameEl=playerLine.querySelector(".coach1234Name");
+      const numberEls=[...playerLine.querySelectorAll(".coach1234Number")];
+      if(!nameEl || !numberEls.length) return;
+
+      // Preserve only the first valid number and rebuild this line cleanly.
+      const number=String(numberEls[0].textContent||"").trim();
+      const name=String(nameEl.textContent||"").trim();
+      if(!name || !number) return;
+
+      playerLine.replaceChildren();
+      const n=document.createElement("span");
+      n.className="coach1234Name";
+      n.textContent=name;
+      const j=document.createElement("span");
+      j.className="coach1234Number";
+      j.textContent=number;
+      playerLine.append(n,j);
+    });
+  }
+
+  function extendExactly(){
+    const field=document.getElementById("field");
+    const area=field?.closest(".fieldArea");
+    const bar=document.getElementById("coach1200DashboardBar");
+    if(!field || !area || !bar) return;
+
+    const fr=field.getBoundingClientRect();
+    const ar=area.getBoundingClientRect();
+    const br=bar.getBoundingClientRect();
+
+    // The green field should end exactly at the top of the custom line/tool bar.
+    const fieldHeight=Math.max(200, br.top-fr.top);
+    const areaHeight=Math.max(200, br.top-ar.top);
+
+    area.style.setProperty("height",areaHeight+"px","important");
+    area.style.setProperty("max-height",areaHeight+"px","important");
+    area.style.setProperty("padding-bottom","0","important");
+    area.style.setProperty("margin-bottom","0","important");
+    area.style.setProperty("overflow","hidden","important");
+
+    field.style.setProperty("height",fieldHeight+"px","important");
+    field.style.setProperty("max-height",fieldHeight+"px","important");
+    field.style.setProperty("min-height",fieldHeight+"px","important");
+    field.style.setProperty("width","100%","important");
+    field.style.setProperty("max-width","none","important");
+    field.style.setProperty("aspect-ratio","auto","important");
+    field.style.setProperty("margin-bottom","0","important");
+  }
+
+  function apply(){
+    cleanNumbers();
+    extendExactly();
+  }
+
+  [0,60,180,500,1000].forEach(ms=>setTimeout(apply,ms));
+  window.addEventListener("resize",()=>setTimeout(apply,60),{passive:true});
+
+  let passes=0;
+  const timer=setInterval(()=>{
+    apply();
+    if(++passes>=120) clearInterval(timer);
+  },250);
+
+  const style=document.createElement("style");
+  style.id="coach1237ExactField";
+  style.textContent=`
+    body.coach1200-game-dashboard.fieldFullscreen .fieldArea{
+      padding-bottom:0!important;
+      margin-bottom:0!important;
+    }
+    body.coach1200-game-dashboard.fieldFullscreen #field.field{
+      margin-bottom:0!important;
+      aspect-ratio:auto!important;
+    }
+    #field .coach1233Player > .coach1234Number ~ .coach1234Number{
+      display:none!important;
     }
   `;
   document.head.appendChild(style);
