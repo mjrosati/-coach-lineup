@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v124.7 — PLAYER STAR MARKER
+   v124.8 — VISIBLE PLAYER STAR MARKER
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "124.7";
+window.COACH_UPDATE_VERSION = "124.8";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "124.7";
 (function(){
   "use strict";
 
-  const VERSION="124.7";
+  const VERSION="124.8";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -8884,20 +8884,27 @@ window.COACH_UPDATE_VERSION = "124.7";
   }
 
   function ensureButton(){
-    const bar=document.getElementById("coach1200DashboardBar");
-    if(!bar || document.getElementById("coach1247MarkBtn")) return;
-    const move=[...bar.querySelectorAll("button")].find(b=>/MOVE PLAYERS/i.test(b.textContent||""));
+    if(document.getElementById("coach1247MarkBtn")) return;
+    // Find the menu that is actually visible on the live field. Older versions
+    // used different IDs, so key off the MOVE PLAYERS button shown on screen.
+    const move=[...document.querySelectorAll("button")].find(b=>
+      /MOVE PLAYERS/i.test(b.textContent||"") &&
+      b.offsetParent!==null
+    );
+    if(!move || !move.parentElement) return;
+    const bar=move.parentElement;
     const b=document.createElement("button");
     b.id="coach1247MarkBtn";
     b.type="button";
-    b.textContent="⭐ MARK PLAYER";
+    b.className=move.className;
+    b.textContent="⭐ MARK";
     b.addEventListener("click",e=>{
       e.preventDefault(); e.stopPropagation();
       markMode=!markMode;
       b.classList.toggle("active",markMode);
-      b.textContent=markMode?"⭐ TAP PLAYER":"⭐ MARK PLAYER";
+      b.textContent=markMode?"⭐ TAP PLAYER":"⭐ MARK";
     });
-    if(move) bar.insertBefore(b,move); else bar.appendChild(b);
+    bar.insertBefore(b,move);
   }
 
   function clearVisual(slot){
@@ -8952,7 +8959,7 @@ window.COACH_UPDATE_VERSION = "124.7";
 
     markMode=false;
     const b=document.getElementById("coach1247MarkBtn");
-    if(b){b.classList.remove("active"); b.textContent="⭐ MARK PLAYER";}
+    if(b){b.classList.remove("active"); b.textContent="⭐ MARK";}
   },true);
 
   // Refresh only when Game Day actually redraws / changes.
@@ -8975,6 +8982,10 @@ window.COACH_UPDATE_VERSION = "124.7";
 
   setTimeout(refresh,0);
   setTimeout(refresh,300);
+  const uiObserver=new MutationObserver(()=>{
+    if(!document.getElementById("coach1247MarkBtn")) ensureButton();
+  });
+  uiObserver.observe(document.body,{childList:true,subtree:true});
 
   const style=document.createElement("style");
   style.id="coach1247StarStyle";
@@ -9001,3 +9012,8 @@ window.COACH_UPDATE_VERSION = "124.7";
   `;
   document.head.appendChild(style);
 })();
+
+/* 124.8 fix:
+   124.7 targeted an obsolete dashboard-bar ID, so the button never appeared.
+   124.8 anchors directly to the visible MOVE PLAYERS control instead.
+*/
