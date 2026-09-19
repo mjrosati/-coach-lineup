@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v124.0 — SYNCHRONOUS FIELD NUMBERS
+   v124.1 — KICKOFF RENAME DISPLAY FIX
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "124.0";
+window.COACH_UPDATE_VERSION = "124.1";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "124.0";
 (function(){
   "use strict";
 
-  const VERSION="124.0";
+  const VERSION="124.1";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -6668,9 +6668,10 @@ window.COACH_UPDATE_VERSION = "124.0";
   function spotHtml(side,slot,index,player){
     const model=(DIAGRAM[stMode]?.[side]||[])[index]||[`SPOT ${index+1}`,50,side==="offense"?28:72];
     const pref=getPref(side,slot?.id,index);
-    const label=(stMode==="kickoff")
-      ? model[0]
-      : (pref.label||slot?.label||slot?.slot_key||model[0]);
+    // Always honor the saved renamed label. Previously Kickoff ignored
+    // pref.label and forced the diagram default, even though Rename showed
+    // the correct saved value in the prompt.
+    const label=pref.label||slot?.label||slot?.slot_key||model[0];
     const x=Number.isFinite(pref.x)?pref.x:model[1];
     const y=Number.isFinite(pref.y)?pref.y:model[2];
     return `<button type="button"
