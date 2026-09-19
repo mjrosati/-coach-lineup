@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v124.3 — AUTHORITATIVE BLACK KICKOFF MASTER
+   v124.4 — FIXED KICKOFF FORMATION
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "124.3";
+window.COACH_UPDATE_VERSION = "124.4";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "124.3";
 (function(){
   "use strict";
 
-  const VERSION="124.3";
+  const VERSION="124.4";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -6668,12 +6668,18 @@ window.COACH_UPDATE_VERSION = "124.3";
   function spotHtml(side,slot,index,player){
     const model=(DIAGRAM[stMode]?.[side]||[])[index]||[`SPOT ${index+1}`,50,side==="offense"?28:72];
     const pref=getPref(side,slot?.id,index);
-    // Always honor the saved renamed label. Previously Kickoff ignored
-    // pref.label and forced the diagram default, even though Rename showed
-    // the correct saved value in the prompt.
-    const label=pref.label||slot?.label||slot?.slot_key||model[0];
-    const x=Number.isFinite(pref.x)?pref.x:model[1];
-    const y=Number.isFinite(pref.y)?pref.y:model[2];
+    // 124.4: Kickoff/Kick Return use one authoritative formation on EVERY line.
+    // Old per-line slot labels (K, L1, KR1, FB-L, etc.) were overriding the
+    // correct formation. Punt keeps its existing saved rename/move behavior.
+    const label=stMode==="kickoff"
+      ? model[0]
+      : (pref.label||slot?.label||slot?.slot_key||model[0]);
+    const x=stMode==="kickoff"
+      ? model[1]
+      : (Number.isFinite(pref.x)?pref.x:model[1]);
+    const y=stMode==="kickoff"
+      ? model[2]
+      : (Number.isFinite(pref.y)?pref.y:model[2]);
     return `<button type="button"
       class="coach1220STSpot ${side==="defense"?"def":""} ${stMove?"move":""} ${stRename?"rename":""}"
       data-side="${side}" data-index="${index}" data-slot="${esc(slot?.id||"")}"
@@ -6694,8 +6700,13 @@ window.COACH_UPDATE_VERSION = "124.3";
     const ou=bestUnit("offense"),du=bestUnit("defense");
     const os=unitSlots(ou),ds=unitSlots(du);
     const om=assignedMap(ou),dm=assignedMap(du);
-    const maxOff=Math.max(os.length,DIAGRAM[stMode].offense.length);
-    const maxDef=Math.max(ds.length,DIAGRAM[stMode].defense.length);
+    // Kickoff is exactly 11 + 11. Do not let legacy 12-slot units add the old K spot.
+    const maxOff=stMode==="kickoff"
+      ? DIAGRAM.kickoff.offense.length
+      : Math.max(os.length,DIAGRAM[stMode].offense.length);
+    const maxDef=stMode==="kickoff"
+      ? DIAGRAM.kickoff.defense.length
+      : Math.max(ds.length,DIAGRAM[stMode].defense.length);
     const labels=stMode==="kickoff"?["KICKOFF","KICK RETURN"]:["PUNT","PUNT RETURN"];
 
     root.innerHTML=`
@@ -6770,7 +6781,12 @@ window.COACH_UPDATE_VERSION = "124.3";
       const old=pref.label||slot?.label||slot?.slot_key||model[0];
       const n=prompt("New spot name:",old);
       if(n&&n.trim()){
-        setPref(side,slot?.id,index,{...pref,label:n.trim()});
+        if(stMode==="kickoff"){
+          // Change the shared Kickoff/Kick Return formation label for every line.
+          if(DIAGRAM.kickoff?.[side]?.[index]) DIAGRAM.kickoff[side][index][0]=n.trim();
+        }else{
+          setPref(side,slot?.id,index,{...pref,label:n.trim()});
+        }
         renderST();
       }
       return;
@@ -9041,4 +9057,39 @@ window.COACH_UPDATE_VERSION = "124.3";
       if(attach() || ++tries>80) clearInterval(t);
     },100);
   }
+})();
+
+/* =========================================================
+   124.4 — SHARED KICKOFF FORMATION PERSISTENCE
+   One 11-player Kickoff and one 11-player Kick Return formation
+   are used by Black/Blue/Green/Gold. Players remain line-specific.
+   ========================================================= */
+(function(){
+  "use strict";
+  const KEY=()=>`coach1244:kickoffFormation:${team?.id||"team"}`;
+
+  function saveShared(){
+    try{localStorage.setItem(KEY(),JSON.stringify(DIAGRAM.kickoff));}catch(e){}
+  }
+  function loadShared(){
+    try{
+      const x=JSON.parse(localStorage.getItem(KEY())||"null");
+      if(x?.offense?.length===11 && x?.defense?.length===11){
+        DIAGRAM.kickoff.offense=x.offense;
+        DIAGRAM.kickoff.defense=x.defense;
+      }
+    }catch(e){}
+  }
+
+  loadShared();
+
+  // Persist shared names/locations after Rename or Move interactions.
+  document.addEventListener("click",e=>{
+    if(!document.getElementById("coach1220Special")) return;
+    if(!String(e.target?.closest?.("button")?.textContent||"").match(/RENAME|MOVE SPOTS|KICKOFF/i)) return;
+    setTimeout(saveShared,150);
+  },false);
+
+  // Seed the authoritative formation immediately.
+  saveShared();
 })();
