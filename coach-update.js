@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v123.9 — STATIC FIELD NUMBERS
+   v124.0 — SYNCHRONOUS FIELD NUMBERS
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "123.9";
+window.COACH_UPDATE_VERSION = "124.0";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "123.9";
 (function(){
   "use strict";
 
-  const VERSION="123.9";
+  const VERSION="124.0";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -8376,7 +8376,7 @@ window.COACH_UPDATE_VERSION = "123.9";
     try{
       renderField=function(){
         const r=old.apply(this,arguments);
-        setTimeout(enhanceField,0);
+        enhanceField();
         return r;
       };
       window.__coach1233RenderWrapped=true;
@@ -8388,7 +8388,7 @@ window.COACH_UPDATE_VERSION = "123.9";
     try{
       renderUnifiedField=function(){
         const r=old.apply(this,arguments);
-        setTimeout(enhanceField,0);
+        enhanceField();
         return r;
       };
       window.__coach1233UnifiedWrapped=true;
@@ -8741,6 +8741,24 @@ window.COACH_UPDATE_VERSION = "123.9";
       opacity:1!important;
       visibility:visible!important;
       transform:none!important;
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+/* 124.0 — numbers are inserted during the native field render, before Safari paints */
+(function(){
+  "use strict";
+  if(typeof enhanceField==="function"){
+    try{ enhanceField(); }catch(e){}
+  }
+  const style=document.createElement("style");
+  style.id="coach1240NoNumberPaintGap";
+  style.textContent=`
+    #field .coach1233Player{
+      contain:layout style!important;
+      backface-visibility:hidden!important;
+      -webkit-font-smoothing:antialiased!important;
     }
   `;
   document.head.appendChild(style);
