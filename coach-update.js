@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v124.6 — SPECIAL TEAMS ANY PLAYER
+   v124.7 — PLAYER STAR MARKER
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "124.6";
+window.COACH_UPDATE_VERSION = "124.7";
 
 (function () {
   "use strict";
@@ -6458,7 +6458,7 @@ window.COACH_UPDATE_VERSION = "124.6";
 (function(){
   "use strict";
 
-  const VERSION="124.6";
+  const VERSION="124.7";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -8834,3 +8834,170 @@ window.COACH_UPDATE_VERSION = "124.6";
    - No-position-match players are highlighted as a warning, not blocked.
    - Special Teams remains excluded from Game Day participation stats.
 */
+
+/* =========================================================
+   124.7 — PLAYER STAR MARKER
+   Game Day only. Tap MARK ⭐, then tap a player card.
+   Marker belongs to that exact line + side + position + player.
+   Tap marked player while MARK mode is on to remove.
+   If the player in that position changes, the marker disappears.
+   No stats / Special Teams effects.
+   ========================================================= */
+(function(){
+  "use strict";
+
+  let markMode=false;
+  const marks=new Map();
+
+  function lineId(){
+    const l=Array.isArray(lines)?lines[currentLine]:null;
+    return String(l?.id ?? currentLine ?? "");
+  }
+
+  function sideOf(slot){
+    if(slot.classList.contains("offense")) return "offense";
+    if(slot.classList.contains("defense")) return "defense";
+    const y=parseFloat(slot.style.top||"0");
+    return y<55?"offense":"defense";
+  }
+
+  function positionOf(slot){
+    return String(slot.dataset.positionId || slot.dataset.position || slot.dataset.pos || 
+      slot.querySelector(".pos,.position,.slotPos")?.textContent || "").trim();
+  }
+
+  function playerIdOf(slot){
+    return String(slot.dataset.playerId || slot.dataset.player || 
+      slot.querySelector("[data-player-id]")?.dataset.playerId || "").trim();
+  }
+
+  function playerSignature(slot){
+    const pid=playerIdOf(slot);
+    if(pid) return "id:"+pid;
+    const name=slot.querySelector(".coach1234Name")?.textContent ||
+      slot.querySelector(".coach1233Player")?.textContent || "";
+    return "name:"+String(name).replace(/#\d+/g,"").trim();
+  }
+
+  function keyFor(slot){
+    return [lineId(),sideOf(slot),positionOf(slot)].join("|");
+  }
+
+  function ensureButton(){
+    const bar=document.getElementById("coach1200DashboardBar");
+    if(!bar || document.getElementById("coach1247MarkBtn")) return;
+    const move=[...bar.querySelectorAll("button")].find(b=>/MOVE PLAYERS/i.test(b.textContent||""));
+    const b=document.createElement("button");
+    b.id="coach1247MarkBtn";
+    b.type="button";
+    b.textContent="⭐ MARK PLAYER";
+    b.addEventListener("click",e=>{
+      e.preventDefault(); e.stopPropagation();
+      markMode=!markMode;
+      b.classList.toggle("active",markMode);
+      b.textContent=markMode?"⭐ TAP PLAYER":"⭐ MARK PLAYER";
+    });
+    if(move) bar.insertBefore(b,move); else bar.appendChild(b);
+  }
+
+  function clearVisual(slot){
+    slot.classList.remove("coach1247Marked");
+    slot.querySelectorAll(":scope > .coach1247Star").forEach(x=>x.remove());
+  }
+
+  function addVisual(slot){
+    clearVisual(slot);
+    const star=document.createElement("span");
+    star.className="coach1247Star";
+    star.textContent="★";
+    star.setAttribute("aria-label","marked player");
+    slot.appendChild(star);
+    slot.classList.add("coach1247Marked");
+  }
+
+  function refresh(){
+    ensureButton();
+    document.querySelectorAll("#field .slot").forEach(slot=>{
+      const key=keyFor(slot);
+      const sig=playerSignature(slot);
+      const saved=marks.get(key);
+      clearVisual(slot);
+      if(!saved) return;
+      if(saved!==sig){
+        // Position occupant changed: marker automatically expires.
+        marks.delete(key);
+        return;
+      }
+      addVisual(slot);
+    });
+  }
+
+  document.addEventListener("click",e=>{
+    if(!markMode) return;
+    const slot=e.target.closest?.("#field .slot");
+    if(!slot) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+
+    const key=keyFor(slot);
+    const sig=playerSignature(slot);
+    if(marks.get(key)===sig){
+      marks.delete(key);
+      clearVisual(slot);
+    }else{
+      marks.set(key,sig);
+      addVisual(slot);
+    }
+
+    markMode=false;
+    const b=document.getElementById("coach1247MarkBtn");
+    if(b){b.classList.remove("active"); b.textContent="⭐ MARK PLAYER";}
+  },true);
+
+  // Refresh only when Game Day actually redraws / changes.
+  const wrap=name=>{
+    try{
+      const old=window[name];
+      if(typeof old!=="function" || old.__coach1247) return;
+      const fn=function(){
+        const r=old.apply(this,arguments);
+        requestAnimationFrame(refresh);
+        return r;
+      };
+      fn.__coach1247=true;
+      window[name]=fn;
+    }catch(e){}
+  };
+  wrap("renderField");
+  wrap("renderUnifiedField");
+  wrap("nextLineOnly");
+
+  setTimeout(refresh,0);
+  setTimeout(refresh,300);
+
+  const style=document.createElement("style");
+  style.id="coach1247StarStyle";
+  style.textContent=`
+    #coach1247MarkBtn.active{
+      background:#f3b61f!important;
+      color:#07111f!important;
+      border-color:#ffe28a!important;
+    }
+    #field .slot.coach1247Marked{
+      position:absolute!important;
+    }
+    #field .slot .coach1247Star{
+      position:absolute!important;
+      right:4px!important;
+      top:3px!important;
+      z-index:12!important;
+      font-size:18px!important;
+      line-height:1!important;
+      color:#ffd84d!important;
+      text-shadow:0 1px 2px #000,0 0 4px #000!important;
+      pointer-events:none!important;
+    }
+  `;
+  document.head.appendChild(style);
+})();
