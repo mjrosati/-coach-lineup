@@ -2,7 +2,7 @@
    v124.9 — GAME DAY SWAP FIX
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "125.2";
+window.COACH_UPDATE_VERSION = "125.3";
 
 (function () {
   "use strict";
@@ -6472,7 +6472,7 @@ window.COACH_UPDATE_VERSION = "125.2";
 (function(){
   "use strict";
 
-  const VERSION="124.9";
+  const VERSION="125.3";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -9183,7 +9183,7 @@ window.COACH_UPDATE_VERSION = "125.2";
 
 
 /* =========================================================
-   125.2 — SAFE EXACT GAME LINEUP REPAIR
+   125.3 — LINEUP DATABASE FIX
    Never clears a side first. Uses two-phase staging so same-side
    unique-player rules cannot leave OPEN positions.
    Special Teams and participation stats are untouched.
@@ -9191,7 +9191,7 @@ window.COACH_UPDATE_VERSION = "125.2";
 (()=>{
 const EXACT={"Black":{"offense":{"LT":"Schnittker","LG":"Tinucci","C":"Miller","RG":"Webber","RT":"McLellan","Y":"Raymond","Z":"Seebinger","H":"Adams","X":"Witt","QB":"Scherbring","F":"Rosati"},"defense":{"D":"Seebinger","LE":"Tinucci","NG":"Rosati","RE":"Miller","R":"Raymond","W":"Scherbring","S":"Webber","FC":"McLellan","RD":"Adams","FS":"Witt","BC":"Schnittker"}},"Blue":{"offense":{"LT":"Miller","LG":"Raymond","C":"Webber","RG":"Klein","RT":"Pattain","Y":"Tinucci","Z":"Scherbring","H":"Sandness","X":"Rosati","QB":"Puckett","F":"Novogratz"},"defense":{"D":"Webber","LE":"Pattain","NG":"Scherbring","RE":"Raymond","R":"Miller","W":"Novogratz","S":"Rosati","FC":"Sandness","RD":"Tinucci","FS":"Puckett","BC":"Klein"}},"Green":{"offense":{"LT":"Schnittker","LG":"Tinucci","C":"Miller","RG":"Pattain","RT":"McLellan","Y":"Raymond","Z":"Seebinger","H":"Adams","X":"Witt","QB":"Scherbring","F":"Rosati"},"defense":{"D":"Seebinger","LE":"Tinucci","NG":"Rosati","RE":"Miller","R":"Raymond","W":"Scherbring","S":"Pattain","FC":"McLellan","RD":"Adams","FS":"Witt","BC":"Schnittker"}},"Gold":{"offense":{"LT":"Miller","LG":"Schnittker","C":"Webber","RG":"Klein","RT":"Pattain","Y":"Adams","Z":"Witt","H":"Sandness","X":"Seebinger","QB":"Puckett","F":"Novogratz"},"defense":{"D":"Webber","LE":"Pattain","NG":"Adams","RE":"Seebinger","R":"Miller","W":"Novogratz","S":"Schnittker","FC":"Sandness","RD":"Witt","FS":"Puckett","BC":"Klein"}}};
 const norm=v=>String(v??'').trim().toLowerCase();
-const APPLIED='coach1252ExactLineupsApplied';
+const APPLIED='coach1253ExactLineupsApplied';
 
 function lastName(v){const a=norm(v).split(/\s+/);return a[a.length-1]||'';}
 function findPlayer(name){
@@ -9207,11 +9207,11 @@ function findPos(ps,label){
   return ps.find(p=>norm(p.label)===norm(label)||norm(p.name)===norm(label)||norm(p.code)===norm(label));
 }
 async function del(lineId,posId){
-  const r=await sb.from('assignments').delete().eq('line_id',lineId).eq('position_label_id',posId);
+  const r=await sb.from('line_assignments').delete().eq('line_id',lineId).eq('position_label_id',posId);
   if(r.error) throw r.error;
 }
 async function put(lineId,posId,playerId){
-  const r=await sb.from('assignments').insert({line_id:lineId,position_label_id:posId,player_id:playerId});
+  const r=await sb.from('line_assignments').insert({line_id:lineId,position_label_id:posId,player_id:playerId});
   if(r.error) throw r.error;
 }
 async function repairSide(line,side,map){
@@ -9264,16 +9264,16 @@ async function apply1252(){
     try{saveOfflineSnapshot?.();}catch(e){}
     try{renderField?.();}catch(e){}
     localStorage.setItem(APPLIED,'1');
-    alert('125.2 complete: all four game lineups repaired.');
+    alert('125.3 complete: all four game lineups repaired.');
     return true;
   }catch(e){
     console.error('125.2 lineup repair',e);
     try{await loadAssignments?.();renderField?.();}catch(_e){}
-    alert('125.2 stopped: '+(e?.message||e));
+    alert('125.3 stopped: '+(e?.message||e));
     return true;
   }
 }
-window.coach1252ApplyExactLineups=apply1252;
+window.coach1253ApplyExactLineups=apply1252;
 let tries=0;
 const timer=setInterval(async()=>{
   if(localStorage.getItem(APPLIED)==='1'||++tries>30){clearInterval(timer);return;}
