@@ -9038,3 +9038,145 @@ window.COACH_UPDATE_VERSION = "124.9";
    the same side. Linked offense/defense behavior is preserved.
    Star marker and 124.6 Special Teams behavior are unchanged.
 */
+
+
+/* =========================================================
+   125.0 — REBUILT GAME DAY PLAYER MOVE
+   One authoritative picker + transaction-style swap.
+   It intentionally bypasses native replacePlayerLinked /
+   assignPlayerDirect duplicate checks.
+   ========================================================= */
+(()=>{
+  const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+  function lineNow(){ return Array.isArray(lines)?lines[currentLine]:null; }
+  function posById(id){ return (positions||[]).find(p=>String(p.id)===String(id)); }
+  function lineAsn(lineId){
+    return (assignments||[]).filter(a=>String(a.line_id)===String(lineId));
+  }
+  function posOfAssignment(a){
+    return (positions||[]).find(p=>String(p.id)===String(a.position_label_id));
+  }
+  function sideAssignment(lineId,side,playerId){
+    return lineAsn(lineId).map(a=>({a,pos:posOfAssignment(a)}))
+      .find(x=>x.pos && x.pos.side===side && String(x.a.player_id)===String(playerId));
+  }
+
+  async function write(lineId,posId,playerId){
+    if(typeof sb==="undefined") throw new Error("Database unavailable");
+    const d=await sb.from("assignments").delete()
+      .eq("line_id",lineId).eq("position_label_id",posId);
+    if(d.error) throw d.error;
+    if(!playerId) return;
+    const i=await sb.from("assignments").insert({
+      line_id:lineId,position_label_id:posId,player_id:playerId
+    });
+    if(i.error) throw i.error;
+  }
+
+  async function swap(positionId,newPlayerId){
+    const line=lineNow(), target=posById(positionId);
+    if(!line||!target) return;
+    const current=lineAsn(line.id).find(a=>String(a.position_label_id)===String(positionId));
+    const oldId=current?.player_id||"";
+    if(String(oldId)===String(newPlayerId)){ try{closeModal();}catch(e){} return; }
+
+    const incoming=(players||[]).find(p=>String(p.id)===String(newPlayerId));
+    if(!incoming){ alert("Player not found."); return; }
+    if(typeof playerCanPlay==="function" && !playerCanPlay(incoming)){
+      alert("That player is not currently available."); return;
+    }
+
+    const side=target.side, opp=side==="offense"?"defense":"offense";
+    const inSame=sideAssignment(line.id,side,newPlayerId);
+    const oldOpp=oldId?sideAssignment(line.id,opp,oldId):null;
+    const inOpp=sideAssignment(line.id,opp,newPlayerId);
+
+    try{
+      // Clear every affected position FIRST, so no intermediate duplicate exists.
+      const clearIds=new Set([String(target.id)]);
+      if(inSame?.pos) clearIds.add(String(inSame.pos.id));
+      if(oldOpp?.pos) clearIds.add(String(oldOpp.pos.id));
+      if(inOpp?.pos) clearIds.add(String(inOpp.pos.id));
+      for(const id of clearIds) await write(line.id,id,"");
+
+      // Same-side true swap / replacement.
+      await write(line.id,target.id,newPlayerId);
+      if(inSame?.pos && String(inSame.pos.id)!==String(target.id) && oldId)
+        await write(line.id,inSame.pos.id,oldId);
+
+      // Preserve linked offense/defense behavior.
+      if(oldOpp?.pos){
+        await write(line.id,oldOpp.pos.id,newPlayerId);
+        if(inOpp?.pos && String(inOpp.pos.id)!==String(oldOpp.pos.id) && oldId)
+          await write(line.id,inOpp.pos.id,oldId);
+      }
+
+      if(typeof loadAssignments==="function") await loadAssignments();
+      try{saveOfflineSnapshot?.();}catch(e){}
+      try{closeModal?.();}catch(e){}
+      try{renderField?.();}catch(e){}
+      try{renderPlayers?.();}catch(e){}
+      try{mirrorDashboardField?.();}catch(e){}
+    }catch(e){
+      console.error("125.0 rebuilt swap",e);
+      // Reload authoritative DB state if any write failed.
+      try{ if(typeof loadAssignments==="function") await loadAssignments(); }catch(_){}
+      alert("Could not move that player. "+(e?.message||"Please try again."));
+    }
+  }
+
+  function openPicker(positionId){
+    const line=lineNow(), pos=posById(positionId);
+    if(!line||!pos) return;
+    const la=lineAsn(line.id);
+    const curA=la.find(a=>String(a.position_label_id)===String(positionId));
+    const cur=(players||[]).find(p=>String(p.id)===String(curA?.player_id));
+    const rows=(players||[]).filter(p=>typeof playerCanPlay!=="function"||playerCanPlay(p))
+      .map(p=>{
+        const occupied=sideAssignment(line.id,pos.side,p.id);
+        const prefs=(pos.side==="offense"?p.offense_positions:p.defense_positions)||[];
+        let score=0;
+        try{ score=typeof playerPositionMatchScore==="function"?playerPositionMatchScore(p,pos.label,pos.side):0; }catch(e){}
+        return {p,occupied,prefs,score};
+      }).sort((a,b)=>b.score-a.score || String(a.p.name||"").localeCompare(String(b.p.name||"")));
+
+    const recommended=rows.find(x=>!x.occupied && String(x.p.id)!==String(cur?.id)) || rows[0];
+    const html=`<div class="coach1196SwapModal">
+      <div class="coach1196SwapHead">
+        <div><small>${esc(line.name||"LINE")} • ${esc(String(pos.side||"").toUpperCase())}</small>
+        <h2>${esc(pos.label)}${cur?" — "+esc(cur.name):""}</h2></div>
+        <button type="button" class="secondary" onclick="closeModal()">✕ CLOSE</button>
+      </div>
+      ${recommended?`<div class="coach1196Recommended"><span><small>RECOMMENDED REPLACEMENT</small><b>#${esc(recommended.p.jersey_number??"")} ${esc(recommended.p.name||"Player")}</b></span>
+      <button type="button" onclick="coach1250Swap('${esc(positionId)}','${esc(recommended.p.id)}')">USE RECOMMENDATION</button></div>`:""}
+      <p class="coach1196SwapHint">Full roster shown. A player already on this ${esc(pos.side)} line can be selected and the two positions will swap.</p>
+      <div class="coach1196SwapList">
+      ${rows.map(x=>{
+        const isCur=String(x.p.id)===String(cur?.id);
+        return `<button type="button" class="coach1196SwapRow ${x.occupied?"onField":""} ${isCur?"current":""}"
+          onclick="coach1250Swap('${esc(positionId)}','${esc(x.p.id)}')">
+          <b>#${esc(x.p.jersey_number??"")}</b>
+          <span><b>${esc(x.p.name||"Player")}</b><small>${isCur?"CURRENT PLAYER":x.occupied?"ON FIELD — TAP TO SWAP":"TAP TO REPLACE"}</small></span>
+          <span class="coach1196SwapWhere">${x.occupied?"ON FIELD • "+esc(x.occupied.pos?.label||""):"BENCH"}</span>
+          <span class="coach1196SwapPrefs">${esc(x.prefs.length?x.prefs.join(" / "):"OTHER POSITION")}</span>
+          <span class="coach1196SwapPlays">${Number(counts?.[x.p.id]||0)}</span>
+        </button>`;
+      }).join("")}</div></div>`;
+
+    if(typeof openModal==="function") openModal(html);
+  }
+
+  window.coach1250Swap=swap;
+  window.coach1250OpenPicker=openPicker;
+
+  // Make these the final authoritative entry points after every older patch.
+  window.openReplacePlayerModal=openPicker;
+  window.replacePlayerAtPosition=swap;
+
+  // Reassert after startup/render timers from older versions.
+  [0,100,500,1500].forEach(ms=>setTimeout(()=>{
+    window.openReplacePlayerModal=openPicker;
+    window.replacePlayerAtPosition=swap;
+  },ms));
+})();
