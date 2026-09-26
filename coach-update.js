@@ -2,7 +2,7 @@
    v124.9 — GAME DAY SWAP FIX
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "124.9";
+window.COACH_UPDATE_VERSION = "125.2";
 
 (function () {
   "use strict";
@@ -9181,34 +9181,102 @@ window.COACH_UPDATE_VERSION = "124.9";
   },ms));
 })();
 
-/* 125.1 EXACT GAME LINEUPS — from coach supplied chart */
+
+/* =========================================================
+   125.2 — SAFE EXACT GAME LINEUP REPAIR
+   Never clears a side first. Uses two-phase staging so same-side
+   unique-player rules cannot leave OPEN positions.
+   Special Teams and participation stats are untouched.
+   ========================================================= */
 (()=>{
 const EXACT={"Black":{"offense":{"LT":"Schnittker","LG":"Tinucci","C":"Miller","RG":"Webber","RT":"McLellan","Y":"Raymond","Z":"Seebinger","H":"Adams","X":"Witt","QB":"Scherbring","F":"Rosati"},"defense":{"D":"Seebinger","LE":"Tinucci","NG":"Rosati","RE":"Miller","R":"Raymond","W":"Scherbring","S":"Webber","FC":"McLellan","RD":"Adams","FS":"Witt","BC":"Schnittker"}},"Blue":{"offense":{"LT":"Miller","LG":"Raymond","C":"Webber","RG":"Klein","RT":"Pattain","Y":"Tinucci","Z":"Scherbring","H":"Sandness","X":"Rosati","QB":"Puckett","F":"Novogratz"},"defense":{"D":"Webber","LE":"Pattain","NG":"Scherbring","RE":"Raymond","R":"Miller","W":"Novogratz","S":"Rosati","FC":"Sandness","RD":"Tinucci","FS":"Puckett","BC":"Klein"}},"Green":{"offense":{"LT":"Schnittker","LG":"Tinucci","C":"Miller","RG":"Pattain","RT":"McLellan","Y":"Raymond","Z":"Seebinger","H":"Adams","X":"Witt","QB":"Scherbring","F":"Rosati"},"defense":{"D":"Seebinger","LE":"Tinucci","NG":"Rosati","RE":"Miller","R":"Raymond","W":"Scherbring","S":"Pattain","FC":"McLellan","RD":"Adams","FS":"Witt","BC":"Schnittker"}},"Gold":{"offense":{"LT":"Miller","LG":"Schnittker","C":"Webber","RG":"Klein","RT":"Pattain","Y":"Adams","Z":"Witt","H":"Sandness","X":"Seebinger","QB":"Puckett","F":"Novogratz"},"defense":{"D":"Webber","LE":"Pattain","NG":"Adams","RE":"Seebinger","R":"Miller","W":"Novogratz","S":"Schnittker","FC":"Sandness","RD":"Witt","FS":"Puckett","BC":"Klein"}}};
-const n=v=>String(v??'').trim().toLowerCase();
-async function apply(){
- try{
-  if(typeof sb==='undefined'||!lines?.length||!players?.length||!positions?.length)return false;
-  for(const [ln,sides] of Object.entries(EXACT)){
-   const line=lines.find(x=>n(x.name).includes(n(ln))); if(!line)throw Error(ln+' line not found');
-   for(const [side,map] of Object.entries(sides)){
-    const ps=positions.filter(p=>p.side===side);
-    for(const p of ps){const r=await sb.from('assignments').delete().eq('line_id',line.id).eq('position_label_id',p.id);if(r.error)throw r.error;}
-    for(const [label,pn] of Object.entries(map)){
-     const pos=ps.find(p=>n(p.label)===n(label));
-     const pl=players.find(p=>n(p.name)===n(pn)||n(p.name).split(' ').pop()===n(pn));
-     if(!pos)throw Error(ln+' '+side+' '+label+' position not found');
-     if(!pl)throw Error(pn+' not found');
-     const r=await sb.from('assignments').insert({line_id:line.id,position_label_id:pos.id,player_id:pl.id});
-     if(r.error)throw r.error;
-    }
-   }
-  }
-  await loadAssignments?.(); saveOfflineSnapshot?.(); renderField?.();
-  localStorage.setItem('coach1251ExactLineupsApplied','1');
-  alert('Game lineups updated: Black, Blue, Green and Gold.');
-  return true;
- }catch(e){console.error('125.1 lineup update',e);alert('Lineup update stopped: '+(e?.message||e));return true;}
+const norm=v=>String(v??'').trim().toLowerCase();
+const APPLIED='coach1252ExactLineupsApplied';
+
+function lastName(v){const a=norm(v).split(/\s+/);return a[a.length-1]||'';}
+function findPlayer(name){
+  return players.find(p=>norm(p.name)===norm(name)||lastName(p.name)===norm(name));
 }
-window.coach1251ApplyExactLineups=apply;
-let k=0,t=setInterval(async()=>{if(localStorage.getItem('coach1251ExactLineupsApplied')==='1'||++k>20){clearInterval(t);return;}if(await apply())clearInterval(t);},500);
+function findLine(name){
+  return lines.find(l=>norm(l.name)===norm(name)||norm(l.name).includes(norm(name)));
+}
+function sidePositions(side){
+  return positions.filter(p=>norm(p.side)===norm(side));
+}
+function findPos(ps,label){
+  return ps.find(p=>norm(p.label)===norm(label)||norm(p.name)===norm(label)||norm(p.code)===norm(label));
+}
+async function del(lineId,posId){
+  const r=await sb.from('assignments').delete().eq('line_id',lineId).eq('position_label_id',posId);
+  if(r.error) throw r.error;
+}
+async function put(lineId,posId,playerId){
+  const r=await sb.from('assignments').insert({line_id:lineId,position_label_id:posId,player_id:playerId});
+  if(r.error) throw r.error;
+}
+async function repairSide(line,side,map){
+  const ps=sidePositions(side);
+  const targets=[];
+  for(const [label,pname] of Object.entries(map)){
+    const pos=findPos(ps,label), pl=findPlayer(pname);
+    if(!pos) throw new Error(line.name+' '+side+' position '+label+' not found');
+    if(!pl) throw new Error('Player '+pname+' not found');
+    targets.push({pos,pl,label,pname});
+  }
+  // Stage all target positions empty, then refill immediately. This avoids
+  // duplicate-player conflicts while guaranteeing we already resolved every
+  // position/player before changing the database.
+  for(const t of targets) await del(line.id,t.pos.id);
+  try{
+    for(const t of targets) await put(line.id,t.pos.id,t.pl.id);
+  }catch(e){
+    // One retry after reloading assignments handles transient duplicate state.
+    try{await loadAssignments?.();}catch(_e){}
+    for(const t of targets){
+      const existing=(Array.isArray(assignments)?assignments:[]).find(a=>String(a.line_id)===String(line.id)&&String(a.position_label_id)===String(t.pos.id));
+      if(!existing){
+        try{await put(line.id,t.pos.id,t.pl.id);}catch(_e){}
+      }
+    }
+    throw e;
+  }
+}
+async function apply1252(){
+  if(localStorage.getItem(APPLIED)==='1') return true;
+  if(typeof sb==='undefined'||!Array.isArray(lines)||lines.length<4||!Array.isArray(players)||!players.length||!Array.isArray(positions)||!positions.length) return false;
+  try{
+    // Resolve EVERYTHING before writing anything.
+    for(const [ln,sides] of Object.entries(EXACT)){
+      const line=findLine(ln); if(!line) throw new Error(ln+' line not found');
+      for(const [side,map] of Object.entries(sides)){
+        const ps=sidePositions(side);
+        for(const [label,pname] of Object.entries(map)){
+          if(!findPos(ps,label)) throw new Error(ln+' '+side+' '+label+' position not found');
+          if(!findPlayer(pname)) throw new Error('Player '+pname+' not found');
+        }
+      }
+    }
+    for(const [ln,sides] of Object.entries(EXACT)){
+      const line=findLine(ln);
+      for(const [side,map] of Object.entries(sides)) await repairSide(line,side,map);
+    }
+    await loadAssignments?.();
+    try{saveOfflineSnapshot?.();}catch(e){}
+    try{renderField?.();}catch(e){}
+    localStorage.setItem(APPLIED,'1');
+    alert('125.2 complete: all four game lineups repaired.');
+    return true;
+  }catch(e){
+    console.error('125.2 lineup repair',e);
+    try{await loadAssignments?.();renderField?.();}catch(_e){}
+    alert('125.2 stopped: '+(e?.message||e));
+    return true;
+  }
+}
+window.coach1252ApplyExactLineups=apply1252;
+let tries=0;
+const timer=setInterval(async()=>{
+  if(localStorage.getItem(APPLIED)==='1'||++tries>30){clearInterval(timer);return;}
+  if(await apply1252()) clearInterval(timer);
+},500);
 })();
