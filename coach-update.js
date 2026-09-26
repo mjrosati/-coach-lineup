@@ -1,8 +1,8 @@
 /* Coach Lineup live update layer
-   v124.8 — VISIBLE PLAYER STAR MARKER
+   v124.9 — GAME DAY SWAP FIX
    This file intentionally replaces the earlier 117.x patch stack.
 */
-window.COACH_UPDATE_VERSION = "124.8";
+window.COACH_UPDATE_VERSION = "124.9";
 
 (function () {
   "use strict";
@@ -6122,6 +6122,20 @@ window.COACH_UPDATE_VERSION = "124.8";
     return pos?{assignment:a,pos}:null;
   }
 
+  async function coach1249WriteAssignment(lineId,positionId,playerId){
+    if(typeof sb==="undefined") throw new Error("Database unavailable");
+    // Remove this position first. This bypasses the old UI duplicate guard while
+    // the swap routine temporarily has players in transition.
+    const del=await sb.from("assignments")
+      .delete().eq("line_id",lineId).eq("position_label_id",positionId);
+    if(del.error) throw del.error;
+    if(!playerId) return;
+    const ins=await sb.from("assignments").insert({
+      line_id:lineId, position_label_id:positionId, player_id:playerId
+    });
+    if(ins.error) throw ins.error;
+  }
+
   async function coach1196SwapPlayerAtPosition(positionId,newPlayerId){
     const line=lines?.[currentLine];
     const target=positions?.find(p=>String(p.id)===String(positionId));
@@ -6153,32 +6167,32 @@ window.COACH_UPDATE_VERSION = "124.8";
 
     try{
       // Clear affected same-side positions first.
-      await assignPlayerDirect(line.id,target.id,"");
+      await coach1249WriteAssignment(line.id,target.id,"");
       if(incomingHere && String(incomingHere.pos.id)!==String(target.id)){
-        await assignPlayerDirect(line.id,incomingHere.pos.id,"");
+        await coach1249WriteAssignment(line.id,incomingHere.pos.id,"");
       }
 
       // Put incoming player in target; outgoing player takes incoming's old spot.
-      await assignPlayerDirect(line.id,target.id,newPlayerId);
+      await coach1249WriteAssignment(line.id,target.id,newPlayerId);
       if(incomingHere && String(incomingHere.pos.id)!==String(target.id) && oldPlayerId){
-        await assignPlayerDirect(line.id,incomingHere.pos.id,oldPlayerId);
+        await coach1249WriteAssignment(line.id,incomingHere.pos.id,oldPlayerId);
       }
 
       /* Keep offense and defense linked on this same line.
          If both players are already on the opposite side, swap those spots too.
          If only the outgoing player is there, replace that spot with incoming. */
       if(oldOpp){
-        await assignPlayerDirect(line.id,oldOpp.pos.id,"");
+        await coach1249WriteAssignment(line.id,oldOpp.pos.id,"");
         if(incomingOpp && String(incomingOpp.pos.id)!==String(oldOpp.pos.id)){
-          await assignPlayerDirect(line.id,incomingOpp.pos.id,"");
+          await coach1249WriteAssignment(line.id,incomingOpp.pos.id,"");
         }
 
-        await assignPlayerDirect(line.id,oldOpp.pos.id,newPlayerId);
+        await coach1249WriteAssignment(line.id,oldOpp.pos.id,newPlayerId);
 
         if(incomingOpp &&
            String(incomingOpp.pos.id)!==String(oldOpp.pos.id) &&
            oldPlayerId){
-          await assignPlayerDirect(line.id,incomingOpp.pos.id,oldPlayerId);
+          await coach1249WriteAssignment(line.id,incomingOpp.pos.id,oldPlayerId);
         }
       }
 
@@ -6458,7 +6472,7 @@ window.COACH_UPDATE_VERSION = "124.8";
 (function(){
   "use strict";
 
-  const VERSION="124.8";
+  const VERSION="124.9";
   const ROOT_ID="coach1220Special";
   const OBSERVER_KEY="coach1220Observer";
 
@@ -9016,4 +9030,11 @@ window.COACH_UPDATE_VERSION = "124.8";
 /* 124.8 fix:
    124.7 targeted an obsolete dashboard-bar ID, so the button never appeared.
    124.8 anchors directly to the visible MOVE PLAYERS control instead.
+*/
+
+/* 124.9 — GAME DAY SWAP FIX
+   Fixes the "Player is already assigned on this OFFENSE line" block.
+   The full-roster Game Day picker can now truly swap two players already on
+   the same side. Linked offense/defense behavior is preserved.
+   Star marker and 124.6 Special Teams behavior are unchanged.
 */
