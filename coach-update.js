@@ -9180,3 +9180,35 @@ window.COACH_UPDATE_VERSION = "124.9";
     window.replacePlayerAtPosition=swap;
   },ms));
 })();
+
+/* 125.1 EXACT GAME LINEUPS — from coach supplied chart */
+(()=>{
+const EXACT={"Black":{"offense":{"LT":"Schnittker","LG":"Tinucci","C":"Miller","RG":"Webber","RT":"McLellan","Y":"Raymond","Z":"Seebinger","H":"Adams","X":"Witt","QB":"Scherbring","F":"Rosati"},"defense":{"D":"Seebinger","LE":"Tinucci","NG":"Rosati","RE":"Miller","R":"Raymond","W":"Scherbring","S":"Webber","FC":"McLellan","RD":"Adams","FS":"Witt","BC":"Schnittker"}},"Blue":{"offense":{"LT":"Miller","LG":"Raymond","C":"Webber","RG":"Klein","RT":"Pattain","Y":"Tinucci","Z":"Scherbring","H":"Sandness","X":"Rosati","QB":"Puckett","F":"Novogratz"},"defense":{"D":"Webber","LE":"Pattain","NG":"Scherbring","RE":"Raymond","R":"Miller","W":"Novogratz","S":"Rosati","FC":"Sandness","RD":"Tinucci","FS":"Puckett","BC":"Klein"}},"Green":{"offense":{"LT":"Schnittker","LG":"Tinucci","C":"Miller","RG":"Pattain","RT":"McLellan","Y":"Raymond","Z":"Seebinger","H":"Adams","X":"Witt","QB":"Scherbring","F":"Rosati"},"defense":{"D":"Seebinger","LE":"Tinucci","NG":"Rosati","RE":"Miller","R":"Raymond","W":"Scherbring","S":"Pattain","FC":"McLellan","RD":"Adams","FS":"Witt","BC":"Schnittker"}},"Gold":{"offense":{"LT":"Miller","LG":"Schnittker","C":"Webber","RG":"Klein","RT":"Pattain","Y":"Adams","Z":"Witt","H":"Sandness","X":"Seebinger","QB":"Puckett","F":"Novogratz"},"defense":{"D":"Webber","LE":"Pattain","NG":"Adams","RE":"Seebinger","R":"Miller","W":"Novogratz","S":"Schnittker","FC":"Sandness","RD":"Witt","FS":"Puckett","BC":"Klein"}}};
+const n=v=>String(v??'').trim().toLowerCase();
+async function apply(){
+ try{
+  if(typeof sb==='undefined'||!lines?.length||!players?.length||!positions?.length)return false;
+  for(const [ln,sides] of Object.entries(EXACT)){
+   const line=lines.find(x=>n(x.name).includes(n(ln))); if(!line)throw Error(ln+' line not found');
+   for(const [side,map] of Object.entries(sides)){
+    const ps=positions.filter(p=>p.side===side);
+    for(const p of ps){const r=await sb.from('assignments').delete().eq('line_id',line.id).eq('position_label_id',p.id);if(r.error)throw r.error;}
+    for(const [label,pn] of Object.entries(map)){
+     const pos=ps.find(p=>n(p.label)===n(label));
+     const pl=players.find(p=>n(p.name)===n(pn)||n(p.name).split(' ').pop()===n(pn));
+     if(!pos)throw Error(ln+' '+side+' '+label+' position not found');
+     if(!pl)throw Error(pn+' not found');
+     const r=await sb.from('assignments').insert({line_id:line.id,position_label_id:pos.id,player_id:pl.id});
+     if(r.error)throw r.error;
+    }
+   }
+  }
+  await loadAssignments?.(); saveOfflineSnapshot?.(); renderField?.();
+  localStorage.setItem('coach1251ExactLineupsApplied','1');
+  alert('Game lineups updated: Black, Blue, Green and Gold.');
+  return true;
+ }catch(e){console.error('125.1 lineup update',e);alert('Lineup update stopped: '+(e?.message||e));return true;}
+}
+window.coach1251ApplyExactLineups=apply;
+let k=0,t=setInterval(async()=>{if(localStorage.getItem('coach1251ExactLineupsApplied')==='1'||++k>20){clearInterval(t);return;}if(await apply())clearInterval(t);},500);
+})();
